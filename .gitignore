@@ -1,0 +1,60 @@
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+
+# Node / JS
+node_modules/
+.pnpm-store/
+.next/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Go
+bin/
+*.test
+*.out
+vendor/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Logs / runtime
+*.log
+logs/
+tmp/
+temp/
+.cache/
+
+# Database/local data
+*.sqlite
+*.sqlite3
+*.db
+pgdata/
+redis-data/
+prometheus-data/
+minio-data/
+
+# Artifacts
+artifacts/
+*.tar
+*.tar.gz
+
+# Python tooling occasionally used for docs/scripts
+__pycache__/
+*.py[cod]
+.venv/
+venv/
