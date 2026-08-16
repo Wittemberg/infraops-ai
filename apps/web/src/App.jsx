@@ -443,8 +443,12 @@ export function App() {
         )}
         {currentNav === "nodes" && (
           <NodeDetailView
-            nodeId={nodes.find((n) => n.tenantId === activeTenant?.id)?.id || "node-pve01"}
+            activeTenant={activeTenant}
+            nodes={nodes}
+            workloads={workloads}
             onOpenActionModal={handleOpenActionModal}
+            onOpenAddWorkload={() => setWorkloadModalOpen(true)}
+            onOpenEnrollAgent={() => setEnrollModalOpen(true)}
           />
         )}
         {currentNav === "ai" && <AiConsoleView onOpenActionModal={handleOpenActionModal} />}
