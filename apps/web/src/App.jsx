@@ -240,6 +240,7 @@ export function App() {
             {currentNav === "approvals" && "Central de Aprovações & Auditoria"}
           </h1>
 
+          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
             {/* Theme Switcher */}
             <button
               className="btn btn-secondary"
