@@ -1,0 +1,20 @@
+{
+  "name": "worker",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "start": "node dist/main",
+    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\"",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@infraops/action-schema": "workspace:*",
+    "@infraops/audit": "workspace:*",
+    "@infraops/contracts": "workspace:*",
+    "@infraops/observability": "workspace:*",
+    "@infraops/policy-engine": "workspace:*",
+    "@infraops/shared": "workspace:*"
+  }
+}

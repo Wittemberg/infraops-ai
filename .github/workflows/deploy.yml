@@ -1,0 +1,65 @@
+name: CI/CD & Deploy to Portainer
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/next@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint Workspace
+        run: pnpm lint
+
+      - name: Typecheck Workspace
+        run: pnpm typecheck
+
+      - name: Build Monorepo
+        run: pnpm build
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Test Go Agent
+        run: |
+          cd agents/linux
+          go vet ./...
+          go test ./...
+
+  deploy:
+    name: Trigger Portainer Deploy
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Portainer Webhook
+        run: |
+          WEBHOOK_URL="${{ secrets.PORTAINER_WEBHOOK_URL }}"
+          if [ -z "$WEBHOOK_URL" ]; then
+            WEBHOOK_URL="https://portainer.wrtec.com.br/api/stacks/webhooks/a1ad5561-618d-42ea-a88d-68043997e963"
+          fi
+          echo "Triggering Portainer Stack deployment..."
+          curl -X POST "$WEBHOOK_URL"

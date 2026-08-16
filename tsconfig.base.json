@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@infraops/contracts": ["packages/contracts/src/index.ts"],
+      "@infraops/action-schema": ["packages/action-schema/src/index.ts"],
+      "@infraops/policy-engine": ["packages/policy-engine/src/index.ts"],
+      "@infraops/audit": ["packages/audit/src/index.ts"],
+      "@infraops/observability": ["packages/observability/src/index.ts"],
+      "@infraops/shared": ["packages/shared/src/index.ts"]
+    }
+  }
+}

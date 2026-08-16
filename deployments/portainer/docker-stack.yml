@@ -1,0 +1,92 @@
+version: "3.8"
+
+services:
+  ## --------------------------- FRONTEND (Next.js) --------------------------- ##
+  frontend:
+    image: ghcr.io/wittemberg/infraops-web:latest
+    networks:
+      - interna
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://infraopsai.awecloudsolution.com/api
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.infraops-web.rule=Host(`infraopsai.awecloudsolution.com`)"
+        - "traefik.http.routers.infraops-web.entrypoints=websecure"
+        - "traefik.http.routers.infraops-web.tls.certresolver=letsencryptresolver"
+        - "traefik.http.services.infraops-web.loadbalancer.server.port=3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 4
+
+  ## --------------------------- BACKEND API (NestJS) --------------------------- ##
+  backend:
+    image: ghcr.io/wittemberg/infraops-api:latest
+    networks:
+      - interna
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - TZ=America/Sao_Paulo
+      - APP_BASE_URL=https://infraopsai.awecloudsolution.com
+      - DATABASE_URL=${DATABASE_URL:-postgresql://infraops_app:infraops_pass@postgres:5432/infraops_db}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - S3_ENDPOINT=${S3_ENDPOINT:-http://minio:9000}
+      - S3_REGION=${S3_REGION:-eu-south}
+      - S3_BUCKET=${S3_BUCKET:-infraops-artifacts}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - S3_FORCE_PATH_STYLE=true
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.infraops-api.rule=Host(`infraopsai.awecloudsolution.com`) && PathPrefix(`/api`)"
+        - "traefik.http.routers.infraops-api.entrypoints=websecure"
+        - "traefik.http.routers.infraops-api.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.infraops-api.priority=100"
+        - "traefik.http.services.infraops-api.loadbalancer.server.port=3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/v1/health', (r) => { process.exit(r.statusCode === 200 ? 0 : 1); })"]
+      interval: 30s
+      timeout: 10s
+      retries: 4
+
+  ## --------------------------- WORKER (BullMQ) --------------------------- ##
+  worker:
+    image: ghcr.io/wittemberg/infraops-worker:latest
+    networks:
+      - interna
+    environment:
+      - NODE_ENV=production
+      - TZ=America/Sao_Paulo
+      - DATABASE_URL=${DATABASE_URL:-postgresql://infraops_app:infraops_pass@postgres:5432/infraops_db}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - S3_ENDPOINT=${S3_ENDPOINT:-http://minio:9000}
+      - S3_REGION=${S3_REGION:-eu-south}
+      - S3_BUCKET=${S3_BUCKET:-infraops-artifacts}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+
+networks:
+  interna:
+    external: true
+    name: interna
