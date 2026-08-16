@@ -411,11 +411,21 @@ export function App() {
         </header>
 
         {/* View Switcher */}
-        {currentNav === "dashboard" && <DashboardView onOpenActionModal={handleOpenActionModal} />}
+        {currentNav === "dashboard" && (
+          <DashboardView
+            activeTenant={activeTenant}
+            nodes={nodes}
+            workloads={workloads}
+            integrations={integrations}
+            onOpenActionModal={handleOpenActionModal}
+          />
+        )}
         {currentNav === "tenants" && (
           <TenantsUsersView
             tenants={tenants}
             users={users}
+            activeTenant={activeTenant}
+            onSelectTenant={(t) => setActiveTenant(t)}
             onAddTenant={handleAddTenant}
             onUpdateTenant={handleUpdateTenant}
             onAddUser={handleAddUser}
@@ -431,7 +441,12 @@ export function App() {
             onTriggerSync={handleTriggerSync}
           />
         )}
-        {currentNav === "nodes" && <NodeDetailView nodeId="node-pve01" onOpenActionModal={handleOpenActionModal} />}
+        {currentNav === "nodes" && (
+          <NodeDetailView
+            nodeId={nodes.find((n) => n.tenantId === activeTenant?.id)?.id || "node-pve01"}
+            onOpenActionModal={handleOpenActionModal}
+          />
+        )}
         {currentNav === "ai" && <AiConsoleView onOpenActionModal={handleOpenActionModal} />}
         {currentNav === "approvals" && <ApprovalsAuditView />}
       </main>

@@ -1,14 +1,28 @@
 import React, { useState } from "react";
 
-export function TenantsUsersView({ tenants, users, onAddTenant, onUpdateTenant, onAddUser, onUpdateUser }) {
+export function TenantsUsersView({
+  tenants,
+  users,
+  activeTenant,
+  onSelectTenant,
+  onAddTenant,
+  onUpdateTenant,
+  onAddUser,
+  onUpdateUser,
+}) {
   const [tenantModalOpen, setTenantModalOpen] = useState(false);
   const [userModalOpen, setUserModalOpen] = useState(false);
+  const [filterActiveTenantOnly, setFilterActiveTenantOnly] = useState(true);
 
   const [editingTenant, setEditingTenant] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
 
   const [tenantForm, setTenantForm] = useState({ name: "", domain: "" });
-  const [userForm, setUserForm] = useState({ tenantId: tenants[0]?.id || "", name: "", email: "", role: "operator" });
+  const [userForm, setUserForm] = useState({ tenantId: activeTenant?.id || tenants[0]?.id || "", name: "", email: "", role: "operator" });
+
+  const displayedUsers = filterActiveTenantOnly && activeTenant
+    ? users.filter((u) => u.tenantId === activeTenant.id)
+    : users;
 
   const handleOpenAddTenant = () => {
     setEditingTenant(null);
@@ -24,7 +38,7 @@ export function TenantsUsersView({ tenants, users, onAddTenant, onUpdateTenant, 
 
   const handleOpenAddUser = () => {
     setEditingUser(null);
-    setUserForm({ tenantId: tenants[0]?.id || "", name: "", email: "", role: "operator" });
+    setUserForm({ tenantId: activeTenant?.id || tenants[0]?.id || "", name: "", email: "", role: "operator" });
     setUserModalOpen(true);
   };
 
@@ -70,7 +84,7 @@ export function TenantsUsersView({ tenants, users, onAddTenant, onUpdateTenant, 
               🏢 Clientes Registrados (Tenants)
             </h2>
             <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.2rem" }}>
-              💡 Dica: Clique duas vezes sobre uma linha para editar o Cliente.
+              💡 Clique sobre um cliente para selecioná-lo, ou dê 2 cliques para editar os dados.
             </p>
           </div>
           <button className="btn btn-primary" onClick={handleOpenAddTenant}>
@@ -85,37 +99,53 @@ export function TenantsUsersView({ tenants, users, onAddTenant, onUpdateTenant, 
               <th>Nome do Cliente</th>
               <th>Domínio</th>
               <th>Data de Cadastro</th>
+              <th>Status do Contexto</th>
               <th>Ações</th>
             </tr>
           </thead>
           <tbody>
-            {tenants.map((t) => (
-              <tr
-                key={t.id}
-                onDoubleClick={() => handleOpenEditTenant(t)}
-                style={{ cursor: "pointer" }}
-                title="Clique 2x para editar este Cliente"
-              >
-                <td style={{ fontFamily: "var(--font-mono)", color: "var(--accent-indigo)" }}>{t.id}</td>
-                <td style={{ fontWeight: 600 }}>{t.name}</td>
-                <td style={{ color: "var(--text-secondary)" }}>{t.domain}</td>
-                <td style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-                  {t.createdAt ? new Date(t.createdAt).toLocaleDateString("pt-BR") : "Recente"}
-                </td>
-                <td>
-                  <button
-                    className="btn btn-secondary"
-                    style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenEditTenant(t);
-                    }}
-                  >
-                    ✏️ Editar
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {tenants.map((t) => {
+              const isCurrentActive = t.id === activeTenant?.id;
+              return (
+                <tr
+                  key={t.id}
+                  onClick={() => onSelectTenant && onSelectTenant(t)}
+                  onDoubleClick={() => handleOpenEditTenant(t)}
+                  style={{
+                    cursor: "pointer",
+                    background: isCurrentActive ? "rgba(99, 102, 241, 0.12)" : "transparent",
+                    borderLeft: isCurrentActive ? "3px solid var(--accent-indigo)" : "none",
+                  }}
+                  title="Clique para selecionar este cliente, ou 2x para editar"
+                >
+                  <td style={{ fontFamily: "var(--font-mono)", color: "var(--accent-indigo)" }}>{t.id}</td>
+                  <td style={{ fontWeight: 600 }}>{t.name}</td>
+                  <td style={{ color: "var(--text-secondary)" }}>{t.domain}</td>
+                  <td style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                    {t.createdAt ? new Date(t.createdAt).toLocaleDateString("pt-BR") : "Recente"}
+                  </td>
+                  <td>
+                    {isCurrentActive ? (
+                      <span className="badge badge-online">✅ Ativo no Topo</span>
+                    ) : (
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Clique para ativar</span>
+                    )}
+                  </td>
+                  <td>
+                    <button
+                      className="btn btn-secondary"
+                      style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenEditTenant(t);
+                      }}
+                    >
+                      ✏️ Editar
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -127,59 +157,76 @@ export function TenantsUsersView({ tenants, users, onAddTenant, onUpdateTenant, 
             <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", fontWeight: 700 }}>
               👥 Usuários & Permissões (RBAC)
             </h2>
-            <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.2rem" }}>
-              💡 Dica: Clique duas vezes sobre uma linha para editar o Usuário.
-            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.3rem" }}>
+              <label style={{ fontSize: "0.8rem", color: "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                <input
+                  type="checkbox"
+                  checked={filterActiveTenantOnly}
+                  onChange={(e) => setFilterActiveTenantOnly(e.target.checked)}
+                />
+                Exibir apenas usuários do cliente selecionado (
+                <strong style={{ color: "var(--accent-indigo)" }}>{activeTenant?.name}</strong>)
+              </label>
+            </div>
           </div>
           <button className="btn btn-primary" onClick={handleOpenAddUser}>
             + Cadastrar Novo Usuário
           </button>
         </div>
 
-        <table className="custom-table">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>E-mail</th>
-              <th>Tenant Pertencente</th>
-              <th>Papel (Role RBAC)</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr
-                key={u.id}
-                onDoubleClick={() => handleOpenEditUser(u)}
-                style={{ cursor: "pointer" }}
-                title="Clique 2x para editar este Usuário"
-              >
-                <td style={{ fontWeight: 600 }}>{u.name}</td>
-                <td style={{ color: "var(--text-secondary)" }}>{u.email}</td>
-                <td>
-                  <span className="tenant-badge">{tenants.find((t) => t.id === u.tenantId)?.name || u.tenantId}</span>
-                </td>
-                <td>
-                  <span className={`badge badge-${u.role === "owner" || u.role === "administrator" ? "online" : "requires_approval"}`}>
-                    {u.role ? u.role.toUpperCase() : "OPERATOR"}
-                  </span>
-                </td>
-                <td>
-                  <button
-                    className="btn btn-secondary"
-                    style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenEditUser(u);
-                    }}
-                  >
-                    ✏️ Editar
-                  </button>
-                </td>
+        {displayedUsers.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "2rem 0", color: "var(--text-secondary)" }}>
+            <p>Nenhum usuário cadastrado especificamente para o cliente <strong>{activeTenant?.name}</strong>.</p>
+            <button className="btn btn-secondary" style={{ marginTop: "0.75rem" }} onClick={handleOpenAddUser}>
+              + Cadastrar Primeiro Usuário
+            </button>
+          </div>
+        ) : (
+          <table className="custom-table">
+            <thead>
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Tenant Pertencente</th>
+                <th>Papel (Role RBAC)</th>
+                <th>Ações</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {displayedUsers.map((u) => (
+                <tr
+                  key={u.id}
+                  onDoubleClick={() => handleOpenEditUser(u)}
+                  style={{ cursor: "pointer" }}
+                  title="Clique 2x para editar este Usuário"
+                >
+                  <td style={{ fontWeight: 600 }}>{u.name}</td>
+                  <td style={{ color: "var(--text-secondary)" }}>{u.email}</td>
+                  <td>
+                    <span className="tenant-badge">{tenants.find((t) => t.id === u.tenantId)?.name || u.tenantId}</span>
+                  </td>
+                  <td>
+                    <span className={`badge badge-${u.role === "owner" || u.role === "administrator" ? "online" : "requires_approval"}`}>
+                      {u.role ? u.role.toUpperCase() : "OPERATOR"}
+                    </span>
+                  </td>
+                  <td>
+                    <button
+                      className="btn btn-secondary"
+                      style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenEditUser(u);
+                      }}
+                    >
+                      ✏️ Editar
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* Modal Cliente / Tenant (Cadastrar ou Editar) */}
