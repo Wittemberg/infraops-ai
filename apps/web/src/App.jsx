@@ -481,7 +481,7 @@ export function App() {
             onOpenEnrollAgent={() => setEnrollModalOpen(true)}
           />
         )}
-        {currentNav === "ai" && <AiConsoleView onOpenActionModal={handleOpenActionModal} />}
+        {currentNav === "ai" && <AiConsoleView activeTenant={activeTenant} onOpenActionModal={handleOpenActionModal} />}
         {currentNav === "approvals" && <ApprovalsAuditView activeTenant={activeTenant} />}
       </main>
 
