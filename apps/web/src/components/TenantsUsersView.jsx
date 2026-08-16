@@ -231,9 +231,33 @@ export function TenantsUsersView({
 
       {/* Modal Cliente / Tenant (Cadastrar ou Editar) */}
       {tenantModalOpen && (
-        <div className="modal-overlay">
-          <div className="glass-panel modal-content">
-            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", marginBottom: "1rem" }}>
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setTenantModalOpen(false);
+          }}
+        >
+          <div className="glass-panel modal-content" style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => setTenantModalOpen(false)}
+              style={{
+                position: "absolute",
+                top: "1.25rem",
+                right: "1.25rem",
+                background: "none",
+                border: "none",
+                color: "var(--text-muted)",
+                fontSize: "1.25rem",
+                cursor: "pointer",
+                padding: "0.2rem 0.5rem",
+                lineHeight: 1,
+              }}
+              title="Fechar"
+            >
+              ✖
+            </button>
+            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", marginBottom: "1rem", paddingRight: "2rem" }}>
               🏢 {editingTenant ? `Editar Cliente: ${editingTenant.name}` : "Cadastrar Novo Cliente / Tenant"}
             </h3>
             <form onSubmit={handleSaveTenant}>
@@ -266,7 +290,7 @@ export function TenantsUsersView({
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setTenantModalOpen(false)}>
-                  Cancelar
+                  Cancelar / Fechar
                 </button>
                 <button type="submit" className="btn btn-primary">
                   {editingTenant ? "Salvar Alterações" : "Criar Cliente"}
@@ -279,9 +303,33 @@ export function TenantsUsersView({
 
       {/* Modal Usuário (Cadastrar ou Editar) */}
       {userModalOpen && (
-        <div className="modal-overlay">
-          <div className="glass-panel modal-content">
-            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", marginBottom: "1rem" }}>
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setUserModalOpen(false);
+          }}
+        >
+          <div className="glass-panel modal-content" style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => setUserModalOpen(false)}
+              style={{
+                position: "absolute",
+                top: "1.25rem",
+                right: "1.25rem",
+                background: "none",
+                border: "none",
+                color: "var(--text-muted)",
+                fontSize: "1.25rem",
+                cursor: "pointer",
+                padding: "0.2rem 0.5rem",
+                lineHeight: 1,
+              }}
+              title="Fechar"
+            >
+              ✖
+            </button>
+            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", marginBottom: "1rem", paddingRight: "2rem" }}>
               👥 {editingUser ? `Editar Usuário: ${editingUser.name}` : "Cadastrar Novo Usuário"}
             </h3>
             <form onSubmit={handleSaveUser}>
@@ -346,7 +394,7 @@ export function TenantsUsersView({
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setUserModalOpen(false)}>
-                  Cancelar
+                  Cancelar / Fechar
                 </button>
                 <button type="submit" className="btn btn-primary">
                   {editingUser ? "Salvar Alterações" : "Criar Usuário"}

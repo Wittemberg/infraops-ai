@@ -437,9 +437,33 @@ export function IntegrationsView({ integrations, activeTenant, onAddIntegration,
 
       {/* Modal Hipervisores */}
       {modalOpen && (
-        <div className="modal-overlay">
-          <div className="glass-panel modal-content">
-            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", marginBottom: "1rem" }}>
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setModalOpen(false);
+          }}
+        >
+          <div className="glass-panel modal-content" style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => setModalOpen(false)}
+              style={{
+                position: "absolute",
+                top: "1.25rem",
+                right: "1.25rem",
+                background: "none",
+                border: "none",
+                color: "var(--text-muted)",
+                fontSize: "1.25rem",
+                cursor: "pointer",
+                padding: "0.2rem 0.5rem",
+                lineHeight: 1,
+              }}
+              title="Fechar"
+            >
+              ✖
+            </button>
+            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", marginBottom: "1rem", paddingRight: "2rem" }}>
               🔌 {editingIntegration ? `Editar Integração: ${editingIntegration.name}` : `Cadastrar Conexão de Hipervisor para ${activeTenant?.name}`}
             </h3>
             <form onSubmit={handleSave}>
@@ -499,7 +523,9 @@ export function IntegrationsView({ integrations, activeTenant, onAddIntegration,
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setModalOpen(false)}>Cancelar</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setModalOpen(false)}>
+                  Cancelar / Fechar
+                </button>
                 <button type="submit" className="btn btn-primary">
                   {editingIntegration ? "Salvar Alterações" : "Salvar & Testar Conexão"}
                 </button>
@@ -511,9 +537,33 @@ export function IntegrationsView({ integrations, activeTenant, onAddIntegration,
 
       {/* Modal Novo/Editar Canal de Alerta */}
       {alertModalOpen && (
-        <div className="modal-overlay">
-          <div className="glass-panel modal-content" style={{ maxWidth: "620px" }}>
-            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", marginBottom: "0.5rem" }}>
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setAlertModalOpen(false);
+          }}
+        >
+          <div className="glass-panel modal-content" style={{ maxWidth: "620px", position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => setAlertModalOpen(false)}
+              style={{
+                position: "absolute",
+                top: "1.25rem",
+                right: "1.25rem",
+                background: "none",
+                border: "none",
+                color: "var(--text-muted)",
+                fontSize: "1.25rem",
+                cursor: "pointer",
+                padding: "0.2rem 0.5rem",
+                lineHeight: 1,
+              }}
+              title="Fechar"
+            >
+              ✖
+            </button>
+            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", marginBottom: "0.5rem", paddingRight: "2rem" }}>
               🔔 {editingChannel ? `Editar Canal: ${editingChannel.name}` : `Configurar Canal de Alerta para ${activeTenant?.name}`}
             </h3>
             <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1.25rem" }}>
@@ -672,7 +722,9 @@ export function IntegrationsView({ integrations, activeTenant, onAddIntegration,
               )}
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem", marginTop: "1.5rem" }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setAlertModalOpen(false)}>Cancelar</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setAlertModalOpen(false)}>
+                  Cancelar / Fechar
+                </button>
                 <button type="submit" className="btn btn-primary">
                   {editingChannel ? "Salvar Alterações" : "Cadastrar Canal de Alerta"}
                 </button>

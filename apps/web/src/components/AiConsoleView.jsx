@@ -206,9 +206,33 @@ export function AiConsoleView({ activeTenant, onOpenActionModal }) {
 
       {/* Modal de Configuração de IA / LLM */}
       {configModalOpen && (
-        <div className="modal-overlay">
-          <div className="glass-panel modal-content" style={{ maxWidth: "620px" }}>
-            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.3rem", marginBottom: "0.5rem" }}>
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setConfigModalOpen(false);
+          }}
+        >
+          <div className="glass-panel modal-content" style={{ maxWidth: "620px", position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => setConfigModalOpen(false)}
+              style={{
+                position: "absolute",
+                top: "1.25rem",
+                right: "1.25rem",
+                background: "none",
+                border: "none",
+                color: "var(--text-muted)",
+                fontSize: "1.25rem",
+                cursor: "pointer",
+                padding: "0.2rem 0.5rem",
+                lineHeight: 1,
+              }}
+              title="Fechar"
+            >
+              ✖
+            </button>
+            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.3rem", marginBottom: "0.5rem", paddingRight: "2rem" }}>
               ⚙️ Configurar Provedor de IA / Modelo de Linguagem (LLM)
             </h3>
             <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1.25rem" }}>

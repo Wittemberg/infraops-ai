@@ -18,9 +18,33 @@ export function ActionModal({ isOpen, targetId, defaultActionKey, onClose }) {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="glass-panel modal-content">
-        <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "1.3rem", marginBottom: "1rem" }}>
+    <div
+      className="modal-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="glass-panel modal-content" style={{ position: "relative" }}>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            position: "absolute",
+            top: "1.25rem",
+            right: "1.25rem",
+            background: "none",
+            border: "none",
+            color: "var(--text-muted)",
+            fontSize: "1.25rem",
+            cursor: "pointer",
+            padding: "0.2rem 0.5rem",
+            lineHeight: 1,
+          }}
+          title="Fechar"
+        >
+          ✖
+        </button>
+        <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "1.3rem", marginBottom: "1rem", paddingRight: "2rem" }}>
           ⚡ Executar Ação Operacional Segura
         </h2>
 
