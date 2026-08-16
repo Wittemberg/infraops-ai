@@ -32,10 +32,13 @@ services:
     image: ghcr.io/wittemberg/infraops-api:latest
     networks:
       - interna
+    volumes:
+      - infraops-app-data:/app/data
     environment:
       - NODE_ENV=production
       - PORT=3000
       - TZ=America/Sao_Paulo
+      - DATA_DIR=/app/data
       - APP_BASE_URL=https://infraopsai.awecloudsolution.com
       - DATABASE_URL=${DATABASE_URL:-postgresql://infraops_app:infraops_pass@postgres:5432/infraops_db}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
@@ -69,9 +72,12 @@ services:
     image: ghcr.io/wittemberg/infraops-worker:latest
     networks:
       - interna
+    volumes:
+      - infraops-app-data:/app/data
     environment:
       - NODE_ENV=production
       - TZ=America/Sao_Paulo
+      - DATA_DIR=/app/data
       - DATABASE_URL=${DATABASE_URL:-postgresql://infraops_app:infraops_pass@postgres:5432/infraops_db}
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - S3_ENDPOINT=${S3_ENDPOINT:-http://minio:9000}
@@ -90,3 +96,7 @@ networks:
   interna:
     external: true
     name: interna
+
+volumes:
+  infraops-app-data:
+    driver: local

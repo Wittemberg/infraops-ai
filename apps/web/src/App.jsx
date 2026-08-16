@@ -127,14 +127,36 @@ export function App() {
     localStorage.setItem("infraops_workloads", JSON.stringify(workloads));
   }, [workloads]);
 
-  // Load from API on mount
+  // Safe merger preventing data loss
+  const mergeLists = (localList, remoteList, syncEndpoint) => {
+    const map = new Map();
+    remoteList.forEach((item) => map.set(item.id, item));
+    localList.forEach((item) => {
+      if (!map.has(item.id)) {
+        map.set(item.id, item);
+        // Resync local item to backend if missing on backend
+        if (syncEndpoint) {
+          fetch(`${API_BASE}${syncEndpoint}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(item),
+          }).catch(() => {});
+        }
+      }
+    });
+    return Array.from(map.values());
+  };
+
+  // Load from API on mount and merge safely
   useEffect(() => {
     fetch(`${API_BASE}/api/v1/tenants`)
       .then((res) => res.json())
       .then((data) => {
         if (data.tenants && data.tenants.length > 0) {
-          setTenants(data.tenants);
-          setActiveTenant((prev) => data.tenants.find((t) => t.id === prev.id) || data.tenants[0]);
+          setTenants((prev) => {
+            const merged = mergeLists(prev, data.tenants, "/api/v1/tenants");
+            return merged;
+          });
         }
       })
       .catch(() => {});
@@ -142,28 +164,36 @@ export function App() {
     fetch(`${API_BASE}/api/v1/users`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.users && data.users.length > 0) setUsers(data.users);
+        if (data.users && data.users.length > 0) {
+          setUsers((prev) => mergeLists(prev, data.users, "/api/v1/users"));
+        }
       })
       .catch(() => {});
 
     fetch(`${API_BASE}/api/v1/integrations`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.integrations && data.integrations.length > 0) setIntegrations(data.integrations);
+        if (data.integrations && data.integrations.length > 0) {
+          setIntegrations((prev) => mergeLists(prev, data.integrations, "/api/v1/integrations"));
+        }
       })
       .catch(() => {});
 
     fetch(`${API_BASE}/api/v1/nodes`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.nodes && data.nodes.length > 0) setNodes(data.nodes);
+        if (data.nodes && data.nodes.length > 0) {
+          setNodes((prev) => mergeLists(prev, data.nodes, "/api/v1/nodes"));
+        }
       })
       .catch(() => {});
 
     fetch(`${API_BASE}/api/v1/workloads`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.workloads && data.workloads.length > 0) setWorkloads(data.workloads);
+        if (data.workloads && data.workloads.length > 0) {
+          setWorkloads((prev) => mergeLists(prev, data.workloads, "/api/v1/workloads"));
+        }
       })
       .catch(() => {});
   }, []);
@@ -452,7 +482,7 @@ export function App() {
           />
         )}
         {currentNav === "ai" && <AiConsoleView onOpenActionModal={handleOpenActionModal} />}
-        {currentNav === "approvals" && <ApprovalsAuditView />}
+        {currentNav === "approvals" && <ApprovalsAuditView activeTenant={activeTenant} />}
       </main>
 
       {/* Action Modals */}
