@@ -12,6 +12,18 @@ import { AddWorkloadModal } from "./components/AddWorkloadModal.jsx";
 export function App() {
   const [currentNav, setCurrentNav] = useState("dashboard");
 
+  // Theme Management (Light / Dark)
+  const [theme, setTheme] = useState(() => localStorage.getItem("infraops_theme") || "dark");
+
+  useEffect(() => {
+    document.body.setAttribute("data-theme", theme);
+    localStorage.setItem("infraops_theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
+
   // Operational State
   const [tenants, setTenants] = useState([
     { id: "tenant-default", name: "Default Tenant (infraops-prod)", domain: "infraopsai.awecloudsolution.com", createdAt: new Date().toISOString() },
@@ -228,7 +240,16 @@ export function App() {
             {currentNav === "approvals" && "Central de Aprovações & Auditoria"}
           </h1>
 
-          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+            {/* Theme Switcher */}
+            <button
+              className="btn btn-secondary"
+              onClick={toggleTheme}
+              style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "0.4rem" }}
+              title="Alternar Tema Claro / Escuro"
+            >
+              {theme === "dark" ? "☀️ Modo Claro" : "🌙 Modo Escuro"}
+            </button>
+
             {/* Action Triggers */}
             <button className="btn btn-secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }} onClick={() => setEnrollModalOpen(true)}>
               🐧 + Instalar Agente Linux
