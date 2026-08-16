@@ -239,7 +239,7 @@ export function LoginView({ onLoginSuccess }) {
           <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "0.65rem 0.85rem", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.2rem" }}>
               <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981", display: "inline-block", boxShadow: "0 0 8px #10b981" }}></span>
-              <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>PostgreSQL</span>
+              <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Banco de Dados</span>
             </div>
             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
               Pool Ativo • Latência 4ms
@@ -250,10 +250,10 @@ export function LoginView({ onLoginSuccess }) {
           <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "0.65rem 0.85rem", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.2rem" }}>
               <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981", display: "inline-block", boxShadow: "0 0 8px #10b981" }}></span>
-              <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>S3 / MinIO</span>
+              <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Storage de Objetos</span>
             </div>
             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-              Bucket: {systemHealth.components.s3.bucket}
+              Bucket Operacional
             </div>
           </div>
 
@@ -261,7 +261,7 @@ export function LoginView({ onLoginSuccess }) {
           <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "0.65rem 0.85rem", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.2rem" }}>
               <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981", display: "inline-block", boxShadow: "0 0 8px #10b981" }}></span>
-              <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Worker Queue</span>
+              <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Fila de Processamento</span>
             </div>
             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
               BullMQ Ativo • Processando
