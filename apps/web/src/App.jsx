@@ -8,6 +8,7 @@ import { IntegrationsView } from "./components/IntegrationsView.jsx";
 import { ActionModal } from "./components/ActionModal.jsx";
 import { EnrollAgentModal } from "./components/EnrollAgentModal.jsx";
 import { AddWorkloadModal } from "./components/AddWorkloadModal.jsx";
+import { LoginView } from "./components/LoginView.jsx";
 
 const API_BASE = "https://infraopsai.awecloudsolution.com";
 
@@ -17,7 +18,7 @@ const defaultTenants = [
 ];
 
 const defaultUsers = [
-  { id: "usr-admin", tenantId: "tenant-default", name: "Wittemberg Admin", email: "admin@wrtec.com.br", role: "owner" },
+  { id: "usr-admin", tenantId: "tenant-default", name: "Wittemberg Admin", email: "admin@wrtec.com.br", role: "superadmin" },
   { id: "usr-op1", tenantId: "tenant-default", name: "Operador NOC", email: "noc@wrtec.com.br", role: "operator" },
 ];
 
@@ -65,6 +66,12 @@ const defaultWorkloads = [
 ];
 
 export function App() {
+  // Authentication State
+  const [currentUser, setCurrentUser] = useState(() => {
+    const cached = localStorage.getItem("infraops_user");
+    return cached ? JSON.parse(cached) : null;
+  });
+
   const [currentNav, setCurrentNav] = useState("dashboard");
 
   // Theme Management (Light / Dark)
@@ -77,6 +84,12 @@ export function App() {
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("infraops_user");
+    localStorage.removeItem("infraops_token");
+    setCurrentUser(null);
   };
 
   // Operational State with LocalStorage Caching
@@ -134,7 +147,6 @@ export function App() {
     localList.forEach((item) => {
       if (!map.has(item.id)) {
         map.set(item.id, item);
-        // Resync local item to backend if missing on backend
         if (syncEndpoint) {
           fetch(`${API_BASE}${syncEndpoint}`, {
             method: "POST",
@@ -153,10 +165,7 @@ export function App() {
       .then((res) => res.json())
       .then((data) => {
         if (data.tenants && data.tenants.length > 0) {
-          setTenants((prev) => {
-            const merged = mergeLists(prev, data.tenants, "/api/v1/tenants");
-            return merged;
-          });
+          setTenants((prev) => mergeLists(prev, data.tenants, "/api/v1/tenants"));
         }
       })
       .catch(() => {});
@@ -206,10 +215,12 @@ export function App() {
   const [enrollModalOpen, setEnrollModalOpen] = useState(false);
   const [workloadModalOpen, setWorkloadModalOpen] = useState(false);
 
+  // Handlers for Add/Update mutations
   const handleAddTenant = async (tenantData) => {
     const newTenant = {
       id: `tenant-${Math.random().toString(36).substring(2, 8)}`,
-      ...tenantData,
+      name: tenantData.name,
+      domain: tenantData.domain,
       createdAt: new Date().toISOString(),
     };
     setTenants((prev) => [...prev, newTenant]);
@@ -231,7 +242,6 @@ export function App() {
     if (activeTenant.id === updatedTenant.id) {
       setActiveTenant(updatedTenant);
     }
-
     try {
       await fetch(`${API_BASE}/api/v1/tenants/${updatedTenant.id}`, {
         method: "PUT",
@@ -246,7 +256,10 @@ export function App() {
   const handleAddUser = async (userData) => {
     const newUser = {
       id: `usr-${Math.random().toString(36).substring(2, 8)}`,
-      ...userData,
+      tenantId: userData.tenantId || activeTenant.id,
+      name: userData.name,
+      email: userData.email,
+      role: userData.role,
     };
     setUsers((prev) => [...prev, newUser]);
 
@@ -263,7 +276,6 @@ export function App() {
 
   const handleUpdateUser = async (updatedUser) => {
     setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
-
     try {
       await fetch(`${API_BASE}/api/v1/users/${updatedUser.id}`, {
         method: "PUT",
@@ -275,68 +287,94 @@ export function App() {
     }
   };
 
-  const handleAddIntegration = async (intData) => {
-    const newInt = {
+  const handleAddIntegration = async (integrationData) => {
+    const newIntegration = {
       id: `int-${Math.random().toString(36).substring(2, 8)}`,
-      ...intData,
+      tenantId: activeTenant.id,
+      name: integrationData.name,
+      provider: integrationData.provider,
+      baseUrl: integrationData.baseUrl,
       status: "active",
       lastSyncAt: new Date().toISOString(),
-      discoveredNodesCount: 0,
-      discoveredVmsCount: 0,
+      discoveredNodesCount: integrationData.provider === "proxmox" ? 2 : 1,
+      discoveredVmsCount: integrationData.provider === "proxmox" ? 8 : 4,
     };
-    setIntegrations((prev) => [...prev, newInt]);
+    setIntegrations((prev) => [...prev, newIntegration]);
 
     try {
       await fetch(`${API_BASE}/api/v1/integrations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newInt),
+        body: JSON.stringify(newIntegration),
       });
     } catch (err) {
       console.warn("Offline fallback saved to LocalStorage:", err);
     }
   };
 
-  const handleUpdateIntegration = async (updatedInt) => {
-    setIntegrations((prev) => prev.map((i) => (i.id === updatedInt.id ? updatedInt : i)));
-
+  const handleUpdateIntegration = async (updatedIntegration) => {
+    setIntegrations((prev) => prev.map((i) => (i.id === updatedIntegration.id ? updatedIntegration : i)));
     try {
-      await fetch(`${API_BASE}/api/v1/integrations/${updatedInt.id}`, {
+      await fetch(`${API_BASE}/api/v1/integrations/${updatedIntegration.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedInt),
+        body: JSON.stringify(updatedIntegration),
       });
     } catch (err) {
       console.warn("Offline fallback saved to LocalStorage:", err);
     }
   };
 
-  const handleTriggerSync = async (id) => {
+  const handleTriggerSync = async (integrationId) => {
+    const found = integrations.find((i) => i.id === integrationId);
+    if (!found) return;
+
     try {
-      const res = await fetch(`${API_BASE}/api/v1/integrations/${id}/sync`, { method: "POST" });
+      const res = await fetch(`${API_BASE}/api/v1/integrations/${integrationId}/sync`, { method: "POST" });
       const data = await res.json();
-      if (data.integration) {
-        setIntegrations((prev) => prev.map((i) => (i.id === id ? data.integration : i)));
+      if (data.discoveredNodes) {
+        setNodes((prev) => [...prev.filter((n) => !data.discoveredNodes.some((dn) => dn.id === n.id)), ...data.discoveredNodes]);
+      }
+      if (data.discoveredWorkloads) {
+        setWorkloads((prev) => [...prev.filter((w) => !data.discoveredWorkloads.some((dw) => dw.id === w.id)), ...data.discoveredWorkloads]);
       }
     } catch {
-      setIntegrations((prev) =>
-        prev.map((i) =>
-          i.id === id
-            ? { ...i, lastSyncAt: new Date().toISOString(), discoveredNodesCount: 2, discoveredVmsCount: 8 }
-            : i
-        )
-      );
+      // Offline fallback simulation
+      const newDiscoveredNodes = [
+        {
+          id: `node-${found.provider}-01`,
+          tenantId: found.tenantId,
+          name: `${found.provider}-node-master`,
+          hostname: `${found.provider}-master.local`,
+          provider: found.provider,
+          status: "online",
+          ipAddress: "192.168.1.100",
+          os: "Linux / Proxmox VE",
+          lastHeartbeatAt: new Date().toISOString(),
+        },
+      ];
+      setNodes((prev) => [...prev, ...newDiscoveredNodes]);
     }
+
+    setIntegrations((prev) =>
+      prev.map((item) => (item.id === integrationId ? { ...item, lastSyncAt: new Date().toISOString(), status: "active" } : item))
+    );
   };
 
-  const handleAddWorkload = async (wlData) => {
+  const handleAddWorkload = async (workloadData) => {
     const newWl = {
       id: `wl-${Math.random().toString(36).substring(2, 8)}`,
-      ...wlData,
-      vmid: Number(wlData.vmid) || 200,
-      cpus: Number(wlData.cpus) || 4,
-      memoryBytes: (Number(wlData.memoryGb) || 8) * 1024 * 1024 * 1024,
+      tenantId: workloadData.tenantId || activeTenant.id,
+      nodeId: workloadData.nodeId,
+      environment: workloadData.environment || "on-premise",
+      ipAddress: workloadData.ipAddress || "192.168.1.50",
+      os: workloadData.os || "Linux",
+      vmid: Number(workloadData.vmid) || 100,
+      name: workloadData.name,
+      type: workloadData.type || "qemu",
       status: "running",
+      cpus: Number(workloadData.cpus) || 2,
+      memoryBytes: (Number(workloadData.memoryGb) || 4) * 1024 * 1024 * 1024,
       provider: "custom",
     };
     setWorkloads((prev) => [...prev, newWl]);
@@ -358,11 +396,28 @@ export function App() {
     setActionModalOpen(true);
   };
 
+  // If user is not logged in, render the Modern Minimalist Login View with System Health Check
+  if (!currentUser) {
+    return (
+      <LoginView
+        onLoginSuccess={(user, token) => {
+          setCurrentUser(user);
+          localStorage.setItem("infraops_user", JSON.stringify(user));
+          localStorage.setItem("infraops_token", token);
+        }}
+      />
+    );
+  }
+
+  const isSuperAdmin = currentUser.role === "superadmin";
+  const isAdmin = currentUser.role === "admin" || currentUser.role === "owner" || isSuperAdmin;
+  const isOperator = currentUser.role === "operator" || isAdmin;
+
   return (
     <div className="app-container">
       {/* Sidebar Navigation */}
       <aside className="sidebar">
-        <div className="brand">
+        <div className="brand" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingRight: "1rem" }}>
           <span>⚡ InfraOps AI</span>
         </div>
 
@@ -370,22 +425,64 @@ export function App() {
           <li className={`nav-item ${currentNav === "dashboard" ? "active" : ""}`} onClick={() => setCurrentNav("dashboard")}>
             📊 Dashboard
           </li>
-          <li className={`nav-item ${currentNav === "tenants" ? "active" : ""}`} onClick={() => setCurrentNav("tenants")}>
-            🏢 Clientes & Usuários
-          </li>
-          <li className={`nav-item ${currentNav === "integrations" ? "active" : ""}`} onClick={() => setCurrentNav("integrations")}>
-            🔌 Hipervisores (PVE/Virt)
-          </li>
+          {isAdmin && (
+            <li className={`nav-item ${currentNav === "tenants" ? "active" : ""}`} onClick={() => setCurrentNav("tenants")}>
+              🏢 Clientes & Usuários
+            </li>
+          )}
+          {isAdmin && (
+            <li className={`nav-item ${currentNav === "integrations" ? "active" : ""}`} onClick={() => setCurrentNav("integrations")}>
+              🔌 Hipervisores (PVE/Virt)
+            </li>
+          )}
           <li className={`nav-item ${currentNav === "nodes" ? "active" : ""}`} onClick={() => setCurrentNav("nodes")}>
             🖥️ Nós & Workloads
           </li>
-          <li className={`nav-item ${currentNav === "ai" ? "active" : ""}`} onClick={() => setCurrentNav("ai")}>
-            🤖 Console IA
-          </li>
+          {isOperator && (
+            <li className={`nav-item ${currentNav === "ai" ? "active" : ""}`} onClick={() => setCurrentNav("ai")}>
+              🤖 Console IA
+            </li>
+          )}
           <li className={`nav-item ${currentNav === "approvals" ? "active" : ""}`} onClick={() => setCurrentNav("approvals")}>
             🛡️ Aprovações & Auditoria
           </li>
         </ul>
+
+        {/* User Card in Sidebar Bottom */}
+        <div style={{ marginTop: "auto", padding: "1rem", borderTop: "1px solid var(--border-subtle)", background: "rgba(0,0,0,0.2)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.4rem" }}>
+            <span style={{ fontSize: "1.1rem" }}>{isSuperAdmin ? "👑" : "👤"}</span>
+            <div style={{ overflow: "hidden" }}>
+              <div style={{ fontSize: "0.85rem", fontWeight: 700, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                {currentUser.name}
+              </div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                {currentUser.email}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.5rem" }}>
+            <span
+              className={`badge badge-${isSuperAdmin ? "online" : "requires_approval"}`}
+              style={{ fontSize: "0.7rem", padding: "0.15rem 0.4rem" }}
+            >
+              {isSuperAdmin ? "SUPERADMIN" : currentUser.role?.toUpperCase()}
+            </span>
+            <button
+              onClick={handleLogout}
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--accent-rose)",
+                fontSize: "0.75rem",
+                cursor: "pointer",
+                padding: "0.2rem 0.4rem",
+              }}
+            >
+              🚪 Sair
+            </button>
+          </div>
+        </div>
       </aside>
 
       {/* Main Content Area */}
@@ -400,7 +497,7 @@ export function App() {
             {currentNav === "approvals" && "Central de Aprovações & Auditoria"}
           </h1>
 
-          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
             {/* Theme Switcher */}
             <button
               className="btn btn-secondary"
@@ -408,27 +505,41 @@ export function App() {
               style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "0.4rem" }}
               title="Alternar Tema Claro / Escuro"
             >
-              {theme === "dark" ? "☀️ Modo Claro" : "🌙 Modo Escuro"}
+              {theme === "dark" ? "☀️ Claro" : "🌙 Escuro"}
             </button>
 
             {/* Action Triggers */}
-            <button className="btn btn-secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }} onClick={() => setEnrollModalOpen(true)}>
-              🐧 + Instalar Agente Linux
-            </button>
-            <button className="btn btn-secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }} onClick={() => setWorkloadModalOpen(true)}>
-              🖥️ + Cadastrar VM
-            </button>
+            {isOperator && (
+              <button className="btn btn-secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }} onClick={() => setEnrollModalOpen(true)}>
+                🐧 + Agente
+              </button>
+            )}
+            {isOperator && (
+              <button className="btn btn-secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }} onClick={() => setWorkloadModalOpen(true)}>
+                🖥️ + VM
+              </button>
+            )}
 
             {/* Dynamic Tenant Switcher */}
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
               <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Tenant:</span>
               <select
                 value={activeTenant.id}
+                disabled={!isSuperAdmin && currentUser.tenantId !== "global"}
                 onChange={(e) => {
                   const t = tenants.find((item) => item.id === e.target.value);
                   if (t) setActiveTenant(t);
                 }}
-                style={{ background: "rgba(99, 102, 241, 0.15)", border: "1px solid rgba(99, 102, 241, 0.3)", color: "var(--accent-indigo)", padding: "0.4rem 0.8rem", borderRadius: "8px", fontWeight: 600, fontSize: "0.85rem", cursor: "pointer" }}
+                style={{
+                  background: "rgba(99, 102, 241, 0.15)",
+                  border: "1px solid rgba(99, 102, 241, 0.3)",
+                  color: "var(--accent-indigo)",
+                  padding: "0.4rem 0.8rem",
+                  borderRadius: "8px",
+                  fontWeight: 600,
+                  fontSize: "0.85rem",
+                  cursor: isSuperAdmin ? "pointer" : "default",
+                }}
               >
                 {tenants.map((t) => (
                   <option key={t.id} value={t.id} style={{ background: "#121824", color: "#fff" }}>
@@ -450,11 +561,12 @@ export function App() {
             onOpenActionModal={handleOpenActionModal}
           />
         )}
-        {currentNav === "tenants" && (
+        {currentNav === "tenants" && isAdmin && (
           <TenantsUsersView
             tenants={tenants}
             users={users}
             activeTenant={activeTenant}
+            isSuperAdmin={isSuperAdmin}
             onSelectTenant={(t) => setActiveTenant(t)}
             onAddTenant={handleAddTenant}
             onUpdateTenant={handleUpdateTenant}
@@ -462,7 +574,7 @@ export function App() {
             onUpdateUser={handleUpdateUser}
           />
         )}
-        {currentNav === "integrations" && (
+        {currentNav === "integrations" && isAdmin && (
           <IntegrationsView
             integrations={integrations}
             activeTenant={activeTenant}
@@ -481,7 +593,7 @@ export function App() {
             onOpenEnrollAgent={() => setEnrollModalOpen(true)}
           />
         )}
-        {currentNav === "ai" && <AiConsoleView activeTenant={activeTenant} onOpenActionModal={handleOpenActionModal} />}
+        {currentNav === "ai" && isOperator && <AiConsoleView activeTenant={activeTenant} onOpenActionModal={handleOpenActionModal} />}
         {currentNav === "approvals" && <ApprovalsAuditView activeTenant={activeTenant} />}
       </main>
 
