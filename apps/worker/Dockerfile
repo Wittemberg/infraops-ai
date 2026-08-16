@@ -9,4 +9,6 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app ./
-CMD ["node", "-e", "console.log('InfraOps Worker active')"]
+RUN npm install -g tsx
+EXPOSE 3000
+CMD ["npx", "tsx", "apps/worker/src/server.ts"]
