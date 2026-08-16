@@ -126,7 +126,7 @@ function sendJson(res: ServerResponse, statusCode: number, data: any) {
   res.writeHead(statusCode, {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
   });
   res.end(JSON.stringify(data));
@@ -139,7 +139,7 @@ const server = createServer(async (req, res) => {
   if (method === "OPTIONS") {
     res.writeHead(204, {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type, Authorization",
     });
     res.end();
@@ -177,6 +177,19 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (url.startsWith("/api/v1/tenants/") && (method === "PUT" || method === "POST")) {
+    const tenantId = url.replace("/api/v1/tenants/", "");
+    const body = await parseJsonBody(req);
+    const index = tenantsStore.findIndex((t) => t.id === tenantId);
+    if (index !== -1) {
+      tenantsStore[index] = { ...tenantsStore[index], ...body };
+      sendJson(res, 200, { tenant: tenantsStore[index] });
+    } else {
+      sendJson(res, 404, { error: "Tenant not found" });
+    }
+    return;
+  }
+
   // --- USERS ENDPOINTS ---
   if (url === "/api/v1/users" && method === "GET") {
     sendJson(res, 200, { users: usersStore });
@@ -194,6 +207,19 @@ const server = createServer(async (req, res) => {
     };
     usersStore.push(newUser);
     sendJson(res, 201, { user: newUser });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/users/") && (method === "PUT" || method === "POST")) {
+    const userId = url.replace("/api/v1/users/", "");
+    const body = await parseJsonBody(req);
+    const index = usersStore.findIndex((u) => u.id === userId);
+    if (index !== -1) {
+      usersStore[index] = { ...usersStore[index], ...body };
+      sendJson(res, 200, { user: usersStore[index] });
+    } else {
+      sendJson(res, 404, { error: "User not found" });
+    }
     return;
   }
 

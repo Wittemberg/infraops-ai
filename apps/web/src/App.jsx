@@ -98,12 +98,33 @@ export function App() {
     setActiveTenant(newTenant);
   };
 
+  const handleUpdateTenant = (updatedTenant) => {
+    setTenants((prev) => prev.map((t) => (t.id === updatedTenant.id ? updatedTenant : t)));
+    if (activeTenant.id === updatedTenant.id) {
+      setActiveTenant(updatedTenant);
+    }
+    fetch(`https://infraopsai.awecloudsolution.com/api/v1/tenants/${updatedTenant.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedTenant),
+    }).catch(() => {});
+  };
+
   const handleAddUser = (userData) => {
     const newUser = {
       id: `usr-${Math.random().toString(36).substring(2, 8)}`,
       ...userData,
     };
     setUsers((prev) => [...prev, newUser]);
+  };
+
+  const handleUpdateUser = (updatedUser) => {
+    setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+    fetch(`https://infraopsai.awecloudsolution.com/api/v1/users/${updatedUser.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedUser),
+    }).catch(() => {});
   };
 
   const handleAddIntegration = (intData) => {
@@ -230,7 +251,16 @@ export function App() {
 
         {/* View Switcher */}
         {currentNav === "dashboard" && <DashboardView onOpenActionModal={handleOpenActionModal} />}
-        {currentNav === "tenants" && <TenantsUsersView tenants={tenants} users={users} onAddTenant={handleAddTenant} onAddUser={handleAddUser} />}
+        {currentNav === "tenants" && (
+          <TenantsUsersView
+            tenants={tenants}
+            users={users}
+            onAddTenant={handleAddTenant}
+            onUpdateTenant={handleUpdateTenant}
+            onAddUser={handleAddUser}
+            onUpdateUser={handleUpdateUser}
+          />
+        )}
         {currentNav === "integrations" && <IntegrationsView integrations={integrations} activeTenant={activeTenant} onAddIntegration={handleAddIntegration} onTriggerSync={handleTriggerSync} />}
         {currentNav === "nodes" && <NodeDetailView nodeId="node-pve01" onOpenActionModal={handleOpenActionModal} />}
         {currentNav === "ai" && <AiConsoleView onOpenActionModal={handleOpenActionModal} />}

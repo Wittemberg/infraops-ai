@@ -1,25 +1,62 @@
 import React, { useState } from "react";
 
-export function TenantsUsersView({ tenants, users, onAddTenant, onAddUser }) {
+export function TenantsUsersView({ tenants, users, onAddTenant, onUpdateTenant, onAddUser, onUpdateUser }) {
   const [tenantModalOpen, setTenantModalOpen] = useState(false);
   const [userModalOpen, setUserModalOpen] = useState(false);
+
+  const [editingTenant, setEditingTenant] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
 
   const [tenantForm, setTenantForm] = useState({ name: "", domain: "" });
   const [userForm, setUserForm] = useState({ tenantId: tenants[0]?.id || "", name: "", email: "", role: "operator" });
 
-  const handleCreateTenant = (e) => {
+  const handleOpenAddTenant = () => {
+    setEditingTenant(null);
+    setTenantForm({ name: "", domain: "" });
+    setTenantModalOpen(true);
+  };
+
+  const handleOpenEditTenant = (tenant) => {
+    setEditingTenant(tenant);
+    setTenantForm({ name: tenant.name, domain: tenant.domain || "" });
+    setTenantModalOpen(true);
+  };
+
+  const handleOpenAddUser = () => {
+    setEditingUser(null);
+    setUserForm({ tenantId: tenants[0]?.id || "", name: "", email: "", role: "operator" });
+    setUserModalOpen(true);
+  };
+
+  const handleOpenEditUser = (user) => {
+    setEditingUser(user);
+    setUserForm({ tenantId: user.tenantId, name: user.name, email: user.email, role: user.role });
+    setUserModalOpen(true);
+  };
+
+  const handleSaveTenant = (e) => {
     e.preventDefault();
     if (!tenantForm.name) return;
-    onAddTenant(tenantForm);
-    setTenantForm({ name: "", domain: "" });
+
+    if (editingTenant) {
+      onUpdateTenant({ ...editingTenant, ...tenantForm });
+    } else {
+      onAddTenant(tenantForm);
+    }
+
     setTenantModalOpen(false);
   };
 
-  const handleCreateUser = (e) => {
+  const handleSaveUser = (e) => {
     e.preventDefault();
     if (!userForm.name || !userForm.email) return;
-    onAddUser(userForm);
-    setUserForm({ tenantId: tenants[0]?.id || "", name: "", email: "", role: "operator" });
+
+    if (editingUser) {
+      onUpdateUser({ ...editingUser, ...userForm });
+    } else {
+      onAddUser(userForm);
+    }
+
     setUserModalOpen(false);
   };
 
@@ -28,10 +65,15 @@ export function TenantsUsersView({ tenants, users, onAddTenant, onAddUser }) {
       {/* Tenants Section */}
       <div className="glass-panel" style={{ padding: "1.5rem", marginBottom: "1.5rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", fontWeight: 700 }}>
-            🏢 Clientes Registrados (Tenants)
-          </h2>
-          <button className="btn btn-primary" onClick={() => setTenantModalOpen(true)}>
+          <div>
+            <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", fontWeight: 700 }}>
+              🏢 Clientes Registrados (Tenants)
+            </h2>
+            <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.2rem" }}>
+              💡 Dica: Clique duas vezes sobre uma linha para editar o Cliente.
+            </p>
+          </div>
+          <button className="btn btn-primary" onClick={handleOpenAddTenant}>
             + Cadastrar Novo Cliente
           </button>
         </div>
@@ -43,15 +85,35 @@ export function TenantsUsersView({ tenants, users, onAddTenant, onAddUser }) {
               <th>Nome do Cliente</th>
               <th>Domínio</th>
               <th>Data de Cadastro</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
             {tenants.map((t) => (
-              <tr key={t.id}>
+              <tr
+                key={t.id}
+                onDoubleClick={() => handleOpenEditTenant(t)}
+                style={{ cursor: "pointer" }}
+                title="Clique 2x para editar este Cliente"
+              >
                 <td style={{ fontFamily: "var(--font-mono)", color: "var(--accent-indigo)" }}>{t.id}</td>
                 <td style={{ fontWeight: 600 }}>{t.name}</td>
                 <td style={{ color: "var(--text-secondary)" }}>{t.domain}</td>
-                <td style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>{new Date(t.createdAt).toLocaleDateString("pt-BR")}</td>
+                <td style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
+                  {t.createdAt ? new Date(t.createdAt).toLocaleDateString("pt-BR") : "Recente"}
+                </td>
+                <td>
+                  <button
+                    className="btn btn-secondary"
+                    style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenEditTenant(t);
+                    }}
+                  >
+                    ✏️ Editar
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -61,10 +123,15 @@ export function TenantsUsersView({ tenants, users, onAddTenant, onAddUser }) {
       {/* Users Section */}
       <div className="glass-panel" style={{ padding: "1.5rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", fontWeight: 700 }}>
-            👥 Usuários & Permissões (RBAC)
-          </h2>
-          <button className="btn btn-primary" onClick={() => setUserModalOpen(true)}>
+          <div>
+            <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", fontWeight: 700 }}>
+              👥 Usuários & Permissões (RBAC)
+            </h2>
+            <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.2rem" }}>
+              💡 Dica: Clique duas vezes sobre uma linha para editar o Usuário.
+            </p>
+          </div>
+          <button className="btn btn-primary" onClick={handleOpenAddUser}>
             + Cadastrar Novo Usuário
           </button>
         </div>
@@ -76,11 +143,17 @@ export function TenantsUsersView({ tenants, users, onAddTenant, onAddUser }) {
               <th>E-mail</th>
               <th>Tenant Pertencente</th>
               <th>Papel (Role RBAC)</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
             {users.map((u) => (
-              <tr key={u.id}>
+              <tr
+                key={u.id}
+                onDoubleClick={() => handleOpenEditUser(u)}
+                style={{ cursor: "pointer" }}
+                title="Clique 2x para editar este Usuário"
+              >
                 <td style={{ fontWeight: 600 }}>{u.name}</td>
                 <td style={{ color: "var(--text-secondary)" }}>{u.email}</td>
                 <td>
@@ -88,8 +161,20 @@ export function TenantsUsersView({ tenants, users, onAddTenant, onAddUser }) {
                 </td>
                 <td>
                   <span className={`badge badge-${u.role === "owner" || u.role === "administrator" ? "online" : "requires_approval"}`}>
-                    {u.role.toUpperCase()}
+                    {u.role ? u.role.toUpperCase() : "OPERATOR"}
                   </span>
+                </td>
+                <td>
+                  <button
+                    className="btn btn-secondary"
+                    style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenEditUser(u);
+                    }}
+                  >
+                    ✏️ Editar
+                  </button>
                 </td>
               </tr>
             ))}
@@ -97,14 +182,18 @@ export function TenantsUsersView({ tenants, users, onAddTenant, onAddUser }) {
         </table>
       </div>
 
-      {/* Modal Novo Tenant */}
+      {/* Modal Cliente / Tenant (Cadastrar ou Editar) */}
       {tenantModalOpen && (
         <div className="modal-overlay">
           <div className="glass-panel modal-content">
-            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", marginBottom: "1rem" }}>🏢 Cadastrar Novo Cliente / Tenant</h3>
-            <form onSubmit={handleCreateTenant}>
+            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", marginBottom: "1rem" }}>
+              🏢 {editingTenant ? `Editar Cliente: ${editingTenant.name}` : "Cadastrar Novo Cliente / Tenant"}
+            </h3>
+            <form onSubmit={handleSaveTenant}>
               <div style={{ marginBottom: "1rem" }}>
-                <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>Nome da Empresa / Cliente</label>
+                <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
+                  Nome da Empresa / Cliente
+                </label>
                 <input
                   type="text"
                   required
@@ -116,7 +205,9 @@ export function TenantsUsersView({ tenants, users, onAddTenant, onAddUser }) {
               </div>
 
               <div style={{ marginBottom: "1.5rem" }}>
-                <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>Domínio Principal</label>
+                <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
+                  Domínio Principal
+                </label>
                 <input
                   type="text"
                   placeholder="Ex: acme.com.br"
@@ -127,22 +218,30 @@ export function TenantsUsersView({ tenants, users, onAddTenant, onAddUser }) {
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setTenantModalOpen(false)}>Cancelar</button>
-                <button type="submit" className="btn btn-primary">Salvar Cliente</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setTenantModalOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  {editingTenant ? "Salvar Alterações" : "Criar Cliente"}
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Modal Novo Usuário */}
+      {/* Modal Usuário (Cadastrar ou Editar) */}
       {userModalOpen && (
         <div className="modal-overlay">
           <div className="glass-panel modal-content">
-            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", marginBottom: "1rem" }}>👥 Cadastrar Novo Usuário</h3>
-            <form onSubmit={handleCreateUser}>
+            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", marginBottom: "1rem" }}>
+              👥 {editingUser ? `Editar Usuário: ${editingUser.name}` : "Cadastrar Novo Usuário"}
+            </h3>
+            <form onSubmit={handleSaveUser}>
               <div style={{ marginBottom: "1rem" }}>
-                <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>Nome Completo</label>
+                <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
+                  Nome Completo
+                </label>
                 <input
                   type="text"
                   required
@@ -154,7 +253,9 @@ export function TenantsUsersView({ tenants, users, onAddTenant, onAddUser }) {
               </div>
 
               <div style={{ marginBottom: "1rem" }}>
-                <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>E-mail</label>
+                <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
+                  E-mail
+                </label>
                 <input
                   type="email"
                   required
@@ -166,7 +267,9 @@ export function TenantsUsersView({ tenants, users, onAddTenant, onAddUser }) {
               </div>
 
               <div style={{ marginBottom: "1rem" }}>
-                <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>Cliente / Tenant</label>
+                <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
+                  Cliente / Tenant
+                </label>
                 <select
                   value={userForm.tenantId}
                   onChange={(e) => setUserForm({ ...userForm, tenantId: e.target.value })}
@@ -179,7 +282,9 @@ export function TenantsUsersView({ tenants, users, onAddTenant, onAddUser }) {
               </div>
 
               <div style={{ marginBottom: "1.5rem" }}>
-                <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>Papel (RBAC Role)</label>
+                <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
+                  Papel (RBAC Role)
+                </label>
                 <select
                   value={userForm.role}
                   onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
@@ -193,8 +298,12 @@ export function TenantsUsersView({ tenants, users, onAddTenant, onAddUser }) {
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setUserModalOpen(false)}>Cancelar</button>
-                <button type="submit" className="btn btn-primary">Salvar Usuário</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setUserModalOpen(false)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  {editingUser ? "Salvar Alterações" : "Criar Usuário"}
+                </button>
               </div>
             </form>
           </div>
