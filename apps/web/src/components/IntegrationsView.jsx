@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 
-export function IntegrationsView({ integrations, activeTenant, onAddIntegration, onTriggerSync }) {
+export function IntegrationsView({ integrations, activeTenant, onAddIntegration, onUpdateIntegration, onTriggerSync }) {
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingIntegration, setEditingIntegration] = useState(null);
   const [syncingId, setSyncingId] = useState(null);
 
   const [form, setForm] = useState({
@@ -11,11 +12,33 @@ export function IntegrationsView({ integrations, activeTenant, onAddIntegration,
     apiToken: "",
   });
 
-  const handleCreate = (e) => {
+  const handleOpenCreate = () => {
+    setEditingIntegration(null);
+    setForm({ name: "", provider: "proxmox", baseUrl: "https://pve.example.com:8006", apiToken: "" });
+    setModalOpen(true);
+  };
+
+  const handleOpenEdit = (item) => {
+    setEditingIntegration(item);
+    setForm({
+      name: item.name,
+      provider: item.provider,
+      baseUrl: item.baseUrl,
+      apiToken: "", // Leave blank unless updating password/token
+    });
+    setModalOpen(true);
+  };
+
+  const handleSave = (e) => {
     e.preventDefault();
     if (!form.name || !form.baseUrl) return;
-    onAddIntegration({ ...form, tenantId: activeTenant.id });
-    setForm({ name: "", provider: "proxmox", baseUrl: "https://pve.example.com:8006", apiToken: "" });
+
+    if (editingIntegration) {
+      onUpdateIntegration({ ...editingIntegration, ...form });
+    } else {
+      onAddIntegration({ ...form, tenantId: activeTenant.id });
+    }
+
     setModalOpen(false);
   };
 
@@ -34,10 +57,10 @@ export function IntegrationsView({ integrations, activeTenant, onAddIntegration,
               🔌 Integrações de Hipervisores (Proxmox VE & Virtualizor)
             </h2>
             <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "0.25rem" }}>
-              Cadastre instâncias de hipervisores para descoberta automática de Nós, VMs QEMU, LXC e Storages.
+              💡 Dica: Clique duas vezes sobre uma linha para editar a conexão do hipervisor.
             </p>
           </div>
-          <button className="btn btn-primary" onClick={() => setModalOpen(true)}>
+          <button className="btn btn-primary" onClick={handleOpenCreate}>
             + Cadastrar Nova Integração
           </button>
         </div>
@@ -56,7 +79,12 @@ export function IntegrationsView({ integrations, activeTenant, onAddIntegration,
           </thead>
           <tbody>
             {integrations.map((item) => (
-              <tr key={item.id}>
+              <tr
+                key={item.id}
+                onDoubleClick={() => handleOpenEdit(item)}
+                style={{ cursor: "pointer" }}
+                title="Clique 2x para editar este hipervisor"
+              >
                 <td>
                   <span className={`badge badge-${item.provider === "proxmox" ? "online" : "requires_approval"}`}>
                     {item.provider.toUpperCase()}
@@ -75,14 +103,29 @@ export function IntegrationsView({ integrations, activeTenant, onAddIntegration,
                   {item.lastSyncAt ? new Date(item.lastSyncAt).toLocaleTimeString("pt-BR") : "Nunca"}
                 </td>
                 <td>
-                  <button
-                    className="btn btn-secondary"
-                    disabled={syncingId === item.id}
-                    onClick={() => handleSyncClick(item.id)}
-                    style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}
-                  >
-                    {syncingId === item.id ? "🔄 Varrendo..." : "⚡ Sincronizar Agora"}
-                  </button>
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <button
+                      className="btn btn-secondary"
+                      disabled={syncingId === item.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleSyncClick(item.id);
+                      }}
+                      style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}
+                    >
+                      {syncingId === item.id ? "🔄 Varrendo..." : "⚡ Sincronizar Agora"}
+                    </button>
+                    <button
+                      className="btn btn-secondary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenEdit(item);
+                      }}
+                      style={{ padding: "0.4rem 0.6rem", fontSize: "0.8rem" }}
+                    >
+                      ✏️ Editar
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -90,14 +133,14 @@ export function IntegrationsView({ integrations, activeTenant, onAddIntegration,
         </table>
       </div>
 
-      {/* Modal Nova Integração */}
+      {/* Modal Nova/Editar Integração */}
       {modalOpen && (
         <div className="modal-overlay">
           <div className="glass-panel modal-content">
             <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", marginBottom: "1rem" }}>
-              🔌 Cadastrar Conexão de Hipervisor (Proxmox VE / Virtualizor)
+              🔌 {editingIntegration ? `Editar Integração: ${editingIntegration.name}` : "Cadastrar Conexão de Hipervisor"}
             </h3>
-            <form onSubmit={handleCreate}>
+            <form onSubmit={handleSave}>
               <div style={{ marginBottom: "1rem" }}>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
                   Provedor de Virtualização
@@ -146,8 +189,7 @@ export function IntegrationsView({ integrations, activeTenant, onAddIntegration,
                 </label>
                 <input
                   type="password"
-                  required
-                  placeholder="Armazenado com criptografia AES-256-GCM"
+                  placeholder={editingIntegration ? "Deixe em branco para manter a chave atual" : "Armazenado com criptografia AES-256-GCM"}
                   value={form.apiToken}
                   onChange={(e) => setForm({ ...form, apiToken: e.target.value })}
                   style={{ width: "100%", padding: "0.6rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}
@@ -156,7 +198,9 @@ export function IntegrationsView({ integrations, activeTenant, onAddIntegration,
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setModalOpen(false)}>Cancelar</button>
-                <button type="submit" className="btn btn-primary">Salvar & Testar Conexão</button>
+                <button type="submit" className="btn btn-primary">
+                  {editingIntegration ? "Salvar Alterações" : "Salvar & Testar Conexão"}
+                </button>
               </div>
             </form>
           </div>

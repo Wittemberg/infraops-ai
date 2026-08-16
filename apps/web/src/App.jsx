@@ -139,6 +139,15 @@ export function App() {
     setIntegrations((prev) => [...prev, newInt]);
   };
 
+  const handleUpdateIntegration = (updatedInt) => {
+    setIntegrations((prev) => prev.map((i) => (i.id === updatedInt.id ? updatedInt : i)));
+    fetch(`https://infraopsai.awecloudsolution.com/api/v1/integrations/${updatedInt.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updatedInt),
+    }).catch(() => {});
+  };
+
   const handleTriggerSync = async (id) => {
     try {
       const res = await fetch(`https://infraopsai.awecloudsolution.com/api/v1/integrations/${id}/sync`, { method: "POST" });
@@ -261,7 +270,15 @@ export function App() {
             onUpdateUser={handleUpdateUser}
           />
         )}
-        {currentNav === "integrations" && <IntegrationsView integrations={integrations} activeTenant={activeTenant} onAddIntegration={handleAddIntegration} onTriggerSync={handleTriggerSync} />}
+        {currentNav === "integrations" && (
+          <IntegrationsView
+            integrations={integrations}
+            activeTenant={activeTenant}
+            onAddIntegration={handleAddIntegration}
+            onUpdateIntegration={handleUpdateIntegration}
+            onTriggerSync={handleTriggerSync}
+          />
+        )}
         {currentNav === "nodes" && <NodeDetailView nodeId="node-pve01" onOpenActionModal={handleOpenActionModal} />}
         {currentNav === "ai" && <AiConsoleView onOpenActionModal={handleOpenActionModal} />}
         {currentNav === "approvals" && <ApprovalsAuditView />}

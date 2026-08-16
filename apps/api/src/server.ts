@@ -259,6 +259,29 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  if (url.startsWith("/api/v1/integrations/") && !url.endsWith("/sync") && (method === "PUT" || method === "POST")) {
+    const intId = url.replace("/api/v1/integrations/", "");
+    const body = await parseJsonBody(req);
+    const index = integrationsStore.findIndex((i) => i.id === intId);
+    if (index !== -1) {
+      if (body.apiToken) {
+        const secretMeta = secretVault.storeSecret(
+          integrationsStore[index].tenantId,
+          `API Credential for ${body.name || integrationsStore[index].name}`,
+          body.provider === "proxmox" ? "token" : "api_key",
+          body.apiToken
+        );
+        body.secretId = secretMeta.id;
+      }
+      delete body.apiToken;
+      integrationsStore[index] = { ...integrationsStore[index], ...body };
+      sendJson(res, 200, { integration: integrationsStore[index] });
+    } else {
+      sendJson(res, 404, { error: "Integration not found" });
+    }
+    return;
+  }
+
   if (url.match(/\/api\/v1\/integrations\/.*\/sync/) && method === "POST") {
     const intId = url.split("/")[4];
     const integration = integrationsStore.find((i) => i.id === intId);
