@@ -525,22 +525,49 @@ const server = createServer(async (req, res) => {
     const tenantNodes = store.nodes.filter((n) => n.tenantId === tenantId);
     const tenantWorkloads = store.workloads.filter((w) => w.tenantId === tenantId);
 
-    let responseText = `Compreendido! Analisei o inventário do cliente (${tenantNodes.length} nós e ${tenantWorkloads.length} workloads).`;
-    let toolCall = null;
+    // Real Upstream LLM Call for GroqCloud or OpenAI if API Key provided
+    if (config.apiKey) {
+      const endpoint =
+        config.provider === "groq"
+          ? "https://api.groq.com/openai/v1/chat/completions"
+          : config.provider === "openai"
+          ? "https://api.openai.com/v1/chat/completions"
+          : null;
 
-    const lower = prompt.toLowerCase();
-    if (lower.includes("restart") || lower.includes("reiniciar") || lower.includes("serviço")) {
-      const target = tenantWorkloads[0]?.name || tenantNodes[0]?.name || "srv-app-01";
-      responseText = `Identifiquei sua solicitação de reinício de serviço. Mapeei com segurança para a Action registrada 'service.restart' no alvo '${target}'. A operação foi validada pelo Policy Engine e aguarda sua confirmação de execução.`;
-      toolCall = { actionKey: "service.restart", targetId: target };
-    } else if (lower.includes("health") || lower.includes("saúde") || lower.includes("status") || lower.includes("diagnostico")) {
-      const target = tenantNodes[0]?.name || "node-pve01";
-      responseText = `Avaliação de integridade concluída: todos os nós e servidores estão respondendo aos heartbeats com latência normal. Proponho a execução de uma checagem detalhada 'node.health' no nó '${target}'.`;
-      toolCall = { actionKey: "node.health", targetId: target };
-    } else if (lower.includes("backup") || lower.includes("snapshot")) {
-      responseText = `Análise de backups: os artefatos das últimas 24h estão íntegros e aderentes à política de retenção segura (Safe Retention). Nenhuma anomalia de tamanho foi detectada.`;
-    } else {
-      responseText = `Processado via ${config.provider.toUpperCase()} (${config.model}): O ambiente do cliente está monitorado e estável. Você pode solicitar diagnósticos, reinício de serviços ou checagens de backup a qualquer momento.`;
+      if (endpoint) {
+        try {
+          const llmRes = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${config.apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: config.model || (config.provider === "groq" ? "llama-3.3-70b-versatile" : "gpt-4o"),
+              messages: [
+                {
+                  role: "system",
+                  content: `Você é o InfraOps AI, assistente autônomo de operações e governança de infraestrutura de TI.
+Você gerencia o ambiente do tenant '${tenantId}' com ${tenantNodes.length} nós (${tenantNodes.map((n) => n.name).join(", ") || "nenhum"}) e ${tenantWorkloads.length} servidores/workloads (${tenantWorkloads.map((w) => w.name).join(", ") || "nenhum"}).
+Responda de forma profissional, direta e em português. Sempre priorize segurança, auditoria e o Policy Engine. Se sugerir uma ação operacional em um servidor, indique claramente o alvo.`,
+                },
+                { role: "user", content: prompt },
+              ],
+              temperature: 0.2,
+            }),
+          });
+
+          if (llmRes.ok) {
+            const llmData: any = await llmRes.json();
+            const content = llmData.choices?.[0]?.message?.content;
+            if (content) {
+              responseText = content;
+            }
+          }
+        } catch (err) {
+          console.warn("[LLM_CALL_FAILED] Fallback to heuristic response:", err);
+        }
+      }
     }
 
     sendJson(res, 200, {

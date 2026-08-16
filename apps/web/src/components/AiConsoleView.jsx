@@ -229,15 +229,18 @@ export function AiConsoleView({ activeTenant, onOpenActionModal }) {
                   value={aiConfig.provider}
                   onChange={(e) => {
                     const prov = e.target.value;
-                    let defaultModel = "gpt-4o";
+                    let defaultModel = "llama-3.3-70b-versatile";
+                    if (prov === "openai") defaultModel = "gpt-4o";
                     if (prov === "gemini") defaultModel = "gemini-1.5-pro";
                     if (prov === "anthropic") defaultModel = "claude-3-5-sonnet";
                     if (prov === "deepseek") defaultModel = "deepseek-r1";
+                    if (prov === "groq") defaultModel = "llama-3.3-70b-versatile";
                     if (prov === "ollama") defaultModel = "llama3:latest";
                     setAiConfig({ ...aiConfig, provider: prov, model: defaultModel });
                   }}
                   style={{ width: "100%", padding: "0.6rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}
                 >
+                  <option value="groq">⚡ GroqCloud (Inferência Ultra-Rápida LPU - Llama 3.3 70B, DeepSeek R1)</option>
                   <option value="openai">🟣 OpenAI (ChatGPT - GPT-4o, o3-mini)</option>
                   <option value="gemini">🔵 Google Gemini (Gemini 1.5 Pro, 2.0 Flash)</option>
                   <option value="anthropic">🟠 Anthropic (Claude 3.5 Sonnet)</option>
@@ -247,13 +250,33 @@ export function AiConsoleView({ activeTenant, onOpenActionModal }) {
               </div>
 
               <div style={{ marginBottom: "1rem" }}>
-                <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
-                  Modelo de LLM
-                </label>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
+                  <label style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                    Modelo de LLM
+                  </label>
+                  {aiConfig.provider === "groq" && (
+                    <div style={{ display: "flex", gap: "0.3rem" }}>
+                      <button
+                        type="button"
+                        onClick={() => setAiConfig({ ...aiConfig, model: "llama-3.3-70b-versatile" })}
+                        style={{ fontSize: "0.7rem", background: "rgba(99, 102, 241, 0.2)", color: "var(--accent-indigo)", border: "none", borderRadius: "4px", padding: "0.15rem 0.4rem", cursor: "pointer" }}
+                      >
+                        Llama 3.3 70B
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setAiConfig({ ...aiConfig, model: "deepseek-r1-distill-llama-70b" })}
+                        style={{ fontSize: "0.7rem", background: "rgba(99, 102, 241, 0.2)", color: "var(--accent-indigo)", border: "none", borderRadius: "4px", padding: "0.15rem 0.4rem", cursor: "pointer" }}
+                      >
+                        DeepSeek R1
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <input
                   type="text"
                   required
-                  placeholder="Ex: gpt-4o, gemini-1.5-pro, claude-3-5-sonnet"
+                  placeholder={aiConfig.provider === "groq" ? "llama-3.3-70b-versatile" : "Ex: gpt-4o, gemini-1.5-pro"}
                   value={aiConfig.model}
                   onChange={(e) => setAiConfig({ ...aiConfig, model: e.target.value })}
                   style={{ width: "100%", padding: "0.6rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}
@@ -262,12 +285,24 @@ export function AiConsoleView({ activeTenant, onOpenActionModal }) {
 
               {aiConfig.provider !== "ollama" ? (
                 <div style={{ marginBottom: "1rem" }}>
-                  <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
-                    Chave de API ({aiConfig.provider.toUpperCase()} API Key)
-                  </label>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
+                    <label style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                      Chave de API ({aiConfig.provider.toUpperCase()} API Key)
+                    </label>
+                    {aiConfig.provider === "groq" && (
+                      <a
+                        href="https://console.groq.com/keys"
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ fontSize: "0.75rem", color: "var(--accent-amber)", textDecoration: "underline" }}
+                      >
+                        Obter chave no GroqCloud ↗
+                      </a>
+                    )}
+                  </div>
                   <input
                     type="password"
-                    placeholder="sk-proj-... / AIzaSy..."
+                    placeholder={aiConfig.provider === "groq" ? "gsk_..." : "sk-proj-... / AIzaSy..."}
                     value={aiConfig.apiKey}
                     onChange={(e) => setAiConfig({ ...aiConfig, apiKey: e.target.value })}
                     style={{ width: "100%", padding: "0.6rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}
