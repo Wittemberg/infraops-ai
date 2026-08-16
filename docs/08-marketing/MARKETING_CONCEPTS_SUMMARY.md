@@ -1,39 +1,46 @@
-# Conceitos de Marketing — Resumo Versionável
+# Conceitos de Marketing e Vendas — Resumo Executivo
 
-> O documento formatado completo está em `InfraOps_AI_Conceitos_de_Marketing.docx`.
+> **Documento de Habilitação de Vendas e Posicionamento Completo:** Consulte [`docs/08-marketing/sales/SALES_PITCH_AND_VALUE_PROPOSITION.md`](file:///docs/08-marketing/sales/SALES_PITCH_AND_VALUE_PROPOSITION.md).
 
-## Posicionamento
+---
 
-InfraOps AI é uma plataforma inteligente de gestão, monitoramento e operação de infraestrutura de TI que transforma servidores, virtualizadores e backups em informações claras, alertas acionáveis e operações assistidas por IA.
+## 1. Posicionamento Estratégico
 
-## Assinatura
+O **InfraOps AI** é uma plataforma inteligente de gestão, monitoramento e operação de infraestrutura de TI que transforma servidores locais (On-Premise), instâncias na nuvem, virtualizadores (Proxmox VE/Virtualizor) e backups em informações claras, alertas acionáveis e operações seguras assistidas por IA com governança de Policy Engine.
+
+---
+
+## 2. Assinatura e Slogan
 
 > **Infraestrutura sob controle. Inteligência para agir.**
 
-## Narrativa
+---
+
+## 3. A Narrativa Operacional
 
 ```text
-MONITORA → ENTENDE → ALERTA → AGE
+MONITORA → ENTENDE → ALERTA → GOVERNA → AGE → AUDITA
 ```
 
-## Pilares
+---
 
-1. Visibilidade — Toda a infraestrutura. Uma única visão.
-2. Prevenção — Descubra antes que vire problema.
-3. Backup — Não basta executar. É preciso validar.
-4. Inteligência — Pergunte à sua infraestrutura.
-5. Automação — Da análise à ação.
-6. Transparência — Você e seus clientes enxergando a mesma realidade.
+## 4. Pilares de Valor Comercial
 
-## Campanhas prioritárias
+1. **Da Observabilidade Passiva à Remediação Ativa** — Não apenas mostre métricas; solucione incidentes com segurança.
+2. **Governança & Risco Zero (Policy Engine)** — Zero comandos soltos via SSH; execução exclusiva por Actions declarativas com travas de concorrência (*Resource Locks*).
+3. **Auditoria Criptográfica Imutável** — Corrente de Hash SHA-256 pronta para auditorias de conformidade (LGPD / SOC 2 / ISO 27001).
+4. **Inteligência Artificial Contextual e Segura** — Diagnósticos com proteção contra *Prompt Injection* e sem vazamento de segredos (Secret Vault AES-256-GCM).
+5. **Backup Engine com Detecção de Anomalias** — Validação estatística de integridade de tamanho e *Safe Retention* permanente.
+6. **Instalação em 1 Clique (Linux & Windows)** — Agente Go com comunicação 100% outbound HTTPS na porta 443 (sem abrir portas no firewall).
+7. **Autonomia Total** — Não requer Zabbix, Grafana ou infraestrutura externa para operar.
 
-- “E se sua infraestrutura pudesse responder?”
-- “Você sabe se todos os seus backups funcionaram hoje?”
-- “Pare de descobrir problemas quando o cliente liga.”
-- “Enquanto você dorme, sua infraestrutura continua trabalhando. O InfraOps AI também.”
-- “Você não precisa de mais métricas. Precisa saber o que elas significam.”
-- “Não apenas pergunte. Peça para fazer.” — usar quando a automação operacional estiver madura.
+---
 
-## Direção visual
+## 5. Campanhas e Ganchos Comerciais
 
-Profissional, técnica, sofisticada e clean. Evitar clichês visuais genéricos de IA (robôs, cérebros neon, circuitos apenas decorativos). A IA deve parecer capacidade natural da plataforma.
+* “E se sua infraestrutura pudesse responder e agir com total segurança?”
+* “Você sabe se todos os seus backups funcionaram e estão íntegros hoje?”
+* “Pare de descobrir problemas quando o cliente liga.”
+* “Enquanto você dorme, sua infraestrutura continua trabalhando. O InfraOps AI também.”
+* “Você não precisa de mais gráficos no Grafana. Precisa de inteligência que resolva a causa raiz.”
+* “Monitore centenas de clientes e servidores locais em um único painel multi-tenant.”
