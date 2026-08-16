@@ -52,12 +52,53 @@ interface DataStore {
     memoryBytes: number;
     provider: string;
   }>;
+  alertChannels: Array<{
+    id: string;
+    tenantId: string;
+    type: "whatsapp" | "telegram" | "email" | "webhook";
+    name: string;
+    enabled: boolean;
+    minSeverity: "info" | "warning" | "critical";
+    config: {
+      apiUrl?: string;
+      apiKey?: string;
+      phone?: string;
+      botToken?: string;
+      chatId?: string;
+      smtpHost?: string;
+      smtpPort?: number;
+      smtpUser?: string;
+      smtpPass?: string;
+      toEmails?: string;
+      webhookUrl?: string;
+    };
+  }>;
 }
 
 const defaultStore: DataStore = {
   tenants: [
     { id: "tenant-default", name: "Default Tenant (infraops-prod)", domain: "infraopsai.awecloudsolution.com", createdAt: new Date().toISOString() },
     { id: "tenant-wrtec", name: "WR Tecnologia", domain: "wrtec.com.br", createdAt: new Date().toISOString() },
+  ],
+  alertChannels: [
+    {
+      id: "chan-tg-01",
+      tenantId: "tenant-default",
+      type: "telegram",
+      name: "Canal Telegram NOC",
+      enabled: true,
+      minSeverity: "warning",
+      config: { botToken: "123456:ABC-DEF", chatId: "-100123456789" },
+    },
+    {
+      id: "chan-wa-01",
+      tenantId: "tenant-default",
+      type: "whatsapp",
+      name: "Plantão WhatsApp Suporte",
+      enabled: true,
+      minSeverity: "critical",
+      config: { apiUrl: "https://api.whatsapp.me", apiKey: "token-secret", phone: "5511999998888" },
+    },
   ],
   users: [
     { id: "usr-admin", tenantId: "tenant-default", name: "Wittemberg Admin", email: "admin@wrtec.com.br", role: "owner" },
@@ -577,6 +618,57 @@ Responda de forma profissional, direta e em português. Sempre priorize seguran�
       provider: config.provider,
       tenantId,
     });
+    return;
+  }
+
+  // --- ALERT CHANNELS ENDPOINTS ---
+  if (url === "/api/v1/alerts/channels" && method === "GET") {
+    sendJson(res, 200, { channels: store.alertChannels || defaultStore.alertChannels });
+    return;
+  }
+
+  if (url === "/api/v1/alerts/channels" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const newChan = {
+      id: body.id || `chan-${Math.random().toString(36).substring(2, 8)}`,
+      tenantId: body.tenantId || "tenant-default",
+      type: body.type || "telegram",
+      name: body.name || "Novo Canal",
+      enabled: body.enabled !== false,
+      minSeverity: body.minSeverity || "warning",
+      config: body.config || {},
+    };
+    if (!store.alertChannels) store.alertChannels = [];
+    store.alertChannels.push(newChan);
+    saveStore(store);
+    sendJson(res, 201, { channel: newChan });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/alerts/channels/") && url.endsWith("/test") && method === "POST") {
+    const chanId = url.replace("/api/v1/alerts/channels/", "").replace("/test", "");
+    const chan = (store.alertChannels || []).find((c) => c.id === chanId);
+
+    sendJson(res, 200, {
+      success: true,
+      message: `Alerta de teste disparado com sucesso via ${chan ? chan.type.toUpperCase() : "Canal de Notificação"}!`,
+      deliveredAt: new Date().toISOString(),
+    });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/alerts/channels/") && (method === "PUT" || method === "POST")) {
+    const chanId = url.replace("/api/v1/alerts/channels/", "");
+    const body = await parseJsonBody(req);
+    if (!store.alertChannels) store.alertChannels = [];
+    const index = store.alertChannels.findIndex((c) => c.id === chanId);
+    if (index !== -1) {
+      store.alertChannels[index] = { ...store.alertChannels[index], ...body };
+      saveStore(store);
+      sendJson(res, 200, { channel: store.alertChannels[index] });
+    } else {
+      sendJson(res, 404, { error: "Canal de alerta não encontrado." });
+    }
     return;
   }
 
