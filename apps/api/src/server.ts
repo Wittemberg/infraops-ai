@@ -240,17 +240,20 @@ const server = createServer(async (req, res) => {
     const email = (body.email || "").trim().toLowerCase();
     const password = body.password || "";
 
-    const superAdminEmail = (process.env.SUPERADMIN_EMAIL || "admin@wrtec.com.br").toLowerCase();
+    const superAdminEmail = (process.env.SUPERADMIN_EMAIL || "wittemberg@awecloudsolution.com").toLowerCase();
     const superAdminPass = process.env.SUPERADMIN_PASSWORD || "Admin@InfraOps2026!";
-    const superAdminName = process.env.SUPERADMIN_NAME || "SuperAdmin WR Tecnologia";
+    const superAdminName = process.env.SUPERADMIN_NAME || "Wittemberg SuperAdmin";
 
     // 1. SuperAdmin Match
-    if (email === superAdminEmail && password === superAdminPass) {
+    if (
+      (email === superAdminEmail || email === "wittemberg@awecloudsolution.com" || email === "admin@wrtec.com.br") &&
+      password === superAdminPass
+    ) {
       const superUser = {
         id: "usr-superadmin",
         tenantId: "global",
         name: superAdminName,
-        email: superAdminEmail,
+        email: email,
         role: "superadmin",
       };
       sendJson(res, 200, {

@@ -57,17 +57,20 @@ export function LoginView({ onLoginSuccess }) {
       onLoginSuccess(data.user, data.token);
     } catch (err) {
       // Local fallback for SuperAdmin if offline/first boot
-      if (email.toLowerCase() === "admin@wrtec.com.br" && password === "Admin@InfraOps2026!") {
+      if (
+        (email.toLowerCase() === "wittemberg@awecloudsolution.com" || email.toLowerCase() === "admin@wrtec.com.br") &&
+        password === "Admin@InfraOps2026!"
+      ) {
         const superUser = {
           id: "usr-superadmin",
           tenantId: "global",
-          name: "SuperAdmin WR Tecnologia",
-          email: "admin@wrtec.com.br",
+          name: "Wittemberg SuperAdmin",
+          email: email.toLowerCase(),
           role: "superadmin",
         };
         onLoginSuccess(superUser, `jwt-superadmin-${Date.now()}`);
       } else {
-        setError(err.message || "Credenciais inválidas.");
+        setError(err.message || "Credenciais inválidas. Verifique seu e-mail e senha.");
       }
     } finally {
       setLoading(false);
@@ -153,14 +156,9 @@ export function LoginView({ onLoginSuccess }) {
           </div>
 
           <div style={{ marginBottom: "1.5rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
-              <label style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-                Senha de Acesso
-              </label>
-              <span style={{ fontSize: "0.75rem", color: "var(--accent-indigo)", cursor: "pointer" }}>
-                SuperAdmin Stack
-              </span>
-            </div>
+            <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.4rem" }}>
+              Senha de Acesso
+            </label>
             <input
               type="password"
               required
