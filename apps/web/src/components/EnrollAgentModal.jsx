@@ -47,9 +47,35 @@ export function EnrollAgentModal({ isOpen, activeTenant, onClose }) {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="glass-panel modal-content" style={{ maxWidth: "680px" }}>
-        <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.3rem", marginBottom: "0.5rem" }}>
+    <div
+      className="modal-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="glass-panel modal-content" style={{ maxWidth: "680px", position: "relative" }}>
+        {/* Close Button in Top Right */}
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            position: "absolute",
+            top: "1.25rem",
+            right: "1.25rem",
+            background: "none",
+            border: "none",
+            color: "var(--text-muted)",
+            fontSize: "1.25rem",
+            cursor: "pointer",
+            padding: "0.2rem 0.5rem",
+            lineHeight: 1,
+          }}
+          title="Fechar"
+        >
+          ✖
+        </button>
+
+        <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.3rem", marginBottom: "0.5rem", paddingRight: "2rem" }}>
           ⚡ Instalação em 1 Clique do Agente InfraOps AI
         </h3>
         <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1.25rem" }}>
@@ -78,9 +104,12 @@ export function EnrollAgentModal({ isOpen, activeTenant, onClose }) {
         </div>
 
         {!tokenData ? (
-          <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
-            <button className="btn btn-primary" onClick={handleGenerateToken} disabled={loading}>
+          <div style={{ textAlign: "center", padding: "1.5rem 0", display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem" }}>
+            <button className="btn btn-primary" onClick={handleGenerateToken} disabled={loading} style={{ padding: "0.75rem 1.75rem", fontSize: "0.95rem" }}>
               {loading ? "Gerando Token Seguro..." : "🔑 Gerar Token de Instalação de Uso Único"}
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={onClose} style={{ fontSize: "0.85rem" }}>
+              Cancelar / Fechar
             </button>
           </div>
         ) : (
@@ -116,7 +145,7 @@ export function EnrollAgentModal({ isOpen, activeTenant, onClose }) {
                 {copied ? "✅ Comando Copiado!" : "📋 Copiar Comando"}
               </button>
               <button className="btn btn-primary" onClick={onClose}>
-                Concluído
+                Fechar
               </button>
             </div>
           </div>
