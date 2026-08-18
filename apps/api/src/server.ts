@@ -556,23 +556,139 @@ const server = createServer(async (req, res) => {
     return;
   }
 
+  // --- AI TEST & VALIDATION ENDPOINT ---
+  if (url === "/api/v1/ai/test" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const config = body.config || {};
+    const provider = (config.provider || "groq").toLowerCase();
+    const apiKey = (config.apiKey || "").trim();
+    const startTime = Date.now();
+
+    if (provider !== "ollama" && !apiKey) {
+      sendJson(res, 400, {
+        success: false,
+        error: `Nenhuma chave de API informada para o provedor ${provider.toUpperCase()}.`,
+      });
+      return;
+    }
+
+    try {
+      if (provider === "groq") {
+        const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: config.model || "llama-3.3-70b-versatile",
+            messages: [{ role: "user", content: "ping" }],
+            max_tokens: 5,
+          }),
+        });
+
+        if (!groqRes.ok) {
+          const errData: any = await groqRes.json().catch(() => ({}));
+          sendJson(res, 400, {
+            success: false,
+            error: `GroqCloud rejeitou a chave (HTTP ${groqRes.status}): ${errData.error?.message || "Chave de API inválida."}`,
+          });
+          return;
+        }
+      } else if (provider === "openai") {
+        const oaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: config.model || "gpt-4o-mini",
+            messages: [{ role: "user", content: "ping" }],
+            max_tokens: 5,
+          }),
+        });
+
+        if (!oaiRes.ok) {
+          const errData: any = await oaiRes.json().catch(() => ({}));
+          sendJson(res, 400, {
+            success: false,
+            error: `OpenAI rejeitou a chave (HTTP ${oaiRes.status}): ${errData.error?.message || "Chave de API inválida."}`,
+          });
+          return;
+        }
+      } else if (provider === "deepseek") {
+        const dsRes = await fetch("https://api.deepseek.com/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: config.model || "deepseek-chat",
+            messages: [{ role: "user", content: "ping" }],
+            max_tokens: 5,
+          }),
+        });
+
+        if (!dsRes.ok) {
+          const errData: any = await dsRes.json().catch(() => ({}));
+          sendJson(res, 400, {
+            success: false,
+            error: `DeepSeek rejeitou a chave (HTTP ${dsRes.status}): ${errData.error?.message || "Chave de API inválida."}`,
+          });
+          return;
+        }
+      } else if (provider === "ollama") {
+        const ollamaUrl = (config.baseUrl || "http://localhost:11434").replace(/\/$/, "");
+        const ollamaRes = await fetch(`${ollamaUrl}/api/tags`).catch(() => null);
+        if (!ollamaRes || !ollamaRes.ok) {
+          sendJson(res, 400, {
+            success: false,
+            error: `Não foi possível conectar ao servidor Ollama em ${ollamaUrl}. Verifique se o serviço está em execução.`,
+          });
+          return;
+        }
+      }
+
+      const latencyMs = Date.now() - startTime;
+      sendJson(res, 200, {
+        success: true,
+        message: `Chave e conexão validadas com sucesso para ${provider.toUpperCase()} (${config.model || "padrão"})!`,
+        latencyMs,
+      });
+      return;
+    } catch (err: any) {
+      sendJson(res, 400, {
+        success: false,
+        error: `Erro ao testar conexão com ${provider.toUpperCase()}: ${err.message || err}`,
+      });
+      return;
+    }
+  }
+
   // --- AI CHAT OPERATIONAL ENDPOINT ---
   if (url === "/api/v1/ai/chat" && method === "POST") {
     const body = await parseJsonBody(req);
     const prompt = body.prompt || "";
     const tenantId = body.tenantId || "tenant-default";
-    const config = body.config || { provider: "openai", model: "gpt-4o" };
+    const config = body.config || { provider: "groq", model: "llama-3.3-70b-versatile" };
 
     const tenantNodes = store.nodes.filter((n) => n.tenantId === tenantId);
     const tenantWorkloads = store.workloads.filter((w) => w.tenantId === tenantId);
 
-    // Real Upstream LLM Call for GroqCloud or OpenAI if API Key provided
+    let responseText = `Recebi sua solicitação para o cliente '${tenantId}'. A infraestrutura conta com ${tenantNodes.length} nós e ${tenantWorkloads.length} servidores/workloads registrados.`;
+    let toolCall: { actionKey: string; targetId: string } | null = null;
+
+    // Real Upstream LLM Call if API Key provided
     if (config.apiKey) {
       const endpoint =
         config.provider === "groq"
           ? "https://api.groq.com/openai/v1/chat/completions"
           : config.provider === "openai"
           ? "https://api.openai.com/v1/chat/completions"
+          : config.provider === "deepseek"
+          ? "https://api.deepseek.com/chat/completions"
           : null;
 
       if (endpoint) {
