@@ -581,7 +581,7 @@ const server = createServer(async (req, res) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: config.model || "llama-3.3-70b-versatile",
+            model: config.model || "llama-3.1-8b-instant",
             messages: [{ role: "user", content: "ping" }],
             max_tokens: 5,
           }),
@@ -589,6 +589,23 @@ const server = createServer(async (req, res) => {
 
         if (!groqRes.ok) {
           const errData: any = await groqRes.json().catch(() => ({}));
+          
+          // If 404 (Model not found), verify if key is valid via /models endpoint
+          if (groqRes.status === 404) {
+            const modelsRes = await fetch("https://api.groq.com/openai/v1/models", {
+              headers: { Authorization: `Bearer ${apiKey}` },
+            });
+            if (modelsRes.ok) {
+              const modelsData: any = await modelsRes.json();
+              const available = (modelsData.data || []).map((m: any) => m.id).slice(0, 5);
+              sendJson(res, 400, {
+                success: false,
+                error: `Sua chave GroqCloud é VÁLIDA, mas o modelo '${config.model}' não está disponível na sua conta. Modelos ativos no seu GroqCloud: ${available.join(", ")}. Clique em um dos botões de modelo acima (ex: llama-3.1-8b-instant).`,
+              });
+              return;
+            }
+          }
+
           sendJson(res, 400, {
             success: false,
             error: `GroqCloud rejeitou a chave (HTTP ${groqRes.status}): ${errData.error?.message || "Chave de API inválida."}`,

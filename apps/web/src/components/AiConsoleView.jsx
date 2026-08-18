@@ -475,7 +475,29 @@ export function AiConsoleView({ activeTenant, onOpenActionModal }) {
                     Modelo de LLM
                   </label>
                   {activeProv === "groq" && (
-                    <div style={{ display: "flex", gap: "0.4rem" }}>
+                    <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAiSettings((prev) => ({
+                            ...prev,
+                            models: { ...prev.models, groq: "llama-3.1-8b-instant" },
+                          }));
+                          setTestFeedback(null);
+                        }}
+                        style={{
+                          fontSize: "0.7rem",
+                          fontWeight: 600,
+                          background: activeModel === "llama-3.1-8b-instant" ? "rgba(16, 185, 129, 0.25)" : "rgba(99, 102, 241, 0.15)",
+                          color: activeModel === "llama-3.1-8b-instant" ? "var(--accent-emerald)" : "var(--accent-indigo)",
+                          border: activeModel === "llama-3.1-8b-instant" ? "1px solid var(--accent-emerald)" : "1px solid transparent",
+                          borderRadius: "4px",
+                          padding: "0.2rem 0.45rem",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {activeModel === "llama-3.1-8b-instant" ? "✓ ⚡ 8B Instant (Padrão)" : "⚡ 8B Instant"}
+                      </button>
                       <button
                         type="button"
                         onClick={() => {
@@ -492,11 +514,33 @@ export function AiConsoleView({ activeTenant, onOpenActionModal }) {
                           color: activeModel === "llama-3.3-70b-versatile" ? "var(--accent-emerald)" : "var(--accent-indigo)",
                           border: activeModel === "llama-3.3-70b-versatile" ? "1px solid var(--accent-emerald)" : "1px solid transparent",
                           borderRadius: "4px",
-                          padding: "0.2rem 0.5rem",
+                          padding: "0.2rem 0.45rem",
                           cursor: "pointer",
                         }}
                       >
                         {activeModel === "llama-3.3-70b-versatile" ? "✓ Llama 3.3 70B" : "Llama 3.3 70B"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAiSettings((prev) => ({
+                            ...prev,
+                            models: { ...prev.models, groq: "llama-3.1-70b-versatile" },
+                          }));
+                          setTestFeedback(null);
+                        }}
+                        style={{
+                          fontSize: "0.7rem",
+                          fontWeight: 600,
+                          background: activeModel === "llama-3.1-70b-versatile" ? "rgba(16, 185, 129, 0.25)" : "rgba(99, 102, 241, 0.15)",
+                          color: activeModel === "llama-3.1-70b-versatile" ? "var(--accent-emerald)" : "var(--accent-indigo)",
+                          border: activeModel === "llama-3.1-70b-versatile" ? "1px solid var(--accent-emerald)" : "1px solid transparent",
+                          borderRadius: "4px",
+                          padding: "0.2rem 0.45rem",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {activeModel === "llama-3.1-70b-versatile" ? "✓ Llama 3.1 70B" : "Llama 3.1 70B"}
                       </button>
                       <button
                         type="button"
@@ -514,11 +558,33 @@ export function AiConsoleView({ activeTenant, onOpenActionModal }) {
                           color: activeModel === "deepseek-r1-distill-llama-70b" ? "var(--accent-emerald)" : "var(--accent-indigo)",
                           border: activeModel === "deepseek-r1-distill-llama-70b" ? "1px solid var(--accent-emerald)" : "1px solid transparent",
                           borderRadius: "4px",
-                          padding: "0.2rem 0.5rem",
+                          padding: "0.2rem 0.45rem",
                           cursor: "pointer",
                         }}
                       >
                         {activeModel === "deepseek-r1-distill-llama-70b" ? "✓ DeepSeek R1" : "DeepSeek R1"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAiSettings((prev) => ({
+                            ...prev,
+                            models: { ...prev.models, groq: "mixtral-8x7b-32768" },
+                          }));
+                          setTestFeedback(null);
+                        }}
+                        style={{
+                          fontSize: "0.7rem",
+                          fontWeight: 600,
+                          background: activeModel === "mixtral-8x7b-32768" ? "rgba(16, 185, 129, 0.25)" : "rgba(99, 102, 241, 0.15)",
+                          color: activeModel === "mixtral-8x7b-32768" ? "var(--accent-emerald)" : "var(--accent-indigo)",
+                          border: activeModel === "mixtral-8x7b-32768" ? "1px solid var(--accent-emerald)" : "1px solid transparent",
+                          borderRadius: "4px",
+                          padding: "0.2rem 0.45rem",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {activeModel === "mixtral-8x7b-32768" ? "✓ Mixtral 8x7B" : "Mixtral 8x7B"}
                       </button>
                     </div>
                   )}
