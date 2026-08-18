@@ -1,151 +1,173 @@
-# Etapa 20 — Roadmap, Milestones e Gates
+# Roadmap — InfraOps AI
 
-## Milestone 0 — Fundação
+> **Estado atual:** Etapas 1–20 concluídas e plataforma em produção.  
+> **Próxima geração planejada:** Etapas 21–24 — Autonomous Infrastructure Operations.
 
-Entrega:
-- monorepo;
-- API/web/worker;
-- PostgreSQL;
-- Redis;
-- CI.
+## Etapas 1–20 — Base concluída
 
-Gate:
-- build/test verdes.
+As etapas originais entregaram fundação, multi-tenancy, agents, observabilidade, Action Framework, Policy Engine, auditoria, integrações Proxmox/Virtualizor, Backup Engine, IA, frontend, alertas, deploy e hardening operacional.
 
-## Milestone 1 — Node Online
+O histórico detalhado permanece em `docs/00-project/PROGRESS_REPORT_AND_CHANGELOG.md` e `docs/02-implementation/`.
 
-Entrega:
-- tenant;
-- auth;
-- node;
-- agent enrollment;
-- heartbeat;
-- inventory.
+---
 
-Gate:
-- instalar agent em Linux;
-- node aparece online;
-- fica offline corretamente.
+## Etapa 21 — Autonomous Scheduler & Automation Engine — PLANNED
 
-## Milestone 2 — Observabilidade
+### Objetivo
+Permitir execução futura e recorrente de análises, relatórios, runbooks e Actions governadas.
 
-Entrega:
-- Prometheus;
-- CPU/RAM/disk;
-- Node detail;
-- alerts básicos.
+### Entregas
+- one-shot schedule;
+- cron e intervalos;
+- timezone por tenant;
+- pause/resume;
+- histórico de runs;
+- retry/idempotência;
+- concorrência controlada;
+- maintenance windows;
+- target por tenant/site/tag/node/workload/storage;
+- IA opcional por schedule;
+- notificações por resultado/exceção.
 
-Gate:
-- alerta real/simulado aparece e resolve.
+### Casos iniciais
+- análise diária de disco;
+- sweep de CPU/RAM/load;
+- revisão semanal de backups;
+- relatório matinal de exceções;
+- Patch Advisor periódico.
 
-## Milestone 3 — Job Engine
+### Gate
+Schedules devem executar sem duplicidade, respeitando tenant scope, Policy Engine, locks, approvals e audit.
 
-Entrega:
-- action registry;
-- job state machine;
-- idempotência;
-- locks;
-- audit.
+---
 
-Actions:
-- node.health;
-- node.inventory;
-- network.ping.
+## Etapa 22 — Conditional Triggers & Event Automation — PLANNED
 
-Gate:
-- replay não duplica.
+### Objetivo
+Disparar análises/workflows quando condições reais de infraestrutura ocorrerem.
 
-## Milestone 4 — Operações Seguras
+### Entregas
+- triggers de telemetria;
+- triggers de heartbeat;
+- triggers do Backup Engine;
+- triggers de alert/incidente;
+- triggers por webhook/evento;
+- debounce;
+- cooldown;
+- hysteresis;
+- deduplicação;
+- circuit breaker;
+- correlação de incidentes.
 
-Actions:
-- apt_update;
-- apt_upgrade;
-- reboot;
-- service.status;
-- service.restart.
+### Exemplos
+- disk >85% por 15 min;
+- node offline por 5 min;
+- backup fora do RPO;
+- serviço failed;
+- storage abaixo de X GB livres.
 
-Entrega:
-- Policy Engine;
-- approvals;
-- pre/postchecks.
+### Gate
+Nenhum trigger pode gerar storm de jobs nem cruzar tenant. Flapping deve ser controlado.
 
-Gate:
-- upgrade medium não executa sem aprovação.
+---
 
-## Milestone 5 — Proxmox
+## Etapa 23 — Autonomous Policies & Self-Healing — PLANNED
 
-Entrega:
-- provider;
-- nodes;
-- VM/LXC;
-- storage;
-- tasks.
+### Objetivo
+Permitir remediação automática, previamente autorizada e verificável para cenários conhecidos.
 
-Gate:
-- cluster real de teste sincronizado.
+### Níveis
+0. Observe
+1. Analyze
+2. Recommend
+3. Approval
+4. Autonomous
+5. Self-Healing
 
-## Milestone 6 — Backup Core
+### Entregas
+- autonomy policy por tenant/node/action;
+- risk budget;
+- max actions/time-window;
+- evidence threshold;
+- automatic escalation;
+- rollback quando suportado;
+- postcheck obrigatório;
+- self-healing runbooks;
+- falha → stop + escalate.
 
-Entrega:
-- artifacts;
-- policies;
-- expectations;
-- missing;
-- failed;
-- size anomaly;
-- cleanup dry-run.
+### Gate
+Um cenário homologado deve percorrer `trigger → evidence → policy → action → postcheck → audit` sem intervenção, apenas quando explicitamente autorizado.
 
-Gate:
-- nunca viola minimum copies.
+---
 
-## Milestone 7 — Virtualizor
+## Etapa 24 — Goal-Oriented Infrastructure Management — PLANNED
 
-Entrega:
-- VPS;
-- servers;
-- backups;
-- normalização.
+### Objetivo
+Permitir objetivos contínuos declarativos, em vez de apenas schedules e regras pontuais.
 
-## Milestone 8 — IA Read-only
+### Exemplos
+- manter nodes com ≥20% de espaço livre;
+- manter workloads críticos dentro do RPO;
+- manter serviço X disponível;
+- impedir acúmulo de patches críticos além de prazo definido.
 
-Entrega:
-- chat;
-- context;
-- metrics/backups/log tools;
-- audit AI.
+### Entregas
+- Goal model;
+- evaluation loop;
+- allowed Actions;
+- autonomy level;
+- risk/cost budget;
+- evidence/history;
+- goal health;
+- drift detection;
+- explicação de decisões.
 
-Gate:
-- respostas usam dados reais.
+### Gate
+O sistema deve manter um objetivo de teste continuamente sem extrapolar policy, escopo ou orçamento de risco.
 
-## Milestone 9 — IA + Actions
+---
 
-Entrega:
-- requestAction;
-- plan;
-- approval;
-- execution tracking.
+## Fluxo obrigatório de autonomia
 
-Gate:
-- prompt injection não contorna policy.
+```text
+Scheduler / Trigger / Goal
+        ↓
+Context Builder
+        ↓
+Rule Engine / AI Analyzer
+        ↓
+Plan
+        ↓
+Policy Engine
+        ↓
+Action Registry
+        ↓
+Approval (quando exigido)
+        ↓
+Resource Lock
+        ↓
+Precheck
+        ↓
+Execute
+        ↓
+Postcheck
+        ↓
+Audit Hash Chain
+        ↓
+Notify / Report
+```
 
-## Milestone 10 — Hardening
+## Definition of Done
 
-- mTLS;
-- MFA;
-- secrets rotation;
-- penetration tests;
-- recovery;
-- monitoring externo.
+Nenhuma etapa autônoma estará concluída sem:
 
-## Definition of Done geral
-
-Uma feature não está pronta sem:
-- código;
-- migration se necessário;
-- tests;
-- docs;
-- observability;
-- auth/policy;
-- audit para mudanças;
-- error handling;
-- rollback/compatibilidade quando pertinente.
+- testes de idempotência;
+- tenant isolation;
+- policy enforcement;
+- auditabilidade;
+- anti-loop/circuit breaker;
+- limites de frequência;
+- observabilidade da automação;
+- fallback quando IA estiver indisponível;
+- documentação de segurança;
+- testes de prompt injection quando houver LLM no fluxo.

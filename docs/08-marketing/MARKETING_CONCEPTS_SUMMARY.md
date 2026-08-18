@@ -1,46 +1,105 @@
 # Conceitos de Marketing e Vendas — Resumo Executivo
 
-> **Documento de Habilitação de Vendas e Posicionamento Completo:** Consulte [`docs/08-marketing/sales/SALES_PITCH_AND_VALUE_PROPOSITION.md`](file:///docs/08-marketing/sales/SALES_PITCH_AND_VALUE_PROPOSITION.md).
-
----
-
 ## 1. Posicionamento Estratégico
 
-O **InfraOps AI** é uma plataforma inteligente de gestão, monitoramento e operação de infraestrutura de TI que transforma servidores locais (On-Premise), instâncias na nuvem, virtualizadores (Proxmox VE/Virtualizor) e backups em informações claras, alertas acionáveis e operações seguras assistidas por IA com governança de Policy Engine.
+O **InfraOps AI** é uma plataforma inteligente de gestão, monitoramento e operação de infraestrutura que transforma servidores, virtualizadores e backups em informações claras, alertas acionáveis e operações seguras assistidas por IA e governadas por Policy Engine.
 
----
+A próxima evolução de produto documentada adiciona **Autonomous Infrastructure Operations**: capacidade de agendar análises, reagir a eventos e, quando explicitamente autorizado, executar self-healing em cenários governados.
 
-## 2. Assinatura e Slogan
+> Não comunicar Scheduler/Self-Healing/Goals como features disponíveis antes da implementação. Em marketing de roadmap, usar “em desenvolvimento”, “próxima geração” ou “planejado”.
+
+## 2. Assinatura
 
 > **Infraestrutura sob controle. Inteligência para agir.**
 
----
+A assinatura permanece válida. A autonomia amplia o significado de “agir”, sem trocar a identidade principal.
 
-## 3. A Narrativa Operacional
+## 3. Narrativa Operacional
+
+### Produto atual
 
 ```text
 MONITORA → ENTENDE → ALERTA → GOVERNA → AGE → AUDITA
 ```
 
----
+### Próxima geração
 
-## 4. Pilares de Valor Comercial
+```text
+MONITORA → ENTENDE → ANTECIPA → GOVERNA → AGE → VALIDA → AUDITA → MANTÉM OBJETIVOS
+```
 
-1. **Da Observabilidade Passiva à Remediação Ativa** — Não apenas mostre métricas; solucione incidentes com segurança.
-2. **Governança & Risco Zero (Policy Engine)** — Zero comandos soltos via SSH; execução exclusiva por Actions declarativas com travas de concorrência (*Resource Locks*).
-3. **Auditoria Criptográfica Imutável** — Corrente de Hash SHA-256 pronta para auditorias de conformidade (LGPD / SOC 2 / ISO 27001).
-4. **Inteligência Artificial Contextual e Segura** — Diagnósticos com proteção contra *Prompt Injection* e sem vazamento de segredos (Secret Vault AES-256-GCM).
-5. **Backup Engine com Detecção de Anomalias** — Validação estatística de integridade de tamanho e *Safe Retention* permanente.
-6. **Instalação em 1 Clique (Linux & Windows)** — Agente Go com comunicação 100% outbound HTTPS na porta 443 (sem abrir portas no firewall).
-7. **Autonomia Total** — Não requer Zabbix, Grafana ou infraestrutura externa para operar.
+## 4. Novo conceito comercial: Autonomia Governada
 
----
+O diferencial não é “uma IA que faz qualquer coisa”.
 
-## 5. Campanhas e Ganchos Comerciais
+É:
 
-* “E se sua infraestrutura pudesse responder e agir com total segurança?”
-* “Você sabe se todos os seus backups funcionaram e estão íntegros hoje?”
-* “Pare de descobrir problemas quando o cliente liga.”
-* “Enquanto você dorme, sua infraestrutura continua trabalhando. O InfraOps AI também.”
-* “Você não precisa de mais gráficos no Grafana. Precisa de inteligência que resolva a causa raiz.”
-* “Monitore centenas de clientes e servidores locais em um único painel multi-tenant.”
+> **Uma infraestrutura que pode cuidar de rotinas e incidentes conhecidos sozinha, sem perder governança.**
+
+Mensagem técnica-comercial:
+
+> **Mais autonomia para a operação. Os mesmos limites de segurança.**
+
+## 5. Pilares de valor
+
+1. **Observabilidade que vira ação** — dados deixam de ser apenas gráficos.
+2. **Governança antes da automação** — Policy Engine, RBAC, Actions, locks e auditoria.
+3. **Backup Intelligence** — expectativas, anomalias e Safe Retention.
+4. **IA contextual** — conversa, investiga e explica.
+5. **Autonomia programável** — schedules e triggers planejados para tarefas recorrentes.
+6. **Self-Healing governado** — roadmap para cenários homologados e ações restritas.
+7. **Gestão por objetivos** — roadmap para manter RPO, espaço livre e disponibilidade.
+8. **Multi-tenant para MSPs** — escala operacional sem misturar clientes.
+
+## 6. Ganchos atuais
+
+- “E se sua infraestrutura pudesse responder e agir com total segurança?”
+- “Você sabe se todos os seus backups funcionaram hoje?”
+- “Pare de descobrir problemas quando o cliente liga.”
+- “Enquanto você dorme, sua infraestrutura continua trabalhando. O InfraOps AI também.”
+- “Não basta monitorar. É preciso compreender e agir.”
+
+## 7. Ganchos da próxima geração / roadmap
+
+Usar apenas como visão de futuro até implementação:
+
+- **“E se sua infraestrutura pudesse cuidar das rotinas antes de você pedir?”**
+- **“Da monitoração ao autocuidado governado.”**
+- **“Automação com vida própria. Segurança sob seu controle.”**
+- **“Você define os limites. O InfraOps AI cuida da rotina.”**
+- **“Detecta. Analisa. Corrige. Valida. Documenta.”**
+- **“Seu NOC não precisa dormir.”**
+
+## 8. Campanha conceito — Seu NOC não precisa dormir
+
+Visual:
+
+```text
+03:47
+
+32 nodes avaliados
+218 backups verificados
+1 storage em risco
+1 incidente investigado
+0 ação fora da policy
+```
+
+Headline:
+
+> **Seu NOC não precisa dormir.**
+
+Subheadline:
+
+> InfraOps AI monitora continuamente e evolui para executar rotinas autônomas dentro das regras definidas pela sua operação.
+
+## 9. Regra de comunicação
+
+Evitar “IA autônoma sem supervisão”, “resolve qualquer problema” e promessas equivalentes.
+
+Preferir:
+- autonomia governada;
+- self-healing controlado;
+- policies explícitas;
+- cenários homologados;
+- validação pós-ação;
+- rastreabilidade completa.

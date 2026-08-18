@@ -17,5 +17,6 @@
 | ADR-013 | Jobs idempotentes + locks | Accepted |
 | ADR-014 | IA como ator com permissões próprias | Accepted |
 | ADR-015 | IA não é dependência para monitoramento | Accepted |
+| ADR-016 | Autonomous Scheduler + Event Automation + Goal-Oriented Operations | Proposed / Planned |
 
 Qualquer alteração deve ser feita via novo ADR, sem apagar o histórico.
