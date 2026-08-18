@@ -9,6 +9,7 @@ import { ActionModal } from "./components/ActionModal.jsx";
 import { EnrollAgentModal } from "./components/EnrollAgentModal.jsx";
 import { AddWorkloadModal } from "./components/AddWorkloadModal.jsx";
 import { LoginView } from "./components/LoginView.jsx";
+import { ActionCatalogView } from "./components/ActionCatalogView.jsx";
 
 const API_BASE = "https://infraopsai.awecloudsolution.com";
 
@@ -446,6 +447,11 @@ export function App() {
           <li className={`nav-item ${currentNav === "approvals" ? "active" : ""}`} onClick={() => setCurrentNav("approvals")}>
             🛡️ Aprovações & Auditoria
           </li>
+          {isOperator && (
+            <li className={`nav-item ${currentNav === "actions" ? "active" : ""}`} onClick={() => setCurrentNav("actions")}>
+              ⚡ Catálogo de Actions
+            </li>
+          )}
         </ul>
 
         {/* User Card in Sidebar Bottom */}
@@ -595,6 +601,7 @@ export function App() {
         )}
         {currentNav === "ai" && isOperator && <AiConsoleView activeTenant={activeTenant} onOpenActionModal={handleOpenActionModal} />}
         {currentNav === "approvals" && <ApprovalsAuditView activeTenant={activeTenant} />}
+        {currentNav === "actions" && isOperator && <ActionCatalogView activeTenant={activeTenant} onOpenActionModal={handleOpenActionModal} />}
       </main>
 
       {/* Action Modals */}
