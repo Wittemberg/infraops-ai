@@ -364,119 +364,122 @@ export function ActionCatalogView({ activeTenant, onOpenActionModal }) {
           </div>
         </div>
 
-        {/* Actions Table */}
-        <table className="custom-table">
-          <thead>
-            <tr>
-              <th>Action Key & Versão</th>
-              <th>Nome da Ação</th>
-              <th>Risco</th>
-              <th>Nível de Autonomia</th>
-              <th>Precheck / Postcheck</th>
-              <th>Status Tenant</th>
-              <th>Ações de Governança</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredActions.map((act) => (
-              <tr
-                key={act.actionKey}
-                onDoubleClick={() => setEditingAction({ ...act })}
-                style={{ cursor: "pointer" }}
-                title="Clique 2x para editar a política desta Action"
-              >
-                <td>
-                  <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--accent-indigo)", fontSize: "0.85rem" }}>
-                    {act.actionKey}
-                  </div>
-                  <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{act.version}</span>
-                </td>
-                <td>
-                  <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{act.title}</div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", maxWidth: "340px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {act.description}
-                  </div>
-                </td>
-                <td>{getRiskBadge(act.risk)}</td>
-                <td>
-                  <span
-                    style={{
-                      fontSize: "0.75rem",
-                      fontWeight: 600,
-                      color: act.tenantPolicy.autonomyLevel >= 4 ? "var(--accent-emerald)" : "var(--accent-amber)",
-                    }}
-                  >
-                    {getAutonomyLabel(act.tenantPolicy.autonomyLevel)}
-                  </span>
-                  {act.tenantPolicy.maintenanceWindowOnly && (
-                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>🌙 Apenas Janela Manut.</div>
-                  )}
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setInspectingAction(act);
-                    }}
-                    style={{ padding: "0.25rem 0.6rem", fontSize: "0.75rem" }}
-                  >
-                    🔍 Ver Contrato
-                  </button>
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleAction(act.actionKey);
-                    }}
-                    style={{
-                      background: act.tenantPolicy.enabled ? "rgba(16, 185, 129, 0.2)" : "rgba(244, 63, 94, 0.2)",
-                      color: act.tenantPolicy.enabled ? "var(--accent-emerald)" : "var(--accent-rose)",
-                      border: "none",
-                      padding: "0.25rem 0.6rem",
-                      borderRadius: "4px",
-                      fontWeight: 600,
-                      fontSize: "0.75rem",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {act.tenantPolicy.enabled ? "🟢 HABILITADA" : "⚪ BLOQUEADA"}
-                  </button>
-                </td>
-                <td>
-                  <div style={{ display: "flex", gap: "0.4rem" }}>
+        {/* Actions Table with responsive horizontal scroll */}
+        <div style={{ width: "100%", overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+          <table className="custom-table" style={{ width: "100%", minWidth: "860px" }}>
+            <thead>
+              <tr>
+                <th style={{ padding: "0.75rem 0.6rem", width: "16%" }}>Action Key</th>
+                <th style={{ padding: "0.75rem 0.6rem", width: "24%" }}>Nome da Ação</th>
+                <th style={{ padding: "0.75rem 0.6rem", width: "10%" }}>Risco</th>
+                <th style={{ padding: "0.75rem 0.6rem", width: "18%" }}>Autonomia</th>
+                <th style={{ padding: "0.75rem 0.6rem", width: "10%" }}>Contrato</th>
+                <th style={{ padding: "0.75rem 0.6rem", width: "10%" }}>Status</th>
+                <th style={{ padding: "0.75rem 0.6rem", width: "12%" }}>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredActions.map((act) => (
+                <tr
+                  key={act.actionKey}
+                  onDoubleClick={() => setEditingAction({ ...act })}
+                  style={{ cursor: "pointer" }}
+                  title="Clique 2x para editar a política desta Action"
+                >
+                  <td style={{ padding: "0.75rem 0.6rem" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--accent-indigo)", fontSize: "0.82rem" }}>
+                      {act.actionKey}
+                    </div>
+                    <span style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>{act.version}</span>
+                  </td>
+                  <td style={{ padding: "0.75rem 0.6rem" }}>
+                    <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>{act.title}</div>
+                    <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)", lineHeight: "1.3" }}>
+                      {act.description}
+                    </div>
+                  </td>
+                  <td style={{ padding: "0.75rem 0.6rem" }}>{getRiskBadge(act.risk)}</td>
+                  <td style={{ padding: "0.75rem 0.6rem" }}>
+                    <div
+                      style={{
+                        fontSize: "0.75rem",
+                        fontWeight: 600,
+                        color: act.tenantPolicy.autonomyLevel >= 4 ? "var(--accent-emerald)" : "var(--accent-amber)",
+                      }}
+                    >
+                      {getAutonomyLabel(act.tenantPolicy.autonomyLevel)}
+                    </div>
+                    {act.tenantPolicy.maintenanceWindowOnly && (
+                      <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>🌙 Janela Manut.</div>
+                    )}
+                  </td>
+                  <td style={{ padding: "0.75rem 0.6rem" }}>
                     <button
+                      type="button"
                       className="btn btn-secondary"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setEditingAction({ ...act });
+                        setInspectingAction(act);
                       }}
-                      style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}
-                      title="Editar Política de Governança"
+                      style={{ padding: "0.25rem 0.5rem", fontSize: "0.72rem", whiteSpace: "nowrap" }}
                     >
-                      ⚙️ Política
+                      🔍 Contrato
                     </button>
+                  </td>
+                  <td style={{ padding: "0.75rem 0.6rem" }}>
                     <button
-                      className="btn btn-primary"
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onOpenActionModal("srv-db-postgres", act.actionKey);
+                        handleToggleAction(act.actionKey);
                       }}
-                      disabled={!act.tenantPolicy.enabled}
-                      style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}
-                      title="Simular ou Executar Action"
+                      style={{
+                        background: act.tenantPolicy.enabled ? "rgba(16, 185, 129, 0.2)" : "rgba(244, 63, 94, 0.2)",
+                        color: act.tenantPolicy.enabled ? "var(--accent-emerald)" : "var(--accent-rose)",
+                        border: "none",
+                        padding: "0.25rem 0.5rem",
+                        borderRadius: "4px",
+                        fontWeight: 600,
+                        fontSize: "0.72rem",
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                      }}
                     >
-                      ⚡ Executar
+                      {act.tenantPolicy.enabled ? "🟢 HABILITADA" : "⚪ BLOQUEADA"}
                     </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  </td>
+                  <td style={{ padding: "0.75rem 0.6rem" }}>
+                    <div style={{ display: "flex", gap: "0.3rem", flexWrap: "nowrap" }}>
+                      <button
+                        className="btn btn-secondary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingAction({ ...act });
+                        }}
+                        style={{ padding: "0.25rem 0.45rem", fontSize: "0.72rem", whiteSpace: "nowrap" }}
+                        title="Editar Política de Governança"
+                      >
+                        ⚙️ Política
+                      </button>
+                      <button
+                        className="btn btn-primary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOpenActionModal("srv-db-postgres", act.actionKey);
+                        }}
+                        disabled={!act.tenantPolicy.enabled}
+                        style={{ padding: "0.25rem 0.45rem", fontSize: "0.72rem", whiteSpace: "nowrap" }}
+                        title="Simular ou Executar Action"
+                      >
+                        ⚡ Executar
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Modal: Editar Política de Governança da Action */}
