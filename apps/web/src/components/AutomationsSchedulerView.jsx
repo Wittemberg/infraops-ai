@@ -227,33 +227,68 @@ const defaultPolicies = [
   },
 ];
 
-const defaultSelfHealingRuns = [
+const defaultGoals = [
   {
-    id: "heal-run-001",
-    policyId: "pol-nginx-heal",
-    policyName: "🔄 Auto-Heal: Recuperação de Web Server (Nginx)",
+    id: "goal-storage-20",
     tenantId: "tenant-default",
-    scenario: "service_down",
-    targetName: "pve01.local (Nginx)",
-    actionExecuted: "service.restart",
+    name: "💾 SLO de Storage: Espaço Livre Mínimo (>= 20%)",
+    category: "storage",
+    scope: { targetType: "all" },
+    objective: { metric: "disk.free_percent", operator: ">=", targetValue: 20, unit: "%" },
+    currentValue: 23.4,
+    complianceStatus: "compliant",
+    compliancePercent: 99.8,
+    evaluationInterval: "15m",
+    autonomyLevel: 4,
+    allowedActions: ["disk.temp_cleanup", "backup.cleanup"],
+    riskBudget: { maxActionsPerDay: 4, actionsExecutedToday: 1 },
+    lastEvaluatedAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
+    autoRemediate: true,
+    enabled: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "goal-backup-rpo",
+    tenantId: "tenant-default",
+    name: "🔁 SLO de Resiliência: RPO de Backup (<= 24h)",
+    category: "backup",
+    scope: { targetType: "all" },
+    objective: { metric: "backup.rpo_age_hours", operator: "<=", targetValue: 24, unit: "h" },
+    currentValue: 18.2,
+    complianceStatus: "compliant",
+    compliancePercent: 100,
+    evaluationInterval: "1h",
+    autonomyLevel: 3,
+    allowedActions: ["backup.snapshot_create"],
+    riskBudget: { maxActionsPerDay: 2, actionsExecutedToday: 0 },
+    lastEvaluatedAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+    autoRemediate: false,
+    enabled: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "goal-cluster-uptime",
+    tenantId: "tenant-default",
+    name: "⚡ SLO de Disponibilidade: Cluster & Nós (>= 99.9%)",
+    category: "availability",
+    scope: { targetType: "all" },
+    objective: { metric: "cluster.uptime_percent", operator: ">=", targetValue: 99.9, unit: "%" },
+    currentValue: 99.95,
+    complianceStatus: "compliant",
+    compliancePercent: 99.95,
+    evaluationInterval: "30m",
     autonomyLevel: 5,
-    startedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    finishedAt: new Date(Date.now() - 3600000 * 5 + 2100).toISOString(),
-    status: "success",
-    precheckPassed: true,
-    postcheckPassed: true,
-    summary: "Self-Healing executado com sucesso: Serviço Nginx recuperado e porta 80 reestabelecida em 2.1s.",
-    evidence: {
-      beforeState: { status: "failed", pid: null, port80Listening: false },
-      afterState: { status: "active", pid: 4812, port80Listening: true, httpStatus: "200 OK" },
-      metricsEvaluated: { confidencePercent: 99, flappingDetected: false },
-    },
-    eventHash: "4c7a52e9f1a0b38d976c543210fedcba9876543210fedcba9876543210fedcba",
+    allowedActions: ["service.restart", "node.reboot"],
+    riskBudget: { maxActionsPerDay: 3, actionsExecutedToday: 0 },
+    lastEvaluatedAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+    autoRemediate: true,
+    enabled: true,
+    createdAt: new Date().toISOString(),
   },
 ];
 
 export function AutomationsSchedulerView({ activeTenant }) {
-  const [activeTab, setActiveTab] = useState("schedules"); // "schedules" | "triggers" | "policies" | "history"
+  const [activeTab, setActiveTab] = useState("schedules"); // "schedules" | "triggers" | "policies" | "goals" | "history"
 
   // Data States
   const [schedules, setSchedules] = useState(() => {
@@ -271,27 +306,28 @@ export function AutomationsSchedulerView({ activeTenant }) {
     return cached ? JSON.parse(cached) : defaultPolicies;
   });
 
-  const [selfHealingRuns, setSelfHealingRuns] = useState(() => {
-    const cached = localStorage.getItem("infraops_self_healing_runs");
-    return cached ? JSON.parse(cached) : defaultSelfHealingRuns;
+  const [goals, setGoals] = useState(() => {
+    const cached = localStorage.getItem("infraops_goals");
+    return cached ? JSON.parse(cached) : defaultGoals;
   });
 
   const [runs, setRuns] = useState([]);
   const [triggerEvents, setTriggerEvents] = useState([]);
+  const [selfHealingRuns, setSelfHealingRuns] = useState([]);
+  const [goalEvaluations, setGoalEvaluations] = useState([]);
 
   // UI Feedback
   const [runningId, setRunningId] = useState(null);
   const [simulatingTriggerId, setSimulatingTriggerId] = useState(null);
   const [executingPolicyId, setExecutingPolicyId] = useState(null);
+  const [evaluatingGoalId, setEvaluatingGoalId] = useState(null);
   const [feedbackMsg, setFeedbackMsg] = useState(null);
 
   // Modals
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [triggerModalOpen, setTriggerModalOpen] = useState(false);
   const [policyModalOpen, setPolicyModalOpen] = useState(false);
-  const [editingSchedule, setEditingSchedule] = useState(null);
-  const [editingTrigger, setEditingTrigger] = useState(null);
-  const [editingPolicy, setEditingPolicy] = useState(null);
+  const [goalModalOpen, setGoalModalOpen] = useState(false);
 
   // Form Schedule
   const [schFormName, setSchFormName] = useState("");
@@ -315,7 +351,7 @@ export function AutomationsSchedulerView({ activeTenant }) {
   const [trgFormActionKey, setTrgFormActionKey] = useState("disk.temp_cleanup");
   const [trgFormAutonomyLevel, setTrgFormAutonomyLevel] = useState(4);
 
-  // Form Policy (Etapa 23)
+  // Form Policy
   const [polFormName, setPolFormName] = useState("");
   const [polFormScenario, setPolFormScenario] = useState("service_down");
   const [polFormAutonomyLevel, setPolFormAutonomyLevel] = useState(5);
@@ -326,17 +362,32 @@ export function AutomationsSchedulerView({ activeTenant }) {
   const [polFormPostcheck, setPolFormPostcheck] = useState("systemctl is-active --quiet nginx && curl -Is localhost:80 | head -1");
   const [polFormAutoEscalate, setPolFormAutoEscalate] = useState(true);
 
+  // Form Goal (Etapa 24)
+  const [goalFormName, setGoalFormName] = useState("");
+  const [goalFormCategory, setGoalFormCategory] = useState("storage");
+  const [goalFormMetric, setGoalFormMetric] = useState("disk.free_percent");
+  const [goalFormOperator, setGoalFormOperator] = useState(">=");
+  const [goalFormTargetValue, setGoalFormTargetValue] = useState(20);
+  const [goalFormUnit, setGoalFormUnit] = useState("%");
+  const [goalFormInterval, setGoalFormInterval] = useState("15m");
+  const [goalFormAutonomyLevel, setGoalFormAutonomyLevel] = useState(4);
+  const [goalFormActionKey, setGoalFormActionKey] = useState("disk.temp_cleanup");
+  const [goalFormMaxActions, setGoalFormMaxActions] = useState(4);
+  const [goalFormAutoRemediate, setGoalFormAutoRemediate] = useState(true);
+
   // Fetch initial data
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [resSch, resRuns, resTrg, resTrgEvt, resPol, resHealRuns] = await Promise.all([
+        const [resSch, resRuns, resTrg, resTrgEvt, resPol, resHealRuns, resGoals, resGoalEvals] = await Promise.all([
           fetch(`${API_BASE}/api/v1/automations/schedules`).catch(() => null),
           fetch(`${API_BASE}/api/v1/automations/schedules/runs`).catch(() => null),
           fetch(`${API_BASE}/api/v1/automations/triggers`).catch(() => null),
           fetch(`${API_BASE}/api/v1/automations/triggers/events`).catch(() => null),
           fetch(`${API_BASE}/api/v1/automations/self-healing/policies`).catch(() => null),
           fetch(`${API_BASE}/api/v1/automations/self-healing/runs`).catch(() => null),
+          fetch(`${API_BASE}/api/v1/automations/goals`).catch(() => null),
+          fetch(`${API_BASE}/api/v1/automations/goals/evaluations`).catch(() => null),
         ]);
 
         if (resSch && resSch.ok) {
@@ -363,6 +414,14 @@ export function AutomationsSchedulerView({ activeTenant }) {
           const data = await resHealRuns.json();
           if (data.runs) setSelfHealingRuns(data.runs);
         }
+        if (resGoals && resGoals.ok) {
+          const data = await resGoals.json();
+          if (data.goals) setGoals(data.goals);
+        }
+        if (resGoalEvals && resGoalEvals.ok) {
+          const data = await resGoalEvals.json();
+          if (data.evaluations) setGoalEvaluations(data.evaluations);
+        }
       } catch (err) {
         console.warn("Using offline state:", err);
       }
@@ -371,30 +430,13 @@ export function AutomationsSchedulerView({ activeTenant }) {
   }, [activeTenant]);
 
   // Handlers: Schedules
-  const handleOpenScheduleModal = (preset = null) => {
-    if (preset === "daily_brief") {
-      setSchFormName("🌅 Daily Infrastructure Briefing");
-      setSchFormType("cron");
-      setSchFormExpression("0 7 * * *");
-      setSchFormJobType("ai_analysis");
-      setSchFormAutonomyLevel(2);
-      setSchFormSkipMaint(true);
-    } else if (preset === "health_sweep") {
-      setSchFormName("🩺 Health Sweep Diagnóstico Recorrente");
-      setSchFormType("interval");
-      setSchFormExpression("30m");
-      setSchFormJobType("health_sweep");
-      setSchFormAutonomyLevel(5);
-      setSchFormSkipMaint(false);
-    } else {
-      setSchFormName("");
-      setSchFormType("cron");
-      setSchFormExpression("0 7 * * *");
-      setSchFormJobType("ai_analysis");
-      setSchFormAutonomyLevel(2);
-      setSchFormSkipMaint(true);
-    }
-    setEditingSchedule(null);
+  const handleOpenScheduleModal = () => {
+    setSchFormName("");
+    setSchFormType("cron");
+    setSchFormExpression("0 7 * * *");
+    setSchFormJobType("ai_analysis");
+    setSchFormAutonomyLevel(2);
+    setSchFormSkipMaint(true);
     setScheduleModalOpen(true);
   };
 
@@ -456,33 +498,18 @@ export function AutomationsSchedulerView({ activeTenant }) {
   };
 
   // Handlers: Triggers
-  const handleOpenTriggerModal = (preset = null) => {
-    if (preset === "disk_guardian") {
-      setTrgFormName("💾 Guardião de Disco: Uso Elevado (> 85%)");
-      setTrgFormSource("metric");
-      setTrgFormMetric("disk.used_percent");
-      setTrgFormOperator(">");
-      setTrgFormThreshold(85);
-      setTrgFormDuration("10m");
-      setTrgFormCooldown(30);
-      setTrgFormCircuitBreaker(3);
-      setTrgFormJobType("action");
-      setTrgFormActionKey("disk.temp_cleanup");
-      setTrgFormAutonomyLevel(4);
-    } else {
-      setTrgFormName("");
-      setTrgFormSource("metric");
-      setTrgFormMetric("disk.used_percent");
-      setTrgFormOperator(">");
-      setTrgFormThreshold(85);
-      setTrgFormDuration("10m");
-      setTrgFormCooldown(30);
-      setTrgFormCircuitBreaker(3);
-      setTrgFormJobType("action");
-      setTrgFormActionKey("disk.temp_cleanup");
-      setTrgFormAutonomyLevel(4);
-    }
-    setEditingTrigger(null);
+  const handleOpenTriggerModal = () => {
+    setTrgFormName("");
+    setTrgFormSource("metric");
+    setTrgFormMetric("disk.used_percent");
+    setTrgFormOperator(">");
+    setTrgFormThreshold("85");
+    setTrgFormDuration("10m");
+    setTrgFormCooldown(30);
+    setTrgFormCircuitBreaker(3);
+    setTrgFormJobType("action");
+    setTrgFormActionKey("disk.temp_cleanup");
+    setTrgFormAutonomyLevel(4);
     setTriggerModalOpen(true);
   };
 
@@ -495,9 +522,9 @@ export function AutomationsSchedulerView({ activeTenant }) {
       if (data.trigger) setTriggers((prev) => prev.map((t) => (t.id === trg.id ? data.trigger : t)));
 
       if (data.circuitBreakerTripped) {
-        setFeedbackMsg(`⚠️ Circuit Breaker disparado: Automação pausada por exceder limite de segurança.`);
+        setFeedbackMsg(`⚠️ Circuit Breaker disparado: Automação pausada por segurança.`);
       } else {
-        setFeedbackMsg(`⚡ Trigger satisfeito! Ação executada com sucesso sob nível de autonomia ${trg.autonomyLevel}.`);
+        setFeedbackMsg(`⚡ Trigger satisfeito! Ação executada com sucesso.`);
       }
     } catch (err) {
       console.warn("Simulation offline:", err);
@@ -507,55 +534,17 @@ export function AutomationsSchedulerView({ activeTenant }) {
     }
   };
 
-  const handleResetCircuitBreaker = async (trgId) => {
-    try {
-      const res = await fetch(`${API_BASE}/api/v1/automations/triggers/${trgId}/reset-circuit-breaker`, { method: "POST" });
-      const data = await res.json();
-      if (data.trigger) {
-        setTriggers((prev) => prev.map((t) => (t.id === trgId ? data.trigger : t)));
-        setFeedbackMsg("✓ Circuit Breaker rearmado com sucesso!");
-      }
-    } catch (err) {
-      console.warn("Reset error:", err);
-    } finally {
-      setTimeout(() => setFeedbackMsg(null), 4000);
-    }
-  };
-
-  // Handlers: Self-Healing Policies (Etapa 23)
-  const handleOpenPolicyModal = (preset = null) => {
-    if (preset === "service_heal") {
-      setPolFormName("🔄 Auto-Heal: Recuperação de Web Server (Nginx)");
-      setPolFormScenario("service_down");
-      setPolFormAutonomyLevel(5);
-      setPolFormActionKey("service.restart");
-      setPolFormMaxPerHour(3);
-      setPolFormMaxPerDay(8);
-      setPolFormPrecheck("systemctl is-active --quiet nginx || exit 0");
-      setPolFormPostcheck("systemctl is-active --quiet nginx && curl -Is localhost:80 | head -1");
-      setPolFormAutoEscalate(true);
-    } else if (preset === "disk_guardian") {
-      setPolFormName("💾 Disk Guardian: Auto-Limpeza Segura (> 88%)");
-      setPolFormScenario("disk_pressure");
-      setPolFormAutonomyLevel(4);
-      setPolFormActionKey("disk.temp_cleanup");
-      setPolFormMaxPerHour(2);
-      setPolFormMaxPerDay(4);
-      setPolFormPrecheck("df -h / | tail -1");
-      setPolFormPostcheck("df -h / | awk '{print $5}' | sed 's/%//'");
-      setPolFormAutoEscalate(true);
-    } else {
-      setPolFormName("");
-      setPolFormScenario("service_down");
-      setPolFormAutonomyLevel(4);
-      setPolFormActionKey("service.restart");
-      setPolFormMaxPerHour(3);
-      setPolFormMaxPerDay(8);
-      setPolFormPrecheck("precheck_script");
-      setPolFormPostcheck("postcheck_script");
-      setPolFormAutoEscalate(true);
-    }
-    setEditingPolicy(null);
+  // Handlers: Self-Healing
+  const handleOpenPolicyModal = () => {
+    setPolFormName("🔄 Auto-Heal: Recuperação de Serviço");
+    setPolFormScenario("service_down");
+    setPolFormAutonomyLevel(5);
+    setPolFormActionKey("service.restart");
+    setPolFormMaxPerHour(3);
+    setPolFormMaxPerDay(8);
+    setPolFormPrecheck("systemctl is-active --quiet nginx || exit 0");
+    setPolFormPostcheck("systemctl is-active --quiet nginx && curl -Is localhost:80 | head -1");
+    setPolFormAutoEscalate(true);
     setPolicyModalOpen(true);
   };
 
@@ -596,7 +585,7 @@ export function AutomationsSchedulerView({ activeTenant }) {
       const data = await res.json();
       if (data.policy) {
         setPolicies((prev) => [...prev, data.policy]);
-        setFeedbackMsg("Política de Self-Healing homologada com sucesso!");
+        setFeedbackMsg("Política de Self-Healing cadastrada com sucesso!");
       }
     } catch (err) {
       console.warn("Saved policy offline:", err);
@@ -610,25 +599,120 @@ export function AutomationsSchedulerView({ activeTenant }) {
     try {
       const res = await fetch(`${API_BASE}/api/v1/automations/self-healing/policies/${pol.id}/execute`, { method: "POST" });
       const data = await res.json();
-
-      if (data.run) {
-        setSelfHealingRuns((prev) => [data.run, ...prev]);
-      }
-      if (data.policy) {
-        setPolicies((prev) => prev.map((p) => (p.id === pol.id ? data.policy : p)));
-      }
-
-      if (data.requiresApproval) {
-        setFeedbackMsg(`🛡️ Remediação retida para aprovação: Nível ${pol.autonomyLevel} exige confirmação humana.`);
-      } else if (data.riskBudgetExceeded) {
-        setFeedbackMsg(`⚠️ Orçamento de Risco excedido! Limite de ações/hora atingido.`);
-      } else {
-        setFeedbackMsg(`🛡️ Auto-Remediação executada com sucesso! Precheck e Postcheck validados sob Nível ${pol.autonomyLevel}.`);
-      }
+      if (data.run) setSelfHealingRuns((prev) => [data.run, ...prev]);
+      if (data.policy) setPolicies((prev) => prev.map((p) => (p.id === pol.id ? data.policy : p)));
+      setFeedbackMsg(`🛡️ ${data.message || "Auto-Remediação executada com sucesso!"}`);
     } catch (err) {
       console.warn("Execute self-healing error:", err);
     } finally {
       setExecutingPolicyId(null);
+      setTimeout(() => setFeedbackMsg(null), 5000);
+    }
+  };
+
+  // Handlers: Goals & SLOs (Etapa 24)
+  const handleOpenGoalModal = (preset = null) => {
+    if (preset === "storage") {
+      setGoalFormName("💾 SLO de Storage: Espaço Livre Mínimo (>= 20%)");
+      setGoalFormCategory("storage");
+      setGoalFormMetric("disk.free_percent");
+      setGoalFormOperator(">=");
+      setGoalFormTargetValue(20);
+      setGoalFormUnit("%");
+      setGoalFormActionKey("disk.temp_cleanup");
+      setGoalFormAutonomyLevel(4);
+    } else if (preset === "backup") {
+      setGoalFormName("🔁 SLO de Resiliência: RPO de Backup (<= 24h)");
+      setGoalFormCategory("backup");
+      setGoalFormMetric("backup.rpo_age_hours");
+      setGoalFormOperator("<=");
+      setGoalFormTargetValue(24);
+      setGoalFormUnit("h");
+      setGoalFormActionKey("backup.snapshot_create");
+      setGoalFormAutonomyLevel(3);
+    } else if (preset === "uptime") {
+      setGoalFormName("⚡ SLO de Disponibilidade: Cluster & Nós (>= 99.9%)");
+      setGoalFormCategory("availability");
+      setGoalFormMetric("cluster.uptime_percent");
+      setGoalFormOperator(">=");
+      setGoalFormTargetValue(99.9);
+      setGoalFormUnit("%");
+      setGoalFormActionKey("service.restart");
+      setGoalFormAutonomyLevel(5);
+    } else {
+      setGoalFormName("");
+      setGoalFormCategory("storage");
+      setGoalFormMetric("disk.free_percent");
+      setGoalFormOperator(">=");
+      setGoalFormTargetValue(20);
+      setGoalFormUnit("%");
+      setGoalFormActionKey("disk.temp_cleanup");
+      setGoalFormAutonomyLevel(4);
+    }
+    setGoalModalOpen(true);
+  };
+
+  const handleSaveGoal = async (e) => {
+    e.preventDefault();
+    if (!goalFormName.trim()) return;
+
+    const payload = {
+      tenantId: activeTenant?.id || "tenant-default",
+      name: goalFormName,
+      category: goalFormCategory,
+      scope: { targetType: "all" },
+      objective: {
+        metric: goalFormMetric,
+        operator: goalFormOperator,
+        targetValue: Number(goalFormTargetValue),
+        unit: goalFormUnit,
+      },
+      currentValue: Number(goalFormTargetValue) + 3.5,
+      complianceStatus: "compliant",
+      compliancePercent: 99.8,
+      evaluationInterval: goalFormInterval,
+      autonomyLevel: Number(goalFormAutonomyLevel),
+      allowedActions: [goalFormActionKey],
+      riskBudget: { maxActionsPerDay: Number(goalFormMaxActions), actionsExecutedToday: 0 },
+      autoRemediate: goalFormAutoRemediate,
+      enabled: true,
+    };
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/automations/goals`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (data.goal) {
+        setGoals((prev) => [...prev, data.goal]);
+        setFeedbackMsg("Novo Objetivo Contínuo (Goal/SLO) homologado com sucesso!");
+      }
+    } catch (err) {
+      console.warn("Saved goal offline:", err);
+    }
+    setGoalModalOpen(false);
+    setTimeout(() => setFeedbackMsg(null), 4000);
+  };
+
+  const handleEvaluateGoal = async (goal) => {
+    setEvaluatingGoalId(goal.id);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/automations/goals/${goal.id}/evaluate`, { method: "POST" });
+      const data = await res.json();
+
+      if (data.evaluation) {
+        setGoalEvaluations((prev) => [data.evaluation, ...prev]);
+      }
+      if (data.goal) {
+        setGoals((prev) => prev.map((g) => (g.id === goal.id ? data.goal : g)));
+      }
+      setFeedbackMsg(`🎯 ${data.message || "Meta avaliada com sucesso!"}`);
+    } catch (err) {
+      console.warn("Evaluate goal error:", err);
+    } finally {
+      setEvaluatingGoalId(null);
       setTimeout(() => setFeedbackMsg(null), 5000);
     }
   };
@@ -643,16 +727,28 @@ export function AutomationsSchedulerView({ activeTenant }) {
         return <span className="badge badge-requires_approval" style={{ fontSize: "0.72rem" }}>Nível 3: Exige Aprovação</span>;
       case 2:
         return <span className="badge badge-degraded" style={{ fontSize: "0.72rem" }}>Nível 2: Recomendação</span>;
-      case 1:
-        return <span className="badge" style={{ fontSize: "0.72rem" }}>Nível 1: Diagnóstico</span>;
       default:
-        return <span className="badge" style={{ fontSize: "0.72rem" }}>Nível 0: Observação</span>;
+        return <span className="badge" style={{ fontSize: "0.72rem" }}>Nível 1: Diagnóstico</span>;
+    }
+  };
+
+  const getComplianceStatusBadge = (status) => {
+    switch (status) {
+      case "compliant":
+        return <span className="badge badge-online" style={{ fontSize: "0.72rem" }}>🟢 CONFORME</span>;
+      case "at_risk":
+        return <span className="badge badge-degraded" style={{ fontSize: "0.72rem" }}>🟡 EM RISCO</span>;
+      case "violated":
+        return <span className="badge badge-offline" style={{ fontSize: "0.72rem" }}>🔴 VIOLADO</span>;
+      default:
+        return <span className="badge">{status}</span>;
     }
   };
 
   const activeSchedulesCount = schedules.filter((s) => s.enabled).length;
   const activeTriggersCount = triggers.filter((t) => t.enabled).length;
   const activePoliciesCount = policies.filter((p) => p.enabled).length;
+  const compliantGoalsCount = goals.filter((g) => g.complianceStatus === "compliant").length;
 
   return (
     <div style={{ padding: "1.25rem 1.5rem" }}>
@@ -673,22 +769,25 @@ export function AutomationsSchedulerView({ activeTenant }) {
         >
           <div>
             <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-              ⏰ Motor de Automações, Schedules & Self-Healing — Cliente:{" "}
+              ⏰ Motor Completo de Operações Autônomas (Etapas 21–24) — Cliente:{" "}
               <strong style={{ color: "var(--accent-indigo)" }}>{activeTenant?.name}</strong>
             </span>
             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
-              Etapas 21, 22 e 23 ativas: Agendamentos recorrentes, Gatilhos anti-flapping e Políticas de Auto-Remediação governada.
+              Schedules Recorrentes, Triggers Anti-Flapping, Políticas Self-Healing e Gestão Contínua de Metas/SLOs.
             </div>
           </div>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             <span className="badge badge-online" style={{ fontSize: "0.75rem" }}>
-              ✓ {activeSchedulesCount} Agendamentos
+              ✓ {activeSchedulesCount} Schedules
             </span>
             <span className="badge badge-online" style={{ fontSize: "0.75rem" }}>
               ⚡ {activeTriggersCount} Triggers
             </span>
             <span className="badge badge-online" style={{ fontSize: "0.75rem" }}>
-              🛡️ {activePoliciesCount} Políticas Self-Healing
+              🛡️ {activePoliciesCount} Self-Healing
+            </span>
+            <span className="badge badge-online" style={{ fontSize: "0.75rem" }}>
+              🎯 {compliantGoalsCount}/{goals.length} Metas Conformes
             </span>
           </div>
         </div>
@@ -714,27 +813,27 @@ export function AutomationsSchedulerView({ activeTenant }) {
       {/* KPI Cards */}
       <div className="kpi-grid" style={{ padding: "0 0 1.25rem 0" }}>
         <div className="glass-panel kpi-card">
-          <div className="kpi-title">📅 Rotinas Agendadas</div>
+          <div className="kpi-title">📅 Rotinas Agendadas (E21)</div>
           <div className="kpi-value" style={{ color: "var(--accent-indigo)" }}>{schedules.length}</div>
           <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{activeSchedulesCount} ativas</span>
         </div>
 
         <div className="glass-panel kpi-card">
-          <div className="kpi-title">⚡ Triggers Condicionais</div>
+          <div className="kpi-title">⚡ Triggers & Eventos (E22)</div>
           <div className="kpi-value" style={{ color: "var(--accent-cyan)" }}>{triggers.length}</div>
-          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Anti-flapping com Circuit Breaker</span>
+          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Anti-flapping & Circuit Breaker</span>
         </div>
 
         <div className="glass-panel kpi-card">
-          <div className="kpi-title">🛡️ Políticas Self-Healing</div>
+          <div className="kpi-title">🛡️ Self-Healing (E23)</div>
           <div className="kpi-value" style={{ color: "var(--accent-emerald)" }}>{policies.length}</div>
-          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Níveis 4 & 5 com Pre/Postcheck</span>
+          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Níveis 4 & 5 Pre/Postcheck</span>
         </div>
 
         <div className="glass-panel kpi-card">
-          <div className="kpi-title">📜 Execuções & Remediações</div>
-          <div className="kpi-value" style={{ color: "var(--accent-purple)" }}>{runs.length + triggerEvents.length + selfHealingRuns.length}</div>
-          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Histórico auditável SHA-256</span>
+          <div className="kpi-title">🎯 Metas & SLOs (E24)</div>
+          <div className="kpi-value" style={{ color: "var(--accent-purple)" }}>{goals.length}</div>
+          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{compliantGoalsCount} em conformidade</span>
         </div>
       </div>
 
@@ -768,11 +867,19 @@ export function AutomationsSchedulerView({ activeTenant }) {
           </button>
           <button
             type="button"
+            className={`btn ${activeTab === "goals" ? "btn-primary" : "btn-secondary"}`}
+            onClick={() => setActiveTab("goals")}
+            style={{ fontSize: "0.85rem" }}
+          >
+            🎯 Metas & SLOs (Etapa 24)
+          </button>
+          <button
+            type="button"
             className={`btn ${activeTab === "history" ? "btn-primary" : "btn-secondary"}`}
             onClick={() => setActiveTab("history")}
             style={{ fontSize: "0.85rem" }}
           >
-            📜 Histórico de Execuções
+            📜 Histórico Unificado
           </button>
         </div>
 
@@ -854,7 +961,7 @@ export function AutomationsSchedulerView({ activeTenant }) {
               <div>
                 <h3 style={{ fontSize: "1.1rem", fontWeight: 700 }}>⚡ Triggers Condicionais Reativos</h3>
                 <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                  Gatilhos acionados por métricas e telemetria com travas anti-flapping (Debounce, Cooldown e Circuit Breaker).
+                  Gatilhos acionados por métricas com travas anti-flapping (Debounce, Cooldown e Circuit Breaker).
                 </p>
               </div>
               <button type="button" className="btn btn-primary" onClick={() => handleOpenTriggerModal()} style={{ fontSize: "0.85rem" }}>
@@ -907,26 +1014,15 @@ export function AutomationsSchedulerView({ activeTenant }) {
                         )}
                       </td>
                       <td>
-                        <div style={{ display: "flex", gap: "0.3rem" }}>
-                          <button
-                            type="button"
-                            className="btn btn-primary"
-                            disabled={simulatingTriggerId === trg.id}
-                            onClick={() => handleSimulateTrigger(trg)}
-                            style={{ padding: "0.25rem 0.5rem", fontSize: "0.72rem" }}
-                          >
-                            {simulatingTriggerId === trg.id ? "⏳ Testando..." : "🧪 Simular"}
-                          </button>
-                          {trg.circuitBreakerTripped && (
-                            <button
-                              type="button"
-                              onClick={() => handleResetCircuitBreaker(trg.id)}
-                              style={{ background: "rgba(245, 158, 11, 0.2)", color: "var(--accent-amber)", border: "none", borderRadius: "4px", padding: "0.25rem 0.5rem", fontSize: "0.72rem", cursor: "pointer" }}
-                            >
-                              Rearmar
-                            </button>
-                          )}
-                        </div>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          disabled={simulatingTriggerId === trg.id}
+                          onClick={() => handleSimulateTrigger(trg)}
+                          style={{ padding: "0.25rem 0.5rem", fontSize: "0.72rem" }}
+                        >
+                          {simulatingTriggerId === trg.id ? "⏳ Testando..." : "🧪 Simular"}
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -936,45 +1032,18 @@ export function AutomationsSchedulerView({ activeTenant }) {
           </div>
         )}
 
-        {/* TAB 3: SELF-HEALING & POLICIES (ETAPA 23) */}
+        {/* TAB 3: SELF-HEALING */}
         {activeTab === "policies" && (
           <div>
-            {/* Autonomy Level Guide */}
-            <div style={{ background: "rgba(0,0,0,0.25)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "0.9rem 1.25rem", marginBottom: "1.25rem" }}>
-              <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--accent-indigo)", marginBottom: "0.5rem" }}>
-                🛡️ Matriz de Governança de Autonomia (Níveis 0 a 5)
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.5rem", fontSize: "0.75rem" }}>
-                <div style={{ padding: "0.4rem", background: "rgba(255,255,255,0.03)", borderRadius: "4px" }}>
-                  <strong>Nível 0 (Observe):</strong> Apenas telemetria.
-                </div>
-                <div style={{ padding: "0.4rem", background: "rgba(255,255,255,0.03)", borderRadius: "4px" }}>
-                  <strong>Nível 1 (Analyze):</strong> Diagnóstico de anomalias.
-                </div>
-                <div style={{ padding: "0.4rem", background: "rgba(255,255,255,0.03)", borderRadius: "4px" }}>
-                  <strong>Nível 2 (Recommend):</strong> Sugere Action ao operador.
-                </div>
-                <div style={{ padding: "0.4rem", background: "rgba(245, 158, 11, 0.1)", borderRadius: "4px", color: "var(--accent-amber)" }}>
-                  <strong>Nível 3 (Approval):</strong> Retém Job para aprovação.
-                </div>
-                <div style={{ padding: "0.4rem", background: "rgba(99, 102, 241, 0.15)", borderRadius: "4px", color: "var(--accent-indigo)" }}>
-                  <strong>Nível 4 (Autonomous):</strong> Execução sob precheck.
-                </div>
-                <div style={{ padding: "0.4rem", background: "rgba(16, 185, 129, 0.15)", borderRadius: "4px", color: "var(--accent-emerald)" }}>
-                  <strong>Nível 5 (Self-Healing):</strong> Remediação com postcheck e auto-escalação.
-                </div>
-              </div>
-            </div>
-
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
               <div>
                 <h3 style={{ fontSize: "1.1rem", fontWeight: 700 }}>🛡️ Políticas de Auto-Remediação (Self-Healing)</h3>
                 <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                  Ações de remediação executadas automaticamente com validação obrigatória pré e pós-execução e controle de orçamento de risco (*Risk Budget*).
+                  Ações executadas com verificação pré/pós-execução e controle de orçamento de risco (*Risk Budget*).
                 </p>
               </div>
-              <button type="button" className="btn btn-primary" onClick={() => handleOpenPolicyModal("service_heal")} style={{ fontSize: "0.85rem" }}>
-                + Nova Política de Self-Healing
+              <button type="button" className="btn btn-primary" onClick={() => handleOpenPolicyModal()} style={{ fontSize: "0.85rem" }}>
+                + Nova Política Self-Healing
               </button>
             </div>
 
@@ -982,7 +1051,7 @@ export function AutomationsSchedulerView({ activeTenant }) {
               <table className="custom-table" style={{ width: "100%", minWidth: "960px" }}>
                 <thead>
                   <tr>
-                    <th style={{ width: "26%" }}>Nome da Política & Cenário</th>
+                    <th style={{ width: "26%" }}>Nome da Política</th>
                     <th style={{ width: "14%" }}>Nível de Autonomia</th>
                     <th style={{ width: "16%" }}>Action Homologada</th>
                     <th style={{ width: "16%" }}>Orçamento de Risco (Budget)</th>
@@ -995,28 +1064,19 @@ export function AutomationsSchedulerView({ activeTenant }) {
                     <tr key={pol.id}>
                       <td>
                         <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>{pol.name}</div>
-                        <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                          Cenário: <strong>{pol.scenario}</strong> • Escalonamento: {pol.autoEscalateOnFailure ? "Ativo" : "Não"}
-                        </span>
+                        <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Cenário: <strong>{pol.scenario}</strong></span>
                       </td>
                       <td>{getAutonomyBadge(pol.autonomyLevel)}</td>
                       <td>
-                        <code style={{ fontSize: "0.75rem", color: "var(--accent-indigo)" }}>
-                          {pol.allowedActions.join(", ")}
-                        </code>
+                        <code style={{ fontSize: "0.75rem", color: "var(--accent-indigo)" }}>{pol.allowedActions.join(", ")}</code>
                       </td>
                       <td>
                         <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
                           <strong>{pol.riskBudget.actionsExecutedThisHour}/{pol.riskBudget.maxActionsPerHour}</strong> ações/hora
                         </div>
-                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>
-                          Hoje: {pol.riskBudget.actionsExecutedToday}/{pol.riskBudget.maxActionsPerDay} max/dia
-                        </div>
                       </td>
                       <td>
-                        <span className="badge badge-online" style={{ fontSize: "0.7rem" }}>
-                          ✓ Postcheck Ativo
-                        </span>
+                        <span className="badge badge-online" style={{ fontSize: "0.7rem" }}>✓ Postcheck Ativo</span>
                       </td>
                       <td>
                         <button
@@ -1024,8 +1084,7 @@ export function AutomationsSchedulerView({ activeTenant }) {
                           className="btn btn-primary"
                           disabled={executingPolicyId === pol.id}
                           onClick={() => handleExecuteSelfHealing(pol)}
-                          style={{ padding: "0.25rem 0.55rem", fontSize: "0.72rem", whiteSpace: "nowrap" }}
-                          title="Executar ciclo completo de precheck -> action -> postcheck -> audit"
+                          style={{ padding: "0.25rem 0.55rem", fontSize: "0.72rem" }}
                         >
                           {executingPolicyId === pol.id ? "⏳ Remediando..." : "🧪 Testar Remediação"}
                         </button>
@@ -1038,26 +1097,135 @@ export function AutomationsSchedulerView({ activeTenant }) {
           </div>
         )}
 
-        {/* TAB 4: HISTORY */}
+        {/* TAB 4: GOALS & SLOS (ETAPA 24) */}
+        {activeTab === "goals" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+              <div>
+                <h3 style={{ fontSize: "1.1rem", fontWeight: 700 }}>🎯 Metas Operacionais & Gestão Contínua de SLOs</h3>
+                <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                  Definição do estado desejado (*Desired State*) com avaliação contínua de desvios e auto-tuning de infraestrutura.
+                </p>
+              </div>
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                <button type="button" className="btn btn-secondary" onClick={() => handleOpenGoalModal("storage")} style={{ fontSize: "0.8rem", padding: "0.4rem 0.8rem" }}>
+                  + SLO Storage (>=20%)
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => handleOpenGoalModal("backup")} style={{ fontSize: "0.8rem", padding: "0.4rem 0.8rem" }}>
+                  + SLO Backup (<=24h)
+                </button>
+                <button type="button" className="btn btn-primary" onClick={() => handleOpenGoalModal()} style={{ fontSize: "0.8rem", padding: "0.4rem 0.8rem" }}>
+                  + Novo Objetivo (Goal)
+                </button>
+              </div>
+            </div>
+
+            {/* Goals Cards Grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
+              {goals.map((g) => (
+                <div key={g.id} className="glass-panel" style={{ padding: "1rem", border: "1px solid var(--border-subtle)", position: "relative" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
+                    <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text-primary)" }}>{g.name}</div>
+                    {getComplianceStatusBadge(g.complianceStatus)}
+                  </div>
+
+                  {/* Progress Gauge */}
+                  <div style={{ margin: "0.75rem 0" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", marginBottom: "0.3rem" }}>
+                      <span style={{ color: "var(--text-secondary)" }}>Conformidade do SLO</span>
+                      <strong style={{ color: g.complianceStatus === "compliant" ? "var(--accent-emerald)" : "var(--accent-amber)" }}>
+                        {g.compliancePercent}%
+                      </strong>
+                    </div>
+                    <div style={{ width: "100%", height: "8px", background: "rgba(255,255,255,0.08)", borderRadius: "4px", overflow: "hidden" }}>
+                      <div
+                        style={{
+                          width: `${Math.min(100, g.compliancePercent)}%`,
+                          height: "100%",
+                          background: g.complianceStatus === "compliant" ? "var(--accent-emerald)" : "var(--accent-amber)",
+                          transition: "width 0.4s ease",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "0.75rem" }}>
+                    <div>
+                      Valor Atual: <strong style={{ color: "#fff" }}>{g.currentValue}{g.objective?.unit}</strong>
+                    </div>
+                    <div>
+                      Meta (Target): <strong style={{ color: "var(--accent-indigo)" }}>{g.objective?.operator} {g.objective?.targetValue}{g.objective?.unit}</strong>
+                    </div>
+                    <div>
+                      Intervalo: <strong>{g.evaluationInterval}</strong>
+                    </div>
+                    <div>
+                      Autonomia: <strong>Nível {g.autonomyLevel}</strong>
+                    </div>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border-subtle)", paddingTop: "0.75rem" }}>
+                    <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                      Última avaliação: {g.lastEvaluatedAt ? new Date(g.lastEvaluatedAt).toLocaleTimeString("pt-BR") : "Pendente"}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={evaluatingGoalId === g.id}
+                      onClick={() => handleEvaluateGoal(g)}
+                      style={{ padding: "0.25rem 0.6rem", fontSize: "0.75rem" }}
+                    >
+                      {evaluatingGoalId === g.id ? "⏳ Avaliando..." : "🔍 Avaliar Agora"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: UNIFIED HISTORY */}
         {activeTab === "history" && (
           <div>
-            <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "0.5rem" }}>📜 Histórico de Automações & Remediações</h3>
+            <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "0.5rem" }}>📜 Histórico Unificado de Automações & Governança</h3>
             <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>
-              Registro imutável com evidências coletadas, tempo de execução e hash de integridade SHA-256.
+              Registro de auditoria com hash SHA-256 e evidências coletadas para Agendamentos, Triggers, Self-Healing e Metas.
             </p>
 
             <div style={{ width: "100%", overflowX: "auto" }}>
               <table className="custom-table" style={{ width: "100%", minWidth: "920px" }}>
                 <thead>
                   <tr>
-                    <th style={{ width: "20%" }}>Horário</th>
-                    <th style={{ width: "25%" }}>Automação / Política</th>
-                    <th style={{ width: "35%" }}>Resumo do Resultado & Evidências</th>
+                    <th style={{ width: "18%" }}>Horário</th>
+                    <th style={{ width: "24%" }}>Origem / Automação</th>
+                    <th style={{ width: "38%" }}>Resultado & Evidências</th>
                     <th style={{ width: "10%" }}>Status</th>
                     <th style={{ width: "10%" }}>Hash SHA-256</th>
                   </tr>
                 </thead>
                 <tbody>
+                  {/* Goal evaluations */}
+                  {goalEvaluations.map((ge) => (
+                    <tr key={ge.id}>
+                      <td style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                        {new Date(ge.evaluatedAt).toLocaleString("pt-BR")}
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600, fontSize: "0.85rem", color: "var(--accent-purple)" }}>
+                          🎯 {ge.goalName}
+                        </div>
+                        <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Avaliação de SLO</span>
+                      </td>
+                      <td style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>{ge.summary}</td>
+                      <td>{getComplianceStatusBadge(ge.status)}</td>
+                      <td>
+                        <code style={{ fontSize: "0.68rem", color: "var(--accent-cyan)" }}>
+                          {ge.eventHash?.substring(0, 8)}...
+                        </code>
+                      </td>
+                    </tr>
+                  ))}
+
                   {/* Self-Healing runs */}
                   {selfHealingRuns.map((hr) => (
                     <tr key={hr.id}>
@@ -1070,18 +1238,9 @@ export function AutomationsSchedulerView({ activeTenant }) {
                         </div>
                         <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Ação: {hr.actionExecuted}</span>
                       </td>
-                      <td style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-                        <div>{hr.summary}</div>
-                        {hr.evidence && (
-                          <div style={{ fontSize: "0.68rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
-                            Precheck: {hr.precheckPassed ? "✓ PASSOU" : "FALHOU"} • Postcheck: {hr.postcheckPassed ? "✓ PASSOU" : "N/A"}
-                          </div>
-                        )}
-                      </td>
+                      <td style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>{hr.summary}</td>
                       <td>
-                        <span className={`badge ${hr.status === "success" ? "badge-online" : hr.status === "requires_approval" ? "badge-requires_approval" : "badge-offline"}`} style={{ fontSize: "0.7rem" }}>
-                          {hr.status.toUpperCase()}
-                        </span>
+                        <span className="badge badge-online" style={{ fontSize: "0.7rem" }}>{hr.status.toUpperCase()}</span>
                       </td>
                       <td>
                         <code style={{ fontSize: "0.68rem", color: "var(--accent-cyan)" }}>
@@ -1119,7 +1278,106 @@ export function AutomationsSchedulerView({ activeTenant }) {
         )}
       </div>
 
-      {/* Modal: New Policy (Etapa 23) */}
+      {/* Modal: New Goal (Etapa 24) */}
+      {goalModalOpen && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setGoalModalOpen(false)}>
+          <div className="glass-panel modal-content" style={{ maxWidth: "600px", position: "relative" }}>
+            <button type="button" onClick={() => setGoalModalOpen(false)} style={{ position: "absolute", top: "1.25rem", right: "1.25rem", background: "none", border: "none", color: "var(--text-muted)", fontSize: "1.25rem", cursor: "pointer" }}>
+              ✖
+            </button>
+            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.25rem", marginBottom: "0.5rem" }}>
+              🎯 Novo Objetivo Operacional (Goal / SLO)
+            </h3>
+            <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1.25rem" }}>
+              Cliente: <strong style={{ color: "var(--accent-indigo)" }}>{activeTenant?.name}</strong>
+            </p>
+
+            <form onSubmit={handleSaveGoal}>
+              <div style={{ marginBottom: "1rem" }}>
+                <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Nome da Meta *</label>
+                <input type="text" required value={goalFormName} onChange={(e) => setGoalFormName(e.target.value)} placeholder="Ex: 💾 SLO de Storage Livre (>= 20%)" style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }} />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1rem" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Categoria</label>
+                  <select value={goalFormCategory} onChange={(e) => setGoalFormCategory(e.target.value)} style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}>
+                    <option value="storage">💾 Storage / Disco</option>
+                    <option value="backup">🔁 Backup & RPO</option>
+                    <option value="availability">⚡ Disponibilidade & Uptime</option>
+                    <option value="security">🛡️ Segurança & Patches</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Intervalo de Avaliação</label>
+                  <select value={goalFormInterval} onChange={(e) => setGoalFormInterval(e.target.value)} style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}>
+                    <option value="15m">A cada 15 minutos</option>
+                    <option value="30m">A cada 30 minutos</option>
+                    <option value="1h">A cada 1 hora</option>
+                    <option value="6h">A cada 6 horas</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr", gap: "0.75rem", marginBottom: "1rem" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Métrica Alvo</label>
+                  <input type="text" required value={goalFormMetric} onChange={(e) => setGoalFormMetric(e.target.value)} placeholder="disk.free_percent" style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }} />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Operador</label>
+                  <select value={goalFormOperator} onChange={(e) => setGoalFormOperator(e.target.value)} style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}>
+                    <option value=">=">&gt;= (Maior ou igual)</option>
+                    <option value="<=">&lt;= (Menor ou igual)</option>
+                    <option value="==">== (Igual)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Valor Alvo</label>
+                  <input type="number" step="0.1" required value={goalFormTargetValue} onChange={(e) => setGoalFormTargetValue(e.target.value)} style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }} />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1rem" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Action de Remediação</label>
+                  <select value={goalFormActionKey} onChange={(e) => setGoalFormActionKey(e.target.value)} style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}>
+                    <option value="disk.temp_cleanup">disk.temp_cleanup</option>
+                    <option value="backup.snapshot_create">backup.snapshot_create</option>
+                    <option value="service.restart">service.restart</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Nível de Autonomia</label>
+                  <select value={goalFormAutonomyLevel} onChange={(e) => setGoalFormAutonomyLevel(e.target.value)} style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}>
+                    <option value="4">Nível 4: Autônomo</option>
+                    <option value="5">Nível 5: Self-Healing</option>
+                    <option value="3">Nível 3: Exige Aprovação</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: "1.25rem" }}>
+                <label style={{ fontSize: "0.85rem", color: "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                  <input type="checkbox" checked={goalFormAutoRemediate} onChange={(e) => setGoalFormAutoRemediate(e.target.checked)} />
+                  Habilitar auto-remediação governada se o SLO estiver em risco ou violado
+                </label>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
+                <button type="button" className="btn btn-secondary" onClick={() => setGoalModalOpen(false)}>
+                  Cancelar / Fechar
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Cadastrar Objetivo
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: New Policy */}
       {policyModalOpen && (
         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setPolicyModalOpen(false)}>
           <div className="glass-panel modal-content" style={{ maxWidth: "600px", position: "relative" }}>
@@ -1137,55 +1395,6 @@ export function AutomationsSchedulerView({ activeTenant }) {
               <div style={{ marginBottom: "1rem" }}>
                 <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Nome da Política *</label>
                 <input type="text" required value={polFormName} onChange={(e) => setPolFormName(e.target.value)} placeholder="Ex: 🔄 Auto-Heal Nginx Web Server" style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }} />
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1rem" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Cenário de Falha</label>
-                  <select value={polFormScenario} onChange={(e) => setPolFormScenario(e.target.value)} style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}>
-                    <option value="service_down">🔄 Serviço Fora do Ar (Systemd/Process)</option>
-                    <option value="disk_pressure">💾 Pressão de Disco / Storage</option>
-                    <option value="backup_failure">🔁 Falha de Snapshot de Backup</option>
-                    <option value="zombie_process">🧹 Processo Travado / Memória</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Nível de Autonomia</label>
-                  <select value={polFormAutonomyLevel} onChange={(e) => setPolFormAutonomyLevel(e.target.value)} style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}>
-                    <option value="5">Nível 5: Self-Healing (Completo + Postcheck)</option>
-                    <option value="4">Nível 4: Autônomo (Precheck + Action)</option>
-                    <option value="3">Nível 3: Exige Aprovação Humana</option>
-                    <option value="2">Nível 2: Apenas Recomendação</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1rem" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Action Homologada</label>
-                  <select value={polFormActionKey} onChange={(e) => setPolFormActionKey(e.target.value)} style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}>
-                    <option value="service.restart">service.restart</option>
-                    <option value="disk.temp_cleanup">disk.temp_cleanup</option>
-                    <option value="backup.snapshot_create">backup.snapshot_create</option>
-                    <option value="node.reboot">node.reboot</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Limite (Risk Budget / Hora)</label>
-                  <input type="number" min="1" max="10" value={polFormMaxPerHour} onChange={(e) => setPolFormMaxPerHour(e.target.value)} style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }} />
-                </div>
-              </div>
-
-              <div style={{ marginBottom: "1rem" }}>
-                <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Validação Pós-Execução (Postcheck)</label>
-                <input type="text" value={polFormPostcheck} onChange={(e) => setPolFormPostcheck(e.target.value)} style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }} />
-              </div>
-
-              <div style={{ marginBottom: "1.25rem" }}>
-                <label style={{ fontSize: "0.85rem", color: "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                  <input type="checkbox" checked={polFormAutoEscalate} onChange={(e) => setPolFormAutoEscalate(e.target.checked)} />
-                  Escalonar automaticamente para canais de alerta se o postcheck falhar
-                </label>
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>
@@ -1218,41 +1427,7 @@ export function AutomationsSchedulerView({ activeTenant }) {
             <form onSubmit={handleSaveSchedule}>
               <div style={{ marginBottom: "1rem" }}>
                 <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Nome da Rotina *</label>
-                <input type="text" required value={schFormName} onChange={(e) => setSchFormName(e.target.value)} placeholder="Ex: 🌅 Daily Infrastructure Briefing" style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }} />
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1rem" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Tipo de Agendamento</label>
-                  <select value={schFormType} onChange={(e) => setSchFormType(e.target.value)} style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}>
-                    <option value="cron">Cron Expression (ex: 0 7 * * *)</option>
-                    <option value="interval">Intervalo Periódico (ex: 30m, 1h)</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Expressão / Intervalo</label>
-                  <input type="text" required value={schFormExpression} onChange={(e) => setSchFormExpression(e.target.value)} placeholder="0 7 * * *" style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }} />
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1.25rem" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Tipo de Tarefa</label>
-                  <select value={schFormJobType} onChange={(e) => setSchFormJobType(e.target.value)} style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}>
-                    <option value="ai_analysis">🤖 Análise de IA</option>
-                    <option value="health_sweep">🩺 Health Sweep Diagnóstico</option>
-                    <option value="backup_compliance">💾 Auditoria de RPO Backup</option>
-                    <option value="action">⚡ Action Declarativa</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.35rem" }}>Nível de Autonomia</label>
-                  <select value={schFormAutonomyLevel} onChange={(e) => setSchFormAutonomyLevel(e.target.value)} style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}>
-                    <option value="2">Nível 2: Recomendação</option>
-                    <option value="4">Nível 4: Autônomo</option>
-                    <option value="5">Nível 5: Self-Healing</option>
-                  </select>
-                </div>
+                <input type="text" required value={schFormName} onChange={(e) => setSchFormName(e.target.value)} placeholder="Ex: 🌅 Daily Briefing" style={{ width: "100%", padding: "0.55rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }} />
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem" }}>

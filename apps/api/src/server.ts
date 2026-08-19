@@ -205,6 +205,49 @@ interface DataStore {
     escalatedToChannels?: string[];
     eventHash: string;
   }>;
+  goals: Array<{
+    id: string;
+    tenantId: string;
+    name: string;
+    category: "storage" | "backup" | "availability" | "security" | "performance";
+    scope: {
+      targetType: "all" | "node" | "workload" | "tag";
+      targetId?: string;
+    };
+    objective: {
+      metric: string;
+      operator: ">=" | "<=" | "==" | ">" | "<";
+      targetValue: number;
+      unit: string;
+    };
+    currentValue: number;
+    complianceStatus: "compliant" | "at_risk" | "violated";
+    compliancePercent: number;
+    evaluationInterval: string;
+    autonomyLevel: number;
+    allowedActions: string[];
+    riskBudget: {
+      maxActionsPerDay: number;
+      actionsExecutedToday: number;
+    };
+    lastEvaluatedAt?: string;
+    autoRemediate: boolean;
+    enabled: boolean;
+    createdAt: string;
+  }>;
+  goalEvaluations: Array<{
+    id: string;
+    goalId: string;
+    goalName: string;
+    tenantId: string;
+    evaluatedAt: string;
+    status: "compliant" | "at_risk" | "violated";
+    metricObserved: number;
+    targetValue: number;
+    actionTriggered?: string;
+    summary: string;
+    eventHash: string;
+  }>;
 }
 
 const defaultStore: DataStore = {
@@ -416,6 +459,79 @@ const defaultStore: DataStore = {
         metricsEvaluated: { confidencePercent: 99, flappingDetected: false },
       },
       eventHash: "4c7a52e9f1a0b38d976c543210fedcba9876543210fedcba9876543210fedcba",
+    },
+  ],
+  goals: [
+    {
+      id: "goal-storage-20",
+      tenantId: "tenant-default",
+      name: "💾 SLO de Storage: Espaço Livre Mínimo (>= 20%)",
+      category: "storage",
+      scope: { targetType: "all" },
+      objective: { metric: "disk.free_percent", operator: ">=", targetValue: 20, unit: "%" },
+      currentValue: 23.4,
+      complianceStatus: "compliant",
+      compliancePercent: 99.8,
+      evaluationInterval: "15m",
+      autonomyLevel: 4,
+      allowedActions: ["disk.temp_cleanup", "backup.cleanup"],
+      riskBudget: { maxActionsPerDay: 4, actionsExecutedToday: 1 },
+      lastEvaluatedAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
+      autoRemediate: true,
+      enabled: true,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "goal-backup-rpo",
+      tenantId: "tenant-default",
+      name: "🔁 SLO de Resiliência: RPO de Backup (<= 24h)",
+      category: "backup",
+      scope: { targetType: "all" },
+      objective: { metric: "backup.rpo_age_hours", operator: "<=", targetValue: 24, unit: "h" },
+      currentValue: 18.2,
+      complianceStatus: "compliant",
+      compliancePercent: 100,
+      evaluationInterval: "1h",
+      autonomyLevel: 3,
+      allowedActions: ["backup.snapshot_create"],
+      riskBudget: { maxActionsPerDay: 2, actionsExecutedToday: 0 },
+      lastEvaluatedAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+      autoRemediate: false,
+      enabled: true,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "goal-cluster-uptime",
+      tenantId: "tenant-default",
+      name: "⚡ SLO de Disponibilidade: Cluster & Nós (>= 99.9%)",
+      category: "availability",
+      scope: { targetType: "all" },
+      objective: { metric: "cluster.uptime_percent", operator: ">=", targetValue: 99.9, unit: "%" },
+      currentValue: 99.95,
+      complianceStatus: "compliant",
+      compliancePercent: 99.95,
+      evaluationInterval: "30m",
+      autonomyLevel: 5,
+      allowedActions: ["service.restart", "node.reboot"],
+      riskBudget: { maxActionsPerDay: 3, actionsExecutedToday: 0 },
+      lastEvaluatedAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+      autoRemediate: true,
+      enabled: true,
+      createdAt: new Date().toISOString(),
+    },
+  ],
+  goalEvaluations: [
+    {
+      id: "eval-001",
+      goalId: "goal-storage-20",
+      goalName: "💾 SLO de Storage: Espaço Livre Mínimo (>= 20%)",
+      tenantId: "tenant-default",
+      evaluatedAt: new Date(Date.now() - 1000 * 60 * 10).toISOString(),
+      status: "compliant",
+      metricObserved: 23.4,
+      targetValue: 20,
+      summary: "SLO em conformidade: Espaço livre médio de 23.4% em todos os nós (Target >= 20%).",
+      eventHash: "9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b",
     },
   ],
   schedules: [
@@ -1882,6 +1998,154 @@ Responda de forma profissional, direta e em português. Sempre priorize seguran�
       sendJson(res, 200, { success: true, message: "Política de auto-remediação removida com sucesso." });
     } else {
       sendJson(res, 404, { error: "Política não encontrada." });
+    }
+    return;
+  }
+
+  // --- GOAL-ORIENTED INFRASTRUCTURE MANAGEMENT (ETAPA 24) ---
+  if (url.startsWith("/api/v1/automations/goals") && method === "GET") {
+    if (!store.goals) store.goals = defaultStore.goals;
+    sendJson(res, 200, { goals: store.goals });
+    return;
+  }
+
+  if (url === "/api/v1/automations/goals" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const newGoal = {
+      id: body.id || `goal-${Math.random().toString(36).substring(2, 8)}`,
+      tenantId: body.tenantId || "tenant-default",
+      name: body.name || "Novo Objetivo Contínuo (SLO)",
+      category: body.category || "storage",
+      scope: body.scope || { targetType: "all" },
+      objective: body.objective || { metric: "disk.free_percent", operator: ">=", targetValue: 20, unit: "%" },
+      currentValue: body.currentValue !== undefined ? Number(body.currentValue) : 25,
+      complianceStatus: body.complianceStatus || "compliant",
+      compliancePercent: body.compliancePercent !== undefined ? Number(body.compliancePercent) : 100,
+      evaluationInterval: body.evaluationInterval || "15m",
+      autonomyLevel: body.autonomyLevel !== undefined ? Number(body.autonomyLevel) : 4,
+      allowedActions: body.allowedActions || ["disk.temp_cleanup"],
+      riskBudget: body.riskBudget || { maxActionsPerDay: 4, actionsExecutedToday: 0 },
+      lastEvaluatedAt: new Date().toISOString(),
+      autoRemediate: body.autoRemediate !== false,
+      enabled: body.enabled !== false,
+      createdAt: new Date().toISOString(),
+    };
+
+    if (!store.goals) store.goals = [];
+    store.goals.push(newGoal);
+    saveStore(store);
+    sendJson(res, 201, { goal: newGoal });
+    return;
+  }
+
+  if (url === "/api/v1/automations/goals/evaluations" && method === "GET") {
+    if (!store.goalEvaluations) store.goalEvaluations = defaultStore.goalEvaluations;
+    sendJson(res, 200, { evaluations: store.goalEvaluations });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/automations/goals/") && url.endsWith("/evaluate") && method === "POST") {
+    const goalId = url.replace("/api/v1/automations/goals/", "").replace("/evaluate", "");
+    if (!store.goals) store.goals = defaultStore.goals;
+    if (!store.goalEvaluations) store.goalEvaluations = defaultStore.goalEvaluations;
+
+    const goalIndex = store.goals.findIndex((g) => g.id === goalId);
+    if (goalIndex === -1) {
+      sendJson(res, 404, { error: "Objetivo não encontrado." });
+      return;
+    }
+
+    const goal = store.goals[goalIndex];
+    const now = new Date();
+    const evalId = `eval-${Math.random().toString(36).substring(2, 8)}`;
+
+    // Calculate simulated current value & compliance status
+    let observedVal = goal.currentValue;
+    let complianceStatus: "compliant" | "at_risk" | "violated" = "compliant";
+    let compliancePercent = 99.8;
+    let summary = `SLO em conformidade: Meta '${goal.name}' cumprida com sucesso.`;
+
+    if (goal.category === "storage") {
+      observedVal = 21.5 + Number((Math.random() * 4).toFixed(1));
+      complianceStatus = observedVal >= goal.objective.targetValue ? "compliant" : "at_risk";
+      compliancePercent = Number(Math.min(100, (observedVal / goal.objective.targetValue) * 100).toFixed(1));
+      summary = `SLO de Storage avaliado: ${observedVal}% livre (Target >= ${goal.objective.targetValue}%).`;
+    } else if (goal.category === "backup") {
+      observedVal = 14.2 + Number((Math.random() * 6).toFixed(1));
+      complianceStatus = observedVal <= goal.objective.targetValue ? "compliant" : "at_risk";
+      compliancePercent = 100;
+      summary = `SLO de Backup RPO avaliado: idade máxima de snapshot de ${observedVal}h (Target <= ${goal.objective.targetValue}h).`;
+    } else if (goal.category === "availability") {
+      observedVal = 99.92 + Number((Math.random() * 0.07).toFixed(2));
+      complianceStatus = observedVal >= goal.objective.targetValue ? "compliant" : "violated";
+      compliancePercent = observedVal;
+      summary = `SLO de Disponibilidade avaliado: Uptime do cluster de ${observedVal}% (Target >= ${goal.objective.targetValue}%).`;
+    } else {
+      observedVal = goal.objective.targetValue;
+      complianceStatus = "compliant";
+      compliancePercent = 100;
+      summary = `SLO operacional avaliado: Em total conformidade com a política declarada.`;
+    }
+
+    const eventHash = crypto.createHash("sha256").update(`${evalId}:${goal.id}:${now.toISOString()}:${summary}`).digest("hex");
+
+    const newEval = {
+      id: evalId,
+      goalId: goal.id,
+      goalName: goal.name,
+      tenantId: goal.tenantId,
+      evaluatedAt: now.toISOString(),
+      status: complianceStatus,
+      metricObserved: observedVal,
+      targetValue: goal.objective.targetValue,
+      summary,
+      eventHash,
+    };
+
+    store.goalEvaluations.unshift(newEval);
+    if (store.goalEvaluations.length > 50) store.goalEvaluations.pop();
+
+    goal.currentValue = observedVal;
+    goal.complianceStatus = complianceStatus;
+    goal.compliancePercent = compliancePercent;
+    goal.lastEvaluatedAt = now.toISOString();
+
+    saveStore(store);
+
+    sendJson(res, 200, {
+      success: true,
+      message: `🎯 Meta '${goal.name}' avaliada com sucesso! Status: ${complianceStatus.toUpperCase()} (${compliancePercent}% conformidade).`,
+      evaluation: newEval,
+      goal,
+    });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/automations/goals/") && method === "PUT") {
+    const goalId = url.replace("/api/v1/automations/goals/", "");
+    const body = await parseJsonBody(req);
+    if (!store.goals) store.goals = defaultStore.goals;
+    const index = store.goals.findIndex((g) => g.id === goalId);
+    if (index !== -1) {
+      store.goals[index] = { ...store.goals[index], ...body };
+      saveStore(store);
+      sendJson(res, 200, { goal: store.goals[index] });
+    } else {
+      sendJson(res, 404, { error: "Objetivo não encontrado." });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/v1/automations/goals/") && method === "DELETE") {
+    const goalId = url.replace("/api/v1/automations/goals/", "");
+    if (!store.goals) store.goals = defaultStore.goals;
+    const initialLen = store.goals.length;
+    store.goals = store.goals.filter((g) => g.id !== goalId);
+    if (store.goals.length < initialLen) {
+      saveStore(store);
+      sendJson(res, 200, { success: true, message: "Objetivo removido com sucesso." });
+    } else {
+      sendJson(res, 404, { error: "Objetivo não encontrado." });
     }
     return;
   }
