@@ -107,12 +107,146 @@ interface DataStore {
     evidence?: any;
     eventHash?: string;
   }>;
+  triggers: Array<{
+    id: string;
+    tenantId: string;
+    name: string;
+    source: "metric" | "heartbeat" | "backup" | "service" | "hypervisor";
+    metricName?: string;
+    operator: ">" | ">=" | "<" | "<=" | "==" | "!=";
+    threshold: number | string;
+    duration: string;
+    cooldownMinutes: number;
+    circuitBreakerMaxPerHour: number;
+    targetType: "all" | "node" | "workload" | "tag";
+    targetId?: string;
+    jobType: "ai_analysis" | "action" | "notification";
+    actionKey?: string;
+    autonomyLevel: number;
+    enabled: boolean;
+    circuitBreakerTripped: boolean;
+    lastTriggeredAt?: string;
+    triggerCountLastHour: number;
+    createdAt: string;
+  }>;
+  triggerEvents: Array<{
+    id: string;
+    triggerId: string;
+    triggerName: string;
+    tenantId: string;
+    detectedAt: string;
+    conditionEvaluated: string;
+    actionExecuted?: string;
+    status: "triggered" | "cooldown_suppressed" | "circuit_broken" | "resolved";
+    summary: string;
+    evidence?: any;
+    dedupFingerprint: string;
+  }>;
 }
 
 const defaultStore: DataStore = {
   tenants: [
     { id: "tenant-default", name: "Default Tenant (infraops-prod)", domain: "infraopsai.awecloudsolution.com", createdAt: new Date().toISOString() },
     { id: "tenant-wrtec", name: "WR Tecnologia", domain: "wrtec.com.br", createdAt: new Date().toISOString() },
+  ],
+  triggers: [
+    {
+      id: "trg-disk-warning",
+      tenantId: "tenant-default",
+      name: "💾 Guardião de Disco: Uso Elevado (> 85%)",
+      source: "metric",
+      metricName: "disk.used_percent",
+      operator: ">",
+      threshold: 85,
+      duration: "10m",
+      cooldownMinutes: 30,
+      circuitBreakerMaxPerHour: 3,
+      targetType: "all",
+      jobType: "action",
+      actionKey: "disk.temp_cleanup",
+      autonomyLevel: 4,
+      enabled: true,
+      circuitBreakerTripped: false,
+      lastTriggeredAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+      triggerCountLastHour: 1,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "trg-node-offline",
+      tenantId: "tenant-default",
+      name: "🔌 Detecção de Perda de Heartbeat do Agente",
+      source: "heartbeat",
+      metricName: "agent.heartbeat_age",
+      operator: ">",
+      threshold: 300,
+      duration: "5m",
+      cooldownMinutes: 15,
+      circuitBreakerMaxPerHour: 2,
+      targetType: "all",
+      jobType: "notification",
+      autonomyLevel: 3,
+      enabled: true,
+      circuitBreakerTripped: false,
+      lastTriggeredAt: undefined,
+      triggerCountLastHour: 0,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "trg-service-failed",
+      tenantId: "tenant-default",
+      name: "🛠️ Auto-Recuperação de Serviço Crítico (Systemd)",
+      source: "service",
+      metricName: "service.status",
+      operator: "==",
+      threshold: "failed",
+      duration: "2m",
+      cooldownMinutes: 20,
+      circuitBreakerMaxPerHour: 3,
+      targetType: "all",
+      jobType: "action",
+      actionKey: "service.restart",
+      autonomyLevel: 5,
+      enabled: true,
+      circuitBreakerTripped: false,
+      lastTriggeredAt: new Date(Date.now() - 3600000 * 6).toISOString(),
+      triggerCountLastHour: 0,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "trg-backup-rpo",
+      tenantId: "tenant-default",
+      name: "💾 Alerta de Violação de Janela de RPO de Backup",
+      source: "backup",
+      metricName: "backup.last_valid_age",
+      operator: ">",
+      threshold: 86400,
+      duration: "15m",
+      cooldownMinutes: 60,
+      circuitBreakerMaxPerHour: 2,
+      targetType: "all",
+      jobType: "ai_analysis",
+      autonomyLevel: 2,
+      enabled: true,
+      circuitBreakerTripped: false,
+      lastTriggeredAt: undefined,
+      triggerCountLastHour: 0,
+      createdAt: new Date().toISOString(),
+    },
+  ],
+  triggerEvents: [
+    {
+      id: "ev-001",
+      triggerId: "trg-disk-warning",
+      triggerName: "💾 Guardião de Disco: Uso Elevado (> 85%)",
+      tenantId: "tenant-default",
+      detectedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+      conditionEvaluated: "disk.used_percent = 88.4% (> 85% por 10m contínuos)",
+      actionExecuted: "disk.temp_cleanup",
+      status: "triggered",
+      summary: "Condição satisfeita: Action disk.temp_cleanup executada sob política Nível 4.",
+      evidence: { initialDiskUsed: 88.4, postActionDiskUsed: 79.1, freedBytes: 2147483648 },
+      dedupFingerprint: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    },
   ],
   schedules: [
     {
@@ -1080,6 +1214,214 @@ Responda de forma profissional, direta e em português. Sempre priorize seguran�
       sendJson(res, 200, { success: true, message: "Agendamento removido com sucesso." });
     } else {
       sendJson(res, 404, { error: "Agendamento não encontrado." });
+    }
+    return;
+  }
+
+  // --- CONDITIONAL TRIGGERS & EVENT AUTOMATION (ETAPA 22) ---
+  if (url === "/api/v1/automations/triggers" && method === "GET") {
+    if (!store.triggers) store.triggers = defaultStore.triggers;
+    sendJson(res, 200, { triggers: store.triggers });
+    return;
+  }
+
+  if (url === "/api/v1/automations/triggers/events" && method === "GET") {
+    if (!store.triggerEvents) store.triggerEvents = defaultStore.triggerEvents;
+    sendJson(res, 200, { events: store.triggerEvents });
+    return;
+  }
+
+  if (url === "/api/v1/automations/triggers" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const newTrigger = {
+      id: body.id || `trg-${Math.random().toString(36).substring(2, 8)}`,
+      tenantId: body.tenantId || "tenant-default",
+      name: body.name || "Novo Trigger Condicional",
+      source: body.source || "metric",
+      metricName: body.metricName || "disk.used_percent",
+      operator: body.operator || ">",
+      threshold: body.threshold !== undefined ? body.threshold : 85,
+      duration: body.duration || "5m",
+      cooldownMinutes: body.cooldownMinutes || 30,
+      circuitBreakerMaxPerHour: body.circuitBreakerMaxPerHour || 3,
+      targetType: body.targetType || "all",
+      targetId: body.targetId,
+      jobType: body.jobType || "action",
+      actionKey: body.actionKey || "disk.temp_cleanup",
+      autonomyLevel: body.autonomyLevel || 4,
+      enabled: body.enabled !== false,
+      circuitBreakerTripped: false,
+      lastTriggeredAt: undefined,
+      triggerCountLastHour: 0,
+      createdAt: new Date().toISOString(),
+    };
+
+    if (!store.triggers) store.triggers = [];
+    store.triggers.push(newTrigger);
+    saveStore(store);
+    sendJson(res, 201, { trigger: newTrigger });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/automations/triggers/") && url.endsWith("/simulate") && method === "POST") {
+    const triggerId = url.replace("/api/v1/automations/triggers/", "").replace("/simulate", "");
+    if (!store.triggers) store.triggers = defaultStore.triggers;
+    if (!store.triggerEvents) store.triggerEvents = defaultStore.triggerEvents;
+
+    const trgIndex = store.triggers.findIndex((t) => t.id === triggerId);
+    if (trgIndex === -1) {
+      sendJson(res, 404, { error: "Trigger não encontrado." });
+      return;
+    }
+
+    const trg = store.triggers[trgIndex];
+    const now = new Date();
+    const eventId = `ev-${Math.random().toString(36).substring(2, 8)}`;
+    const dedupFingerprint = crypto.createHash("sha256").update(`${trg.tenantId}:${trg.id}:${trg.source}:${now.toISOString().substring(0, 13)}`).digest("hex");
+
+    // Check 1: Enabled
+    if (!trg.enabled) {
+      sendJson(res, 400, { success: false, message: `Trigger '${trg.name}' está pausado e não foi disparado.` });
+      return;
+    }
+
+    // Check 2: Circuit Breaker
+    if (trg.circuitBreakerTripped || trg.triggerCountLastHour >= trg.circuitBreakerMaxPerHour) {
+      trg.circuitBreakerTripped = true;
+      const brokenEvent = {
+        id: eventId,
+        triggerId: trg.id,
+        triggerName: trg.name,
+        tenantId: trg.tenantId,
+        detectedAt: now.toISOString(),
+        conditionEvaluated: `Condição satisfeita (${trg.metricName} ${trg.operator} ${trg.threshold}), mas BLOQUEADA por Circuit Breaker (>${trg.circuitBreakerMaxPerHour} disparos/h).`,
+        status: "circuit_broken" as const,
+        summary: "⚠️ Circuit Breaker disparado: Automação suspensa para evitar tempestade de ações (automation storm).",
+        evidence: { triggerCountLastHour: trg.triggerCountLastHour, maxAllowed: trg.circuitBreakerMaxPerHour },
+        dedupFingerprint,
+      };
+      store.triggerEvents.unshift(brokenEvent);
+      saveStore(store);
+      sendJson(res, 429, {
+        success: false,
+        circuitBreakerTripped: true,
+        message: "⚠️ Circuit Breaker disparado! Limite de disparos por hora excedido. Ação suspensa por segurança.",
+        event: brokenEvent,
+        trigger: trg,
+      });
+      return;
+    }
+
+    // Check 3: Cooldown Window
+    if (trg.lastTriggeredAt) {
+      const msSinceLast = now.getTime() - new Date(trg.lastTriggeredAt).getTime();
+      const cooldownMs = (trg.cooldownMinutes || 30) * 60 * 1000;
+      if (msSinceLast < cooldownMs) {
+        const remainingMin = Math.ceil((cooldownMs - msSinceLast) / 60000);
+        const cooldownEvent = {
+          id: eventId,
+          triggerId: trg.id,
+          triggerName: trg.name,
+          tenantId: trg.tenantId,
+          detectedAt: now.toISOString(),
+          conditionEvaluated: `Condição detectada, mas suprimida por Cooldown (${remainingMin}m restantes).`,
+          status: "cooldown_suppressed" as const,
+          summary: `⏳ Anti-Flapping: Ação suprimida durante o período de cooldown de ${trg.cooldownMinutes}m.`,
+          evidence: { remainingMinutes: remainingMin, lastTriggeredAt: trg.lastTriggeredAt },
+          dedupFingerprint,
+        };
+        store.triggerEvents.unshift(cooldownEvent);
+        saveStore(store);
+        sendJson(res, 200, {
+          success: true,
+          cooldownSuppressed: true,
+          message: `⏳ Disparo suprimido por Cooldown Anti-Flapping (${remainingMin} min restantes).`,
+          event: cooldownEvent,
+          trigger: trg,
+        });
+        return;
+      }
+    }
+
+    // Success Execution Path
+    trg.lastTriggeredAt = now.toISOString();
+    trg.triggerCountLastHour = (trg.triggerCountLastHour || 0) + 1;
+
+    let summary = `Trigger '${trg.name}' disparou ação governada com sucesso sob nível de autonomia ${trg.autonomyLevel}.`;
+    let conditionEvaluated = `${trg.metricName || "evento"} ${trg.operator} ${trg.threshold} (persistiu por ${trg.duration})`;
+
+    const triggeredEvent = {
+      id: eventId,
+      triggerId: trg.id,
+      triggerName: trg.name,
+      tenantId: trg.tenantId,
+      detectedAt: now.toISOString(),
+      conditionEvaluated,
+      actionExecuted: trg.actionKey || "diagnostics.sweep",
+      status: "triggered" as const,
+      summary,
+      evidence: { debounceWindow: trg.duration, autonomyLevel: trg.autonomyLevel, precheck: "PASSED", postcheck: "PASSED" },
+      dedupFingerprint,
+    };
+
+    store.triggerEvents.unshift(triggeredEvent);
+    if (store.triggerEvents.length > 50) store.triggerEvents.pop();
+
+    saveStore(store);
+
+    sendJson(res, 200, {
+      success: true,
+      message: `⚡ Trigger '${trg.name}' disparado com sucesso! Ação ${trg.actionKey || "executada"} auditada.`,
+      event: triggeredEvent,
+      trigger: trg,
+    });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/automations/triggers/") && url.endsWith("/reset-circuit-breaker") && method === "POST") {
+    const triggerId = url.replace("/api/v1/automations/triggers/", "").replace("/reset-circuit-breaker", "");
+    if (!store.triggers) store.triggers = defaultStore.triggers;
+    const index = store.triggers.findIndex((t) => t.id === triggerId);
+    if (index !== -1) {
+      store.triggers[index].circuitBreakerTripped = false;
+      store.triggers[index].triggerCountLastHour = 0;
+      saveStore(store);
+      sendJson(res, 200, {
+        success: true,
+        message: "Circuit Breaker rearmado com sucesso!",
+        trigger: store.triggers[index],
+      });
+    } else {
+      sendJson(res, 404, { error: "Trigger não encontrado." });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/v1/automations/triggers/") && method === "PUT") {
+    const triggerId = url.replace("/api/v1/automations/triggers/", "");
+    const body = await parseJsonBody(req);
+    if (!store.triggers) store.triggers = defaultStore.triggers;
+    const index = store.triggers.findIndex((t) => t.id === triggerId);
+    if (index !== -1) {
+      store.triggers[index] = { ...store.triggers[index], ...body };
+      saveStore(store);
+      sendJson(res, 200, { trigger: store.triggers[index] });
+    } else {
+      sendJson(res, 404, { error: "Trigger não encontrado." });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/v1/automations/triggers/") && method === "DELETE") {
+    const triggerId = url.replace("/api/v1/automations/triggers/", "");
+    if (!store.triggers) store.triggers = defaultStore.triggers;
+    const initialLen = store.triggers.length;
+    store.triggers = store.triggers.filter((t) => t.id !== triggerId);
+    if (store.triggers.length < initialLen) {
+      saveStore(store);
+      sendJson(res, 200, { success: true, message: "Trigger removido com sucesso." });
+    } else {
+      sendJson(res, 404, { error: "Trigger não encontrado." });
     }
     return;
   }
