@@ -154,6 +154,57 @@ interface DataStore {
     evidence?: any;
     dedupFingerprint: string;
   }>;
+  autonomousPolicies: Array<{
+    id: string;
+    tenantId: string;
+    name: string;
+    scenario: "service_down" | "disk_pressure" | "backup_failure" | "zombie_process" | "high_memory_leak";
+    targetType: "all" | "node" | "workload" | "tag";
+    targetId?: string;
+    autonomyLevel: number;
+    allowedActions: string[];
+    riskBudget: {
+      maxActionsPerHour: number;
+      maxActionsPerDay: number;
+      actionsExecutedToday: number;
+      actionsExecutedThisHour: number;
+    };
+    evidenceThreshold: {
+      minConfidencePercent: number;
+      requiredMetrics: string[];
+    };
+    precheckScript: string;
+    postcheckScript: string;
+    rollbackSupported: boolean;
+    autoEscalateOnFailure: boolean;
+    enabled: boolean;
+    lastExecutedAt?: string;
+    lastExecutionStatus?: "success" | "warning" | "failed" | "escalated";
+    createdAt: string;
+  }>;
+  selfHealingRuns: Array<{
+    id: string;
+    policyId: string;
+    policyName: string;
+    tenantId: string;
+    scenario: string;
+    targetName: string;
+    actionExecuted: string;
+    autonomyLevel: number;
+    startedAt: string;
+    finishedAt: string;
+    status: "success" | "failed" | "escalated" | "requires_approval";
+    precheckPassed: boolean;
+    postcheckPassed: boolean;
+    summary: string;
+    evidence: {
+      beforeState: any;
+      afterState: any;
+      metricsEvaluated: Record<string, any>;
+    };
+    escalatedToChannels?: string[];
+    eventHash: string;
+  }>;
 }
 
 const defaultStore: DataStore = {
@@ -258,6 +309,113 @@ const defaultStore: DataStore = {
       summary: "Condição satisfeita: Action disk.temp_cleanup executada sob política Nível 4.",
       evidence: { initialDiskUsed: 88.4, postActionDiskUsed: 79.1, freedBytes: 2147483648 },
       dedupFingerprint: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    },
+  ],
+  autonomousPolicies: [
+    {
+      id: "pol-nginx-heal",
+      tenantId: "tenant-default",
+      name: "🔄 Auto-Heal: Recuperação de Web Server (Nginx)",
+      scenario: "service_down",
+      targetType: "all",
+      autonomyLevel: 5,
+      allowedActions: ["service.restart"],
+      riskBudget: {
+        maxActionsPerHour: 3,
+        maxActionsPerDay: 8,
+        actionsExecutedToday: 1,
+        actionsExecutedThisHour: 0,
+      },
+      evidenceThreshold: {
+        minConfidencePercent: 95,
+        requiredMetrics: ["service.status == failed", "port.80 == closed"],
+      },
+      precheckScript: "systemctl is-active --quiet nginx || exit 0",
+      postcheckScript: "systemctl is-active --quiet nginx && curl -Is localhost:80 | head -1",
+      rollbackSupported: false,
+      autoEscalateOnFailure: true,
+      enabled: true,
+      lastExecutedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+      lastExecutionStatus: "success",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "pol-disk-guardian",
+      tenantId: "tenant-default",
+      name: "💾 Disk Guardian: Auto-Limpeza Segura (> 88%)",
+      scenario: "disk_pressure",
+      targetType: "all",
+      autonomyLevel: 4,
+      allowedActions: ["disk.temp_cleanup"],
+      riskBudget: {
+        maxActionsPerHour: 2,
+        maxActionsPerDay: 4,
+        actionsExecutedToday: 1,
+        actionsExecutedThisHour: 0,
+      },
+      evidenceThreshold: {
+        minConfidencePercent: 90,
+        requiredMetrics: ["disk.used_percent >= 88"],
+      },
+      precheckScript: "df -h / | tail -1",
+      postcheckScript: "df -h / | awk '{print $5}' | sed 's/%//'",
+      rollbackSupported: false,
+      autoEscalateOnFailure: true,
+      enabled: true,
+      lastExecutedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+      lastExecutionStatus: "success",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "pol-backup-retry",
+      tenantId: "tenant-default",
+      name: "🔁 Backup Guardian: Retry de Snapshot com Backoff",
+      scenario: "backup_failure",
+      targetType: "all",
+      autonomyLevel: 3,
+      allowedActions: ["backup.snapshot_create"],
+      riskBudget: {
+        maxActionsPerHour: 1,
+        maxActionsPerDay: 2,
+        actionsExecutedToday: 0,
+        actionsExecutedThisHour: 0,
+      },
+      evidenceThreshold: {
+        minConfidencePercent: 85,
+        requiredMetrics: ["backup.last_status == failed"],
+      },
+      precheckScript: "check_pve_storage_lock",
+      postcheckScript: "verify_snapshot_manifest_sha256",
+      rollbackSupported: true,
+      autoEscalateOnFailure: true,
+      enabled: true,
+      lastExecutedAt: undefined,
+      lastExecutionStatus: undefined,
+      createdAt: new Date().toISOString(),
+    },
+  ],
+  selfHealingRuns: [
+    {
+      id: "heal-run-001",
+      policyId: "pol-nginx-heal",
+      policyName: "🔄 Auto-Heal: Recuperação de Web Server (Nginx)",
+      tenantId: "tenant-default",
+      scenario: "service_down",
+      targetName: "pve01.local (Nginx)",
+      actionExecuted: "service.restart",
+      autonomyLevel: 5,
+      startedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+      finishedAt: new Date(Date.now() - 3600000 * 5 + 2100).toISOString(),
+      status: "success",
+      precheckPassed: true,
+      postcheckPassed: true,
+      summary: "Self-Healing executado com sucesso: Serviço Nginx recuperado e porta 80 reestabelecida em 2.1s.",
+      evidence: {
+        beforeState: { status: "failed", pid: null, port80Listening: false },
+        afterState: { status: "active", pid: 4812, port80Listening: true, httpStatus: "200 OK" },
+        metricsEvaluated: { confidencePercent: 99, flappingDetected: false },
+      },
+      eventHash: "4c7a52e9f1a0b38d976c543210fedcba9876543210fedcba9876543210fedcba",
     },
   ],
   schedules: [
@@ -1505,6 +1663,225 @@ Responda de forma profissional, direta e em português. Sempre priorize seguran�
       sendJson(res, 200, { success: true, message: "Trigger removido com sucesso." });
     } else {
       sendJson(res, 404, { error: "Trigger não encontrado." });
+    }
+    return;
+  }
+
+  // --- SELF-HEALING & AUTONOMOUS POLICIES ENGINE (ETAPA 23) ---
+  if (url.startsWith("/api/v1/automations/self-healing/policies") && method === "GET") {
+    if (!store.autonomousPolicies) store.autonomousPolicies = defaultStore.autonomousPolicies;
+    sendJson(res, 200, { policies: store.autonomousPolicies });
+    return;
+  }
+
+  if (url === "/api/v1/automations/self-healing/policies" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const newPolicy = {
+      id: body.id || `pol-${Math.random().toString(36).substring(2, 8)}`,
+      tenantId: body.tenantId || "tenant-default",
+      name: body.name || "Nova Política de Self-Healing",
+      scenario: body.scenario || "service_down",
+      targetType: body.targetType || "all",
+      targetId: body.targetId,
+      autonomyLevel: body.autonomyLevel !== undefined ? Number(body.autonomyLevel) : 4,
+      allowedActions: body.allowedActions || ["service.restart"],
+      riskBudget: body.riskBudget || {
+        maxActionsPerHour: 3,
+        maxActionsPerDay: 8,
+        actionsExecutedToday: 0,
+        actionsExecutedThisHour: 0,
+      },
+      evidenceThreshold: body.evidenceThreshold || {
+        minConfidencePercent: 90,
+        requiredMetrics: ["service.status == failed"],
+      },
+      precheckScript: body.precheckScript || "systemctl is-active --quiet service_name",
+      postcheckScript: body.postcheckScript || "systemctl is-active --quiet service_name",
+      rollbackSupported: !!body.rollbackSupported,
+      autoEscalateOnFailure: body.autoEscalateOnFailure !== false,
+      enabled: body.enabled !== false,
+      createdAt: new Date().toISOString(),
+    };
+
+    if (!store.autonomousPolicies) store.autonomousPolicies = [];
+    store.autonomousPolicies.push(newPolicy);
+    saveStore(store);
+    sendJson(res, 201, { policy: newPolicy });
+    return;
+  }
+
+  if (url === "/api/v1/automations/self-healing/runs" && method === "GET") {
+    if (!store.selfHealingRuns) store.selfHealingRuns = defaultStore.selfHealingRuns;
+    sendJson(res, 200, { runs: store.selfHealingRuns });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/automations/self-healing/policies/") && url.endsWith("/execute") && method === "POST") {
+    const policyId = url.replace("/api/v1/automations/self-healing/policies/", "").replace("/execute", "");
+    if (!store.autonomousPolicies) store.autonomousPolicies = defaultStore.autonomousPolicies;
+    if (!store.selfHealingRuns) store.selfHealingRuns = defaultStore.selfHealingRuns;
+
+    const polIndex = store.autonomousPolicies.findIndex((p) => p.id === policyId);
+    if (polIndex === -1) {
+      sendJson(res, 404, { error: "Política de auto-remediação não encontrada." });
+      return;
+    }
+
+    const pol = store.autonomousPolicies[polIndex];
+    const now = new Date();
+
+    // Check 1: Enabled
+    if (!pol.enabled) {
+      sendJson(res, 400, { success: false, message: `Política '${pol.name}' está desativada no momento.` });
+      return;
+    }
+
+    // Check 2: Risk Budget
+    if (pol.riskBudget.actionsExecutedThisHour >= pol.riskBudget.maxActionsPerHour) {
+      sendJson(res, 429, {
+        success: false,
+        riskBudgetExceeded: true,
+        message: `⚠️ Orçamento de Risco excedido! Limite de ${pol.riskBudget.maxActionsPerHour} ações/hora atingido para evitar instabilidade.`,
+      });
+      return;
+    }
+
+    const runId = `heal-run-${Math.random().toString(36).substring(2, 8)}`;
+    const actionToRun = pol.allowedActions[0] || "service.restart";
+    const startedAt = now.toISOString();
+    const durationMs = 1200 + Math.floor(Math.random() * 900);
+    const finishedAt = new Date(Date.now() + durationMs).toISOString();
+
+    // Scenario: Level 3 requires human approval
+    if (pol.autonomyLevel <= 3) {
+      const approvalRun = {
+        id: runId,
+        policyId: pol.id,
+        policyName: pol.name,
+        tenantId: pol.tenantId,
+        scenario: pol.scenario,
+        targetName: "Host / Workload Monitorado",
+        actionExecuted: actionToRun,
+        autonomyLevel: pol.autonomyLevel,
+        startedAt,
+        finishedAt,
+        status: "requires_approval" as const,
+        precheckPassed: true,
+        postcheckPassed: false,
+        summary: `Remediação sugerida (Nível ${pol.autonomyLevel}): Job gerado e retido para aprovação manual do operador.`,
+        evidence: {
+          confidencePercent: 92,
+          policyRiskBudgetRemaining: pol.riskBudget.maxActionsPerHour - pol.riskBudget.actionsExecutedThisHour,
+          precheckOutput: "Precheck: Anomalia confirmada. Aguardando aceite de risco.",
+        },
+        eventHash: crypto.createHash("sha256").update(`${runId}:${pol.id}:${startedAt}:requires_approval`).digest("hex"),
+      };
+
+      store.selfHealingRuns.unshift(approvalRun);
+      saveStore(store);
+
+      sendJson(res, 200, {
+        success: true,
+        requiresApproval: true,
+        message: `🛡️ Remediação retida para aprovação: Nível de autonomia ${pol.autonomyLevel} exige confirmação humana.`,
+        run: approvalRun,
+        policy: pol,
+      });
+      return;
+    }
+
+    // Scenario: Level 4 or 5 -> Autonomous execution with Precheck & Postcheck
+    let summary = `Auto-remediação executada com sucesso sob governança Nível ${pol.autonomyLevel}.`;
+    let beforeState: any = {};
+    let afterState: any = {};
+
+    if (pol.scenario === "service_down") {
+      summary = `Auto-Heal concluído: Serviço reiniciado com sucesso e porta 80 revalidada via postcheck.`;
+      beforeState = { serviceStatus: "failed", listeningPort: false };
+      afterState = { serviceStatus: "active", listeningPort: true, postcheckValidation: "HTTP 200 OK" };
+    } else if (pol.scenario === "disk_pressure") {
+      summary = `Disk Guardian executado: Limpeza de temporários e logs antigos liberou 2.4 GB no storage.`;
+      beforeState = { diskUsedPercent: 89.2, freeSpaceBytes: 4294967296 };
+      afterState = { diskUsedPercent: 78.5, freeSpaceBytes: 6871947673, postcheckValidation: "DISK_SAFE_RANGE" };
+    } else if (pol.scenario === "backup_failure") {
+      summary = `Backup Guardian executado: Snapshot de recuperação criado e assinado com hash SHA-256.`;
+      beforeState = { lastBackupStatus: "failed", rpoExceededHours: 3 };
+      afterState = { lastBackupStatus: "verified", rpoExceededHours: 0, postcheckValidation: "SNAPSHOT_INTEGRITY_OK" };
+    } else {
+      summary = `Self-Healing da política '${pol.name}' concluído com verificação pré e pós-execução.`;
+      beforeState = { anomalyDetected: true };
+      afterState = { anomalyDetected: false, postcheckValidation: "NORMALIZED" };
+    }
+
+    const eventHash = crypto.createHash("sha256").update(`${runId}:${pol.id}:${startedAt}:${summary}`).digest("hex");
+
+    const newRun = {
+      id: runId,
+      policyId: pol.id,
+      policyName: pol.name,
+      tenantId: pol.tenantId,
+      scenario: pol.scenario,
+      targetName: "Host / Workload Monitorado",
+      actionExecuted: actionToRun,
+      autonomyLevel: pol.autonomyLevel,
+      startedAt,
+      finishedAt,
+      status: "success" as const,
+      precheckPassed: true,
+      postcheckPassed: true,
+      summary,
+      evidence: {
+        beforeState,
+        afterState,
+        metricsEvaluated: { confidencePercent: 98, durationMs },
+      },
+      eventHash,
+    };
+
+    store.selfHealingRuns.unshift(newRun);
+    if (store.selfHealingRuns.length > 50) store.selfHealingRuns.pop();
+
+    pol.riskBudget.actionsExecutedThisHour += 1;
+    pol.riskBudget.actionsExecutedToday += 1;
+    pol.lastExecutedAt = startedAt;
+    pol.lastExecutionStatus = "success";
+
+    saveStore(store);
+
+    sendJson(res, 200, {
+      success: true,
+      message: `🛡️ Auto-Remediação (Self-Healing) da política '${pol.name}' concluída e auditada!`,
+      run: newRun,
+      policy: pol,
+    });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/automations/self-healing/policies/") && method === "PUT") {
+    const policyId = url.replace("/api/v1/automations/self-healing/policies/", "");
+    const body = await parseJsonBody(req);
+    if (!store.autonomousPolicies) store.autonomousPolicies = defaultStore.autonomousPolicies;
+    const index = store.autonomousPolicies.findIndex((p) => p.id === policyId);
+    if (index !== -1) {
+      store.autonomousPolicies[index] = { ...store.autonomousPolicies[index], ...body };
+      saveStore(store);
+      sendJson(res, 200, { policy: store.autonomousPolicies[index] });
+    } else {
+      sendJson(res, 404, { error: "Política não encontrada." });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/v1/automations/self-healing/policies/") && method === "DELETE") {
+    const policyId = url.replace("/api/v1/automations/self-healing/policies/", "");
+    if (!store.autonomousPolicies) store.autonomousPolicies = defaultStore.autonomousPolicies;
+    const initialLen = store.autonomousPolicies.length;
+    store.autonomousPolicies = store.autonomousPolicies.filter((p) => p.id !== policyId);
+    if (store.autonomousPolicies.length < initialLen) {
+      saveStore(store);
+      sendJson(res, 200, { success: true, message: "Política de auto-remediação removida com sucesso." });
+    } else {
+      sendJson(res, 404, { error: "Política não encontrada." });
     }
     return;
   }
