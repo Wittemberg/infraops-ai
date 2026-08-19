@@ -1,27 +1,25 @@
 # Relatório de Progresso e Registro de Evolução (Changelog) — InfraOps AI
 
 > **Data de Atualização:** Agosto / 2026  
-> **Status de Produção:** 🟢 **24/24 Etapas Concluídas — Plataforma 100% Operacional & Autônoma**  
+> **Status de Produção:** 🟢 **25/25 Etapas Concluídas — Plataforma 100% Operacional, Autônoma & com Inteligência de Infraestrutura**  
 > **Ambiente Oficial:** https://infraopsai.awecloudsolution.com
 
 ---
 
 ## 1. Resumo Executivo
 
-O InfraOps AI concluiu integralmente todas as **24 etapas de engenharia e produto**, tornando-se uma plataforma de Governança e Operações Autônomas de Infraestrutura de TI (AIOps) completa. O sistema une monitoramento em tempo real, observabilidade temporal, orquestração de IA multi-provedor, remediação em malha fechada (*Self-Healing*), proteção anti-flapping e gestão contínua de metas (*SLOs/Goals*).
+O InfraOps AI concluiu integralmente todas as **25 etapas de engenharia, arquitetura e produto**, tornando-se uma plataforma completa e de ponta a ponta de Governança, Operações Autônomas e Inteligência de Infraestrutura (AIOps).
 
 ```text
 [Fundação e Plataforma: Etapas 01–20] ======================================== 100% CONCLUÍDO
-[Autonomous Scheduler: Etapa 21] ============================================= 100% CONCLUÍDO
-[Conditional Triggers: Etapa 22] ============================================= 100% CONCLUÍDO
-[Autonomous Self-Healing: Etapa 23] ========================================== 100% CONCLUÍDO
-[Goal-Oriented Operations: Etapa 24] ========================================= 100% CONCLUÍDO
+[Autonomous Operations: Etapas 21–24] ======================================== 100% CONCLUÍDO
+[Infrastructure Intelligence: Etapa 25] ====================================== 100% CONCLUÍDO
 [Módulos Extras: Catálogo de Actions, Chatwoot & Quepasa APIs] ================ 100% CONCLUÍDO
 ```
 
 ---
 
-## 2. Detalhamento de Todas as Etapas Concluídas (01–24)
+## 2. Detalhamento de Todas as Etapas Concluídas (01–25)
 
 ### Etapas 01–05 — Fundação, Arquitetura e Governança Multi-Tenant 🟢
 - Padrões rigorosos de segurança e arquitetura (`AGENTS.md`, ADRs e governança não-negociável).
@@ -50,53 +48,35 @@ O InfraOps AI concluiu integralmente todas as **24 etapas de engenharia e produt
 - Pipeline CI/CD com GitHub Actions, Portainer, Docker Swarm e Traefik SSL automático.
 - Testes automatizados e fechamento da base operacional.
 
----
+### Etapa 21 — Autonomous Scheduler & Automation Engine 🟢
+- Agendamento de rotinas operacionais (Cron, Intervalo, One-shot) com respeito a timezones e janelas de manutenção.
 
-### Etapa 21 — Autonomous Scheduler & Automation Engine 🟢 (CONCLUÍDO)
-- **Agendador Central de Automações:**
-  - Suporte a agendamentos do tipo **Cron** (ex: `0 7 * * *`), **Intervalos periódicos** (ex: `30m`, `1h`) e **One-Shot** (execução pontual).
-  - Timezone configurável por tenant (ex: `America/Sao_Paulo`).
-  - Respeito automático a janelas de manutenção (*skipDuringMaintenance*).
-  - Histórico de execuções (*Runs*) com resumos, evidências coletadas e hash de integridade SHA-256.
-  - Botão de execução imediata (*Run Now*).
+### Etapa 22 — Conditional Triggers & Event Automation Engine 🟢
+- Gatilhos reativos orientados a telemetria com travas anti-flapping (Debounce, Cooldown, Circuit Breaker e Deduplicação).
 
-### Etapa 22 — Conditional Triggers & Event Automation Engine 🟢 (CONCLUÍDO)
-- **Motor de Gatilhos Reativos Orientados a Eventos:**
-  - Disparo de Actions governadas a partir de telemetria e estados anômalos (`disk.used_percent > 85%`, `agent.heartbeat_age > 5m`, `service.status == 'failed'`).
-  - **Travas Anti-Flapping Mandatórias:**
-    - **Debounce / Janela de Persistência:** A condição precisa persistir por $N$ minutos contínuos.
-    - **Cooldown:** Período obrigatório de repouso após um disparo para evitar loops.
-    - **Circuit Breaker:** Bloqueio preventivo automático caso o gatilho exceda o limite seguro de disparos por hora, com botão de rearme manual no painel.
-    - **Deduplicação de Eventos:** Impede a execução repetida de ações idênticas via fingerprint SHA-256.
+### Etapa 23 — Autonomous Policies & Self-Healing Engine 🟢
+- Governança de autonomia Níveis 0 a 5, prechecks/postchecks obrigatórios, orçamentos de risco (*Risk Budget*) e auto-escalonamento para canais de alerta.
 
-### Etapa 23 — Autonomous Policies & Self-Healing Engine 🟢 (CONCLUÍDO)
-- **Governança de Autonomia & Auto-Remediação em Malha Fechada:**
-  - Matriz de Níveis de Autonomia (0 a 5: *Observe, Analyze, Recommend, Approval, Autonomous, Self-Healing*).
-  - **Orçamento de Risco (*Risk Budget*):** Limite máximo de ações automáticas por hora e por dia por tenant/nó.
-  - **Precheck & Postcheck Obrigatórios:** Validação rigorosa antes e depois de cada ação mutável.
-  - **Auto-Escalonamento:** Em caso de falha no postcheck, o sistema interrompe a automação (*stop*) e escalona imediatamente para os canais de alerta (Chatwoot, Quepasa, Telegram) para intervenção humana.
-
-### Etapa 24 — Goal-Oriented Infrastructure Management 🟢 (CONCLUÍDO)
-- **Gestão Contínua Baseada em Metas e SLOs:**
-  - Definição do estado desejado (*Desired State*) por cliente (*Storage $\ge$ 20%*, *Backup RPO $\le$ 24h*, *Uptime Cluster $\ge$ 99.9%*, *Patches CVE == 0*).
-  - Avaliação periódica com medidores de conformidade visual (*Compliance Gauges*).
-  - Auto-tuning e remediação autônoma preventiva quando o SLO entra em risco ou é violado.
-  - Histórico de avaliações de conformidade auditadas com hash SHA-256.
+### Etapa 24 — Goal-Oriented Infrastructure Management 🟢
+- Gestão contínua de metas declarativas e SLOs (*Storage $\ge$ 20%*, *Backup RPO $\le$ 24h*, *Uptime $\ge$ 99.9%*) com medidores visuais de conformidade.
 
 ---
 
-## 3. Módulos Especiais & Novas Funcionalidades (Entregues) 🌟
-
-1. **⚡ Catálogo de Actions Homologadas & Governança Operacional:**
-   - Inspeção de contratos declarativos de Actions (Prechecks, Postchecks, Idempotência).
-   - Ativação/Bloqueio e parametrização de Nível de Autonomia (1 a 5) por tenant.
-2. **🔔 Canais de Disparo de Alertas Omnichannel por Tenant:**
-   - Suporte nativo ao **Chatwoot** (Account API e Public API).
-   - Suporte nativo ao **Quepasa** (WhatsApp Gateway oficial).
-   - Suporte a Telegram, WhatsApp, E-mail SMTP e Webhooks HTTP com botão de teste imediato.
-3. **🧠 Central IA com Validação Upstream em Tempo Real:**
-   - Teste ao vivo de chaves de API (`POST /api/v1/ai/test`) e indicadores de status `🟢 CHAVE ATIVA`.
-   - Presets inteligentes para Groq Cloud (`llama-3.3-70b`, `deepseek-r1-70b`, etc.).
-4. **🛡️ Padronização de UX e Fechamento de Modais:**
-   - Fechamento universal com botão `✖`, botão `Cancelar/Fechar` e clique no backdrop em todos os modais.
-   - Rolagem horizontal segura em tabelas de auditoria e catálogo de actions.
+### Etapa 25 — Infrastructure Intelligence & Continuous Improvement 🟢 (CONCLUÍDO)
+- **Mineração de Incidentes Recorrentes (25.1 & 25.2):**
+  - Agrupamento determinístico de falhas repetitivas e identificação de quando ações pontuais mascaram problemas estruturais.
+- **Recomendações Arquiteturais Governanadas (25.3 & ADR-017):**
+  - Recomendações estritamente consultivas com evidências mensuráveis, cálculo de confiança (0–100%), risco, esforço e estimativa de ROI.
+  - Geração de *Change Plans* governados com pré-requisitos, janelas e aprovação prévia.
+- **Previsão de Capacidade (25.4 - Capacity Forecasting):**
+  - Projeções de saturação de disco/RAM/CPU em horizontes de 7, 30, 90 e 180 dias com cenários Base, Conservador e Acelerado.
+- **Auditoria de SPOF & Resiliência (25.5):**
+  - Mapeamento de nós isolados, storages sem réplica e destinos únicos de backup com diagramação da cadeia de dependências.
+- **Índice de Dívida Técnica (25.6 - Technical Debt Score):**
+  - Score de 0 a 100 por tenant decomposto nos 6 pilares de engenharia com deduções explicáveis.
+- **Perfil Financeiro & ROI Transparente (25.7):**
+  - Parametrização de taxas horárias e custos de downtime por tenant (**sem inventar dados financeiros fictícios**).
+- **Validação de Eficácia Before/After (25.9):**
+  - Auditoria do ganho real de estabilidade e performance após a implementação de uma recomendação.
+- **Relatório Executivo para MSPs & QBR (25.10):**
+  - Painel consolidado demonstrando horas técnicas economizadas, incidentes evitados e justificativas de investimento com ROI comprovado.

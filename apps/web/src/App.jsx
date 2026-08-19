@@ -12,6 +12,7 @@ import { LoginView } from "./components/LoginView.jsx";
 import { ActionCatalogView } from "./components/ActionCatalogView.jsx";
 import { AutomationsSchedulerView } from "./components/AutomationsSchedulerView.jsx";
 import { AlertChannelsView } from "./components/AlertChannelsView.jsx";
+import { InfrastructureIntelligenceView } from "./components/InfrastructureIntelligenceView.jsx";
 
 const API_BASE = "https://infraopsai.awecloudsolution.com";
 
@@ -464,6 +465,11 @@ export function App() {
               ⏰ Automações & Schedules
             </li>
           )}
+          {isOperator && (
+            <li className={`nav-item ${currentNav === "intelligence" ? "active" : ""}`} onClick={() => setCurrentNav("intelligence")}>
+              💡 Inteligência & Advisor
+            </li>
+          )}
         </ul>
 
         {/* User Card in Sidebar Bottom */}
@@ -616,6 +622,7 @@ export function App() {
         {currentNav === "approvals" && <ApprovalsAuditView activeTenant={activeTenant} />}
         {currentNav === "actions" && isOperator && <ActionCatalogView activeTenant={activeTenant} onOpenActionModal={handleOpenActionModal} />}
         {currentNav === "automations" && isOperator && <AutomationsSchedulerView activeTenant={activeTenant} />}
+        {currentNav === "intelligence" && isOperator && <InfrastructureIntelligenceView activeTenant={activeTenant} />}
       </main>
 
       {/* Action Modals */}
