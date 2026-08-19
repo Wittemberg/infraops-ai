@@ -491,30 +491,14 @@ export function AlertChannelsView({ activeTenant }) {
             </p>
           </div>
 
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <div>
             <button
               type="button"
               className="btn btn-primary"
               onClick={() => handleOpenCreateModal("chatwoot")}
-              style={{ fontSize: "0.85rem", padding: "0.45rem 0.9rem" }}
+              style={{ fontSize: "0.85rem", padding: "0.45rem 1rem" }}
             >
-              + Chatwoot API
-            </button>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => handleOpenCreateModal("quepasa")}
-              style={{ fontSize: "0.85rem", padding: "0.45rem 0.9rem" }}
-            >
-              + Quepasa API
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => handleOpenCreateModal("telegram")}
-              style={{ fontSize: "0.85rem", padding: "0.45rem 0.9rem" }}
-            >
-              + Telegram
+              + Novo Canal de Alerta
             </button>
           </div>
         </div>
