@@ -1,38 +1,24 @@
 # Product Vision
 
-## Declaração
-
-InfraOps AI evoluiu de um monitor de backups para um **centro inteligente de operações de infraestrutura** e agora direciona sua próxima geração para **Autonomous Infrastructure Operations com governança**.
-
-A evolução do produto é:
+InfraOps AI evolui para um **centro inteligente e governado de operações e melhoria contínua de infraestrutura**.
 
 ```text
-OBSERVE → UNDERSTAND → ALERT → GOVERN → ACT → VALIDATE → AUDIT → AUTONOMOUSLY IMPROVE
+OBSERVE → UNDERSTAND → ALERT → GOVERN → ACT → VALIDATE → AUDIT → LEARN → IMPROVE
 ```
 
-O foco não é gerar mais gráficos nem entregar autonomia irrestrita. É reduzir continuamente o tempo entre um risco surgir, o sistema compreendê-lo e uma resposta segura ser aplicada dentro dos limites definidos pelo administrador.
+Três horizontes:
+1. **Operar** — responder ao que acontece agora.
+2. **Autocuidar** — schedules, triggers, policies e self-healing em cenários conhecidos.
+3. **Melhorar** — usar histórico para descobrir quando a operação trata sintomas e recomendar mudanças estruturais.
 
-## Experiência ideal
-
-Um operador deve conseguir perguntar:
-
-- Quais clientes precisam da minha atenção hoje?
-- Todos os backups esperados ocorreram?
-- Por que a VM do ERP está lenta?
-- Quando este storage chegará ao limite?
-- Quais atualizações de segurança estão pendentes?
-
-E também definir intenções contínuas:
-
-- “Todos os dias às 07:00, analise minha infraestrutura e me avise apenas se houver exceções.”
-- “Se o storage passar de 85%, investigue automaticamente.”
-- “Se passar de 92%, execute somente as Actions de limpeza permitidas pela policy.”
-- “Mantenha os workloads críticos dentro do RPO configurado.”
-
-Um cliente read-only continua podendo fazer perguntas sobre **seu próprio tenant**, sem capacidade de alteração ou de criação de automações operacionais acima de suas permissões.
-
-## Princípio de autonomia
+Perguntas-alvo:
+- Quais incidentes estão se repetindo?
+- Quais self-healings apenas mitigam sintomas?
+- Quando este storage saturará?
+- Onde existem SPOFs?
+- Onde devo investir primeiro?
+- A melhoria aplicada realmente funcionou?
 
 > O InfraOps AI pode ganhar iniciativa, mas nunca ganhar privilégios por conta própria.
 
-Autonomia significa iniciar observação, análise e Actions previamente governadas — nunca contornar Policy Engine, RBAC, approvals, tenant scope ou Action Registry.
+> A IA pode recomendar mudanças estruturais, mas recomendação não equivale a autorização de mudança.

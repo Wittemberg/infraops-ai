@@ -1109,10 +1109,10 @@ export function AutomationsSchedulerView({ activeTenant }) {
               </div>
               <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                 <button type="button" className="btn btn-secondary" onClick={() => handleOpenGoalModal("storage")} style={{ fontSize: "0.8rem", padding: "0.4rem 0.8rem" }}>
-                  + SLO Storage (>=20%)
+                  + SLO Storage (&ge; 20%)
                 </button>
                 <button type="button" className="btn btn-secondary" onClick={() => handleOpenGoalModal("backup")} style={{ fontSize: "0.8rem", padding: "0.4rem 0.8rem" }}>
-                  + SLO Backup (<=24h)
+                  + SLO Backup (&le; 24h)
                 </button>
                 <button type="button" className="btn btn-primary" onClick={() => handleOpenGoalModal()} style={{ fontSize: "0.8rem", padding: "0.4rem 0.8rem" }}>
                   + Novo Objetivo (Goal)
