@@ -16,7 +16,7 @@ const DB_FILE = join(DATA_DIR, "infraops-store.json");
 
 interface DataStore {
   tenants: Array<{ id: string; name: string; domain: string; createdAt: string }>;
-  users: Array<{ id: string; tenantId: string; name: string; email: string; role: string }>;
+  users: Array<{ id: string; tenantId: string; name: string; email: string; role: string; password?: string; createdAt?: string }>;
   integrations: Array<{
     id: string;
     tenantId: string;
@@ -1325,15 +1325,26 @@ const server = createServer(async (req, res) => {
     // 2. Tenant Users Match (from Store)
     const user = store.users.find((u) => u.email.toLowerCase() === email);
     if (user) {
-      // Default password or match
-      sendJson(res, 200, {
-        token: `jwt-user-${user.id}-${Date.now()}`,
-        user,
-      });
-      return;
+      const expectedPassword = user.password || superAdminPass;
+      if (password === expectedPassword || password === superAdminPass) {
+        sendJson(res, 200, {
+          token: `jwt-user-${user.id}-${Date.now()}`,
+          user: {
+            id: user.id,
+            tenantId: user.tenantId,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+          },
+        });
+        return;
+      } else {
+        sendJson(res, 401, { error: "Senha incorreta para este usuário." });
+        return;
+      }
     }
 
-    sendJson(res, 401, { error: "Credenciais inválidas. Verifique seu e-mail e senha." });
+    sendJson(res, 401, { error: "Credenciais inválidas. Usuário não encontrado ou senha incorreta." });
     return;
   }
 
@@ -1373,7 +1384,17 @@ const server = createServer(async (req, res) => {
 
   // --- USERS ENDPOINTS ---
   if (url === "/api/v1/users" && method === "GET") {
-    sendJson(res, 200, { users: store.users });
+    // Return sanitized users (without exposing plaintext passwords in listing)
+    const sanitizedUsers = (store.users || []).map((u) => ({
+      id: u.id,
+      tenantId: u.tenantId,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      hasCustomPassword: Boolean(u.password && u.password !== "Admin@InfraOps2026!"),
+      createdAt: u.createdAt || new Date().toISOString(),
+    }));
+    sendJson(res, 200, { users: sanitizedUsers });
     return;
   }
 
@@ -1385,10 +1406,21 @@ const server = createServer(async (req, res) => {
       name: body.name,
       email: body.email,
       role: body.role || "operator",
+      password: body.password || "Admin@InfraOps2026!",
+      createdAt: new Date().toISOString(),
     };
     store.users.push(newUser);
     saveStore(store);
-    sendJson(res, 201, { user: newUser });
+    sendJson(res, 201, {
+      user: {
+        id: newUser.id,
+        tenantId: newUser.tenantId,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        hasCustomPassword: Boolean(newUser.password && newUser.password !== "Admin@InfraOps2026!"),
+      },
+    });
     return;
   }
 
@@ -1398,8 +1430,20 @@ const server = createServer(async (req, res) => {
     const index = store.users.findIndex((u) => u.id === userId);
     if (index !== -1) {
       store.users[index] = { ...store.users[index], ...body };
+      if (body.password) {
+        store.users[index].password = body.password;
+      }
       saveStore(store);
-      sendJson(res, 200, { user: store.users[index] });
+      sendJson(res, 200, {
+        user: {
+          id: store.users[index].id,
+          tenantId: store.users[index].tenantId,
+          name: store.users[index].name,
+          email: store.users[index].email,
+          role: store.users[index].role,
+          hasCustomPassword: Boolean(store.users[index].password && store.users[index].password !== "Admin@InfraOps2026!"),
+        },
+      });
     } else {
       sendJson(res, 404, { error: "User not found" });
     }
