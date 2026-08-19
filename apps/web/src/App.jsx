@@ -11,6 +11,7 @@ import { AddWorkloadModal } from "./components/AddWorkloadModal.jsx";
 import { LoginView } from "./components/LoginView.jsx";
 import { ActionCatalogView } from "./components/ActionCatalogView.jsx";
 import { AutomationsSchedulerView } from "./components/AutomationsSchedulerView.jsx";
+import { AlertChannelsView } from "./components/AlertChannelsView.jsx";
 
 const API_BASE = "https://infraopsai.awecloudsolution.com";
 
@@ -437,6 +438,11 @@ export function App() {
               🔌 Hipervisores (PVE/Virt)
             </li>
           )}
+          {isAdmin && (
+            <li className={`nav-item ${currentNav === "alerts" ? "active" : ""}`} onClick={() => setCurrentNav("alerts")}>
+              🔔 Canais de Alerta
+            </li>
+          )}
           <li className={`nav-item ${currentNav === "nodes" ? "active" : ""}`} onClick={() => setCurrentNav("nodes")}>
             🖥️ Nós & Workloads
           </li>
@@ -595,6 +601,7 @@ export function App() {
             onTriggerSync={handleTriggerSync}
           />
         )}
+        {currentNav === "alerts" && isAdmin && <AlertChannelsView activeTenant={activeTenant} />}
         {currentNav === "nodes" && (
           <NodeDetailView
             activeTenant={activeTenant}

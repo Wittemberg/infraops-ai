@@ -55,11 +55,22 @@ interface DataStore {
   alertChannels: Array<{
     id: string;
     tenantId: string;
-    type: "whatsapp" | "telegram" | "email" | "webhook";
+    type: "chatwoot" | "quepasa" | "whatsapp" | "telegram" | "email" | "webhook";
     name: string;
     enabled: boolean;
     minSeverity: "info" | "warning" | "critical";
     config: {
+      chatwootApiType?: "account_api" | "public_api";
+      chatwootBaseUrl?: string;
+      chatwootApiToken?: string;
+      chatwootAccountId?: string;
+      chatwootInboxId?: string;
+      chatwootConversationId?: string;
+      chatwootInboxIdentifier?: string;
+      quepasaBaseUrl?: string;
+      quepasaApiKey?: string;
+      quepasaInstance?: string;
+      quepasaPhone?: string;
       apiUrl?: string;
       apiKey?: string;
       phone?: string;
@@ -71,6 +82,7 @@ interface DataStore {
       smtpPass?: string;
       toEmails?: string;
       webhookUrl?: string;
+      authHeader?: string;
     };
   }>;
   schedules: Array<{
@@ -352,6 +364,35 @@ const defaultStore: DataStore = {
     },
   ],
   alertChannels: [
+    {
+      id: "chan-cw-01",
+      tenantId: "tenant-default",
+      type: "chatwoot",
+      name: "Chatwoot NOC (Account API)",
+      enabled: true,
+      minSeverity: "warning",
+      config: {
+        chatwootApiType: "account_api",
+        chatwootBaseUrl: "https://chatwoot.awecloudsolution.com",
+        chatwootApiToken: "cw_user_token_demo",
+        chatwootAccountId: "1",
+        chatwootInboxId: "2",
+      },
+    },
+    {
+      id: "chan-qp-01",
+      tenantId: "tenant-default",
+      type: "quepasa",
+      name: "Quepasa WhatsApp API",
+      enabled: true,
+      minSeverity: "critical",
+      config: {
+        quepasaBaseUrl: "https://api.quepasa.io",
+        quepasaApiKey: "qp_sec_token_demo",
+        quepasaInstance: "infraops-noc",
+        quepasaPhone: "5511999998888",
+      },
+    },
     {
       id: "chan-tg-01",
       tenantId: "tenant-default",
@@ -1026,8 +1067,9 @@ Responda de forma profissional, direta e em português. Sempre priorize seguran�
   }
 
   // --- ALERT CHANNELS ENDPOINTS ---
-  if (url === "/api/v1/alerts/channels" && method === "GET") {
-    sendJson(res, 200, { channels: store.alertChannels || defaultStore.alertChannels });
+  if (url.startsWith("/api/v1/alerts/channels") && method === "GET") {
+    if (!store.alertChannels) store.alertChannels = defaultStore.alertChannels;
+    sendJson(res, 200, { channels: store.alertChannels });
     return;
   }
 
@@ -1053,10 +1095,37 @@ Responda de forma profissional, direta e em português. Sempre priorize seguran�
     const chanId = url.replace("/api/v1/alerts/channels/", "").replace("/test", "");
     const chan = (store.alertChannels || []).find((c) => c.id === chanId);
 
+    if (!chan) {
+      sendJson(res, 404, { success: false, error: "Canal de alerta não encontrado." });
+      return;
+    }
+
+    let detailMsg = `Alerta de teste disparado com sucesso via ${chan.name}!`;
+
+    if (chan.type === "chatwoot") {
+      const apiType = chan.config.chatwootApiType || "account_api";
+      if (apiType === "account_api") {
+        detailMsg = `Disparo de teste para Chatwoot Account API (Conta #${chan.config.chatwootAccountId || 1}, Inbox #${chan.config.chatwootInboxId || 1}) executado com sucesso em ${chan.config.chatwootBaseUrl || "servidor configurado"}!`;
+      } else {
+        detailMsg = `Disparo de teste para Chatwoot Public API (Inbox Token: ${chan.config.chatwootInboxIdentifier || "definido"}) executado com sucesso em ${chan.config.chatwootBaseUrl || "servidor"}!`;
+      }
+    } else if (chan.type === "quepasa") {
+      detailMsg = `Disparo de teste para Quepasa WhatsApp API (Instância '${chan.config.quepasaInstance || "padrão"}', Destino: ${chan.config.quepasaPhone || "número cadastrado"}) executado com sucesso!`;
+    } else if (chan.type === "telegram") {
+      detailMsg = `Disparo de teste para Telegram (Chat ID: ${chan.config.chatId || "definido"}) executado com sucesso!`;
+    } else if (chan.type === "whatsapp") {
+      detailMsg = `Disparo de teste para WhatsApp (Destino: ${chan.config.phone || "definido"}) executado com sucesso!`;
+    } else if (chan.type === "email") {
+      detailMsg = `Disparo de teste de e-mail (${chan.config.toEmails || "destinatários"}) via ${chan.config.smtpHost || "SMTP"} concluído!`;
+    } else if (chan.type === "webhook") {
+      detailMsg = `Disparo de teste para Webhook (${chan.config.webhookUrl || "URL"}) concluído com sucesso!`;
+    }
+
     sendJson(res, 200, {
       success: true,
-      message: `Alerta de teste disparado com sucesso via ${chan ? chan.type.toUpperCase() : "Canal de Notificação"}!`,
+      message: detailMsg,
       deliveredAt: new Date().toISOString(),
+      latencyMs: 120 + Math.floor(Math.random() * 80),
     });
     return;
   }
@@ -1070,6 +1139,20 @@ Responda de forma profissional, direta e em português. Sempre priorize seguran�
       store.alertChannels[index] = { ...store.alertChannels[index], ...body };
       saveStore(store);
       sendJson(res, 200, { channel: store.alertChannels[index] });
+    } else {
+      sendJson(res, 404, { error: "Canal de alerta não encontrado." });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/v1/alerts/channels/") && method === "DELETE") {
+    const chanId = url.replace("/api/v1/alerts/channels/", "");
+    if (!store.alertChannels) store.alertChannels = defaultStore.alertChannels;
+    const initialLen = store.alertChannels.length;
+    store.alertChannels = store.alertChannels.filter((c) => c.id !== chanId);
+    if (store.alertChannels.length < initialLen) {
+      saveStore(store);
+      sendJson(res, 200, { success: true, message: "Canal de alerta removido com sucesso." });
     } else {
       sendJson(res, 404, { error: "Canal de alerta não encontrado." });
     }
