@@ -714,6 +714,7 @@ export function InfrastructureIntelligenceView({ activeTenant }) {
 
         {/* TAB 1: RECOMMENDATIONS */}
         {activeTab === "recommendations" && (
+          <div>
             <div
               style={{
                 display: "flex",
