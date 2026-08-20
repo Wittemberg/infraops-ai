@@ -16,7 +16,7 @@ const DB_FILE = join(DATA_DIR, "infraops-store.json");
 
 interface DataStore {
   tenants: Array<{ id: string; name: string; domain: string; createdAt: string }>;
-  users: Array<{ id: string; tenantId: string; name: string; email: string; role: string; password?: string; mustChangePassword?: boolean; createdAt?: string }>;
+  users: Array<{ id: string; tenantId: string; name: string; email: string; role: string; password?: string; mustChangePassword?: boolean; status?: "active" | "inactive"; createdAt?: string }>;
   integrations: Array<{
     id: string;
     tenantId: string;
@@ -1325,6 +1325,11 @@ const server = createServer(async (req, res) => {
     // 2. Tenant Users Match (from Store)
     const user = store.users.find((u) => u.email.toLowerCase() === email);
     if (user) {
+      if (user.status === "inactive") {
+        sendJson(res, 403, { error: "Este usuário está inativo no sistema. Contate o administrador do tenant." });
+        return;
+      }
+
       const expectedPassword = user.password || superAdminPass;
       if (password === expectedPassword || password === superAdminPass) {
         sendJson(res, 200, {
@@ -1336,6 +1341,7 @@ const server = createServer(async (req, res) => {
             name: user.name,
             email: user.email,
             role: user.role,
+            status: user.status || "active",
             mustChangePassword: Boolean(user.mustChangePassword),
           },
         });
@@ -1391,6 +1397,7 @@ const server = createServer(async (req, res) => {
         name: targetUser.name,
         email: targetUser.email,
         role: targetUser.role,
+        status: targetUser.status || "active",
         mustChangePassword: false,
       },
     });
@@ -1440,6 +1447,7 @@ const server = createServer(async (req, res) => {
       name: u.name,
       email: u.email,
       role: u.role,
+      status: u.status || "active",
       mustChangePassword: Boolean(u.mustChangePassword),
       hasCustomPassword: Boolean(u.password && u.password !== "Admin@InfraOps2026!"),
       createdAt: u.createdAt || new Date().toISOString(),
@@ -1456,6 +1464,7 @@ const server = createServer(async (req, res) => {
       name: body.name,
       email: body.email,
       role: body.role || "operator",
+      status: body.status || "active",
       password: body.password || "Admin@InfraOps2026!",
       mustChangePassword: body.mustChangePassword !== false, // Always true by default for new users!
       createdAt: new Date().toISOString(),
@@ -1469,10 +1478,28 @@ const server = createServer(async (req, res) => {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
+        status: newUser.status,
         mustChangePassword: newUser.mustChangePassword,
         hasCustomPassword: Boolean(newUser.password && newUser.password !== "Admin@InfraOps2026!"),
       },
     });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/users/") && method === "DELETE") {
+    const userId = url.replace("/api/v1/users/", "");
+    const index = store.users.findIndex((u) => u.id === userId);
+    if (index !== -1) {
+      const removedUser = store.users.splice(index, 1)[0];
+      saveStore(store);
+      sendJson(res, 200, {
+        success: true,
+        message: "Usuário excluído com sucesso.",
+        user: { id: removedUser.id, name: removedUser.name, email: removedUser.email },
+      });
+    } else {
+      sendJson(res, 404, { error: "Usuário não encontrado." });
+    }
     return;
   }
 
@@ -1485,6 +1512,9 @@ const server = createServer(async (req, res) => {
       if (body.password) {
         store.users[index].password = body.password;
       }
+      if (body.status !== undefined) {
+        store.users[index].status = body.status;
+      }
       if (body.mustChangePassword !== undefined) {
         store.users[index].mustChangePassword = Boolean(body.mustChangePassword);
       }
@@ -1496,6 +1526,7 @@ const server = createServer(async (req, res) => {
           name: store.users[index].name,
           email: store.users[index].email,
           role: store.users[index].role,
+          status: store.users[index].status || "active",
           mustChangePassword: Boolean(store.users[index].mustChangePassword),
           hasCustomPassword: Boolean(store.users[index].password && store.users[index].password !== "Admin@InfraOps2026!"),
         },

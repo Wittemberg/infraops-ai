@@ -303,8 +303,14 @@ export function App() {
       if (data.user) {
         setUsers((prev) => prev.map((u) => (u.id === data.user.id ? data.user : u)));
       }
+  const handleDeleteUser = async (userId) => {
+    setUsers((prev) => prev.filter((u) => u.id !== userId));
+    try {
+      await fetch(`${API_BASE}/api/v1/users/${userId}`, {
+        method: "DELETE",
+      });
     } catch (err) {
-      console.warn("Offline fallback saved to LocalStorage:", err);
+      console.warn("Offline fallback delete user:", err);
     }
   };
 
@@ -613,6 +619,7 @@ export function App() {
             onUpdateTenant={handleUpdateTenant}
             onAddUser={handleAddUser}
             onUpdateUser={handleUpdateUser}
+            onDeleteUser={handleDeleteUser}
           />
         )}
         {currentNav === "integrations" && isAdmin && (

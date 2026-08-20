@@ -9,11 +9,15 @@ export function TenantsUsersView({
   onUpdateTenant,
   onAddUser,
   onUpdateUser,
+  onDeleteUser,
 }) {
   const [tenantModalOpen, setTenantModalOpen] = useState(false);
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [filterActiveTenantOnly, setFilterActiveTenantOnly] = useState(true);
   const [toastMessage, setToastMessage] = useState(null);
+
+  // Deletion confirmation modal
+  const [userToDelete, setUserToDelete] = useState(null);
 
   const [editingTenant, setEditingTenant] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
@@ -25,6 +29,7 @@ export function TenantsUsersView({
     email: "",
     role: "operator",
     password: "",
+    status: "active",
     mustChangePassword: true,
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -60,6 +65,7 @@ export function TenantsUsersView({
       email: "",
       role: "operator",
       password: "",
+      status: "active",
       mustChangePassword: true,
     });
     setShowPassword(false);
@@ -74,6 +80,7 @@ export function TenantsUsersView({
       email: user.email,
       role: user.role,
       password: "",
+      status: user.status || "active",
       mustChangePassword: Boolean(user.mustChangePassword),
     });
     setShowPassword(false);
@@ -88,6 +95,24 @@ export function TenantsUsersView({
     }
     setUserForm((prev) => ({ ...prev, password: pass }));
     setShowPassword(true);
+  };
+
+  const handleToggleUserStatus = (user) => {
+    const newStatus = user.status === "inactive" ? "active" : "inactive";
+    onUpdateUser({
+      ...user,
+      status: newStatus,
+    });
+    showToast(`Status do usuário "${user.name}" alterado para ${newStatus === "active" ? "ATIVO" : "INATIVO"}.`);
+  };
+
+  const handleConfirmDeleteUser = () => {
+    if (!userToDelete) return;
+    if (onDeleteUser) {
+      onDeleteUser(userToDelete.id);
+    }
+    showToast(`Usuário "${userToDelete.name}" (${userToDelete.email}) excluído com sucesso.`);
+    setUserToDelete(null);
   };
 
   const handleSaveTenant = (e) => {
@@ -114,6 +139,7 @@ export function TenantsUsersView({
       name: userForm.name.trim(),
       email: userForm.email.trim(),
       role: userForm.role,
+      status: userForm.status || "active",
       mustChangePassword: userForm.mustChangePassword,
     };
 
@@ -129,7 +155,6 @@ export function TenantsUsersView({
     } else {
       onAddUser(payload);
       showToast(`Usuário "${payload.name}" cadastrado com sucesso para o cliente "${targetTenant?.name || payload.tenantId}"!`);
-      // Ensure active tenant matches so user is immediately visible
       if (targetTenant && activeTenant?.id !== targetTenant.id) {
         onSelectTenant(targetTenant);
       }
@@ -284,65 +309,156 @@ export function TenantsUsersView({
           </div>
         ) : (
           <div style={{ width: "100%", overflowX: "auto" }}>
-            <table className="custom-table" style={{ width: "100%", minWidth: "750px" }}>
+            <table className="custom-table" style={{ width: "100%", minWidth: "850px" }}>
               <thead>
                 <tr>
                   <th>Nome</th>
                   <th>E-mail de Login</th>
                   <th>Cliente (Tenant)</th>
-                  <th>Papel (Role RBAC)</th>
-                  <th>Status de Senha</th>
+                  <th>Papel (Role)</th>
+                  <th>Status Conta</th>
+                  <th>Segurança</th>
                   <th>Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {displayedUsers.map((u) => (
-                  <tr
-                    key={u.id}
-                    onDoubleClick={() => handleOpenEditUser(u)}
-                    style={{ cursor: "pointer" }}
-                    title="Clique 2x para editar este Usuário"
-                  >
-                    <td style={{ fontWeight: 600 }}>{u.name}</td>
-                    <td style={{ color: "var(--text-secondary)" }}>{u.email}</td>
-                    <td>
-                      <span className="tenant-badge">{tenants.find((t) => t.id === u.tenantId)?.name || u.tenantId}</span>
-                    </td>
-                    <td>
-                      <span className={`badge badge-${u.role === "owner" || u.role === "administrator" ? "online" : "requires_approval"}`}>
-                        {u.role ? u.role.toUpperCase() : "OPERATOR"}
-                      </span>
-                    </td>
-                    <td>
-                      {u.mustChangePassword ? (
-                        <span className="badge badge-requires_approval" style={{ fontSize: "0.7rem" }} title="Troca obrigatória no primeiro login">
-                          🟡 1º Acesso Pendente
+                {displayedUsers.map((u) => {
+                  const isActive = u.status !== "inactive";
+                  return (
+                    <tr
+                      key={u.id}
+                      onDoubleClick={() => handleOpenEditUser(u)}
+                      style={{
+                        cursor: "pointer",
+                        opacity: isActive ? 1 : 0.6,
+                      }}
+                      title="Clique 2x para editar este Usuário"
+                    >
+                      <td style={{ fontWeight: 600 }}>{u.name}</td>
+                      <td style={{ color: "var(--text-secondary)" }}>{u.email}</td>
+                      <td>
+                        <span className="tenant-badge">{tenants.find((t) => t.id === u.tenantId)?.name || u.tenantId}</span>
+                      </td>
+                      <td>
+                        <span className={`badge badge-${u.role === "owner" || u.role === "administrator" ? "online" : "requires_approval"}`}>
+                          {u.role ? u.role.toUpperCase() : "OPERATOR"}
                         </span>
-                      ) : (
-                        <span className="badge badge-online" style={{ fontSize: "0.7rem" }} title="Senha pessoal ativa e validada">
-                          🟢 Senha Ativa
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenEditUser(u);
-                        }}
-                      >
-                        ✏️ Editar / Trocar Senha
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleUserStatus(u);
+                          }}
+                          style={{
+                            background: isActive ? "rgba(16, 185, 129, 0.15)" : "rgba(244, 63, 94, 0.15)",
+                            border: `1px solid ${isActive ? "rgba(16, 185, 129, 0.4)" : "rgba(244, 63, 94, 0.4)"}`,
+                            color: isActive ? "var(--accent-emerald)" : "var(--accent-rose)",
+                            padding: "0.2rem 0.5rem",
+                            borderRadius: "6px",
+                            fontSize: "0.72rem",
+                            fontWeight: 600,
+                            cursor: "pointer",
+                          }}
+                          title={isActive ? "Clique para desativar este usuário" : "Clique para ativar este usuário"}
+                        >
+                          {isActive ? "🟢 Ativo" : "🔴 Inativo"}
+                        </button>
+                      </td>
+                      <td>
+                        {u.mustChangePassword ? (
+                          <span className="badge badge-requires_approval" style={{ fontSize: "0.7rem" }} title="Troca obrigatória no primeiro login">
+                            🟡 1º Acesso
+                          </span>
+                        ) : (
+                          <span className="badge badge-online" style={{ fontSize: "0.7rem" }} title="Senha pessoal ativa e validada">
+                            🟢 Senha Ativa
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <div style={{ display: "flex", gap: "0.4rem" }}>
+                          <button
+                            className="btn btn-secondary"
+                            style={{ padding: "0.25rem 0.5rem", fontSize: "0.75rem" }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenEditUser(u);
+                            }}
+                            title="Editar Dados / Trocar Senha"
+                          >
+                            ✏️ Editar
+                          </button>
+                          <button
+                            className="btn"
+                            style={{
+                              padding: "0.25rem 0.5rem",
+                              fontSize: "0.75rem",
+                              background: "rgba(244, 63, 94, 0.15)",
+                              border: "1px solid rgba(244, 63, 94, 0.3)",
+                              color: "var(--accent-rose)",
+                              cursor: "pointer",
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setUserToDelete(u);
+                            }}
+                            title="Excluir este usuário permanentemente"
+                          >
+                            🗑️ Excluir
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {/* Delete User Confirmation Modal */}
+      {userToDelete && (
+        <div
+          className="modal-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setUserToDelete(null);
+          }}
+        >
+          <div className="glass-panel modal-content" style={{ maxWidth: "440px", textAlign: "center" }}>
+            <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>🗑️</div>
+            <h3 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", color: "var(--accent-rose)", marginBottom: "0.5rem" }}>
+              Excluir Usuário?
+            </h3>
+            <p style={{ fontSize: "0.9rem", color: "var(--text-secondary)", marginBottom: "1.5rem" }}>
+              Tem certeza que deseja remover o usuário <strong>{userToDelete.name}</strong> (<code>{userToDelete.email}</code>)? Esta ação não pode ser desfeita.
+            </p>
+            <div style={{ display: "flex", justifyContent: "center", gap: "0.75rem" }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setUserToDelete(null)}>
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn"
+                style={{
+                  background: "var(--accent-rose)",
+                  color: "#fff",
+                  fontWeight: 600,
+                  padding: "0.6rem 1.2rem",
+                  borderRadius: "6px",
+                  border: "none",
+                  cursor: "pointer",
+                }}
+                onClick={handleConfirmDeleteUser}
+              >
+                Sim, Excluir Usuário
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Tenant (Cadastrar ou Editar) */}
       {tenantModalOpen && (
@@ -491,27 +607,43 @@ export function TenantsUsersView({
                 </select>
               </div>
 
-              <div style={{ marginBottom: "1rem" }}>
-                <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
-                  Papel (RBAC Role)
-                </label>
-                <select
-                  value={userForm.role}
-                  onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
-                  style={{ width: "100%", padding: "0.6rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}
-                >
-                  <option value="owner">👑 Owner (Acesso Total ao Tenant + Gestão de Usuários)</option>
-                  <option value="administrator">🛡️ Administrator (Ações de Sistema + Políticas)</option>
-                  <option value="operator">⚡ Operator (Execução de Jobs + Diagnóstico)</option>
-                  <option value="viewer">👁️ Viewer (Apenas Leitura)</option>
-                </select>
+              <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
+                    Papel (Role RBAC)
+                  </label>
+                  <select
+                    value={userForm.role}
+                    onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+                    style={{ width: "100%", padding: "0.6rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}
+                  >
+                    <option value="owner">👑 Owner</option>
+                    <option value="administrator">🛡️ Administrator</option>
+                    <option value="operator">⚡ Operator</option>
+                    <option value="viewer">👁️ Viewer</option>
+                  </select>
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
+                    Status da Conta
+                  </label>
+                  <select
+                    value={userForm.status}
+                    onChange={(e) => setUserForm({ ...userForm, status: e.target.value })}
+                    style={{ width: "100%", padding: "0.6rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}
+                  >
+                    <option value="active">🟢 Ativo (Acesso Permitido)</option>
+                    <option value="inactive">🔴 Inativo (Bloqueado)</option>
+                  </select>
+                </div>
               </div>
 
               {/* Password Configuration Section */}
               <div style={{ marginBottom: "1.25rem", background: "rgba(99, 102, 241, 0.06)", border: "1px solid rgba(99, 102, 241, 0.2)", padding: "0.85rem", borderRadius: "8px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
                   <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--accent-indigo)" }}>
-                    🔑 Senha Temporária Inicial {editingUser ? "(Opcional na edição)" : "*"}
+                    🔑 Senha Temporária {editingUser ? "(Opcional na edição)" : "*"}
                   </label>
                   <button
                     type="button"
@@ -572,7 +704,7 @@ export function TenantsUsersView({
                       checked={userForm.mustChangePassword}
                       onChange={(e) => setUserForm({ ...userForm, mustChangePassword: e.target.checked })}
                     />
-                    🔒 Exigir troca obrigatória de senha no primeiro login
+                    🔒 Exigir troca obrigatória de senha no próximo login
                   </label>
                   <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
                     Ao entrar no sistema com a senha temporária, o usuário será direcionado para definir sua senha pessoal antes de acessar o painel.
