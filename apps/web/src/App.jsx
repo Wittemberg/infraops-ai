@@ -13,6 +13,7 @@ import { ActionCatalogView } from "./components/ActionCatalogView.jsx";
 import { AutomationsSchedulerView } from "./components/AutomationsSchedulerView.jsx";
 import { AlertChannelsView } from "./components/AlertChannelsView.jsx";
 import { InfrastructureIntelligenceView } from "./components/InfrastructureIntelligenceView.jsx";
+import { SystemSettingsView } from "./components/SystemSettingsView.jsx";
 
 const API_BASE = "https://infraopsai.awecloudsolution.com";
 
@@ -493,6 +494,11 @@ export function App() {
               💡 Inteligência & Advisor
             </li>
           )}
+          {isAdmin && (
+            <li className={`nav-item ${currentNav === "settings" ? "active" : ""}`} onClick={() => setCurrentNav("settings")}>
+              ⚙️ Configurações Gerais
+            </li>
+          )}
         </ul>
 
         {/* User Card in Sidebar Bottom */}
@@ -647,6 +653,7 @@ export function App() {
         {currentNav === "actions" && isOperator && <ActionCatalogView activeTenant={activeTenant} onOpenActionModal={handleOpenActionModal} />}
         {currentNav === "automations" && isOperator && <AutomationsSchedulerView activeTenant={activeTenant} />}
         {currentNav === "intelligence" && isOperator && <InfrastructureIntelligenceView activeTenant={activeTenant} />}
+        {currentNav === "settings" && isAdmin && <SystemSettingsView isSuperAdmin={isSuperAdmin} activeTenant={activeTenant} />}
       </main>
 
       {/* Action Modals */}
