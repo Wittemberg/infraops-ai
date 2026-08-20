@@ -304,6 +304,11 @@ export function App() {
       if (data.user) {
         setUsers((prev) => prev.map((u) => (u.id === data.user.id ? data.user : u)));
       }
+    } catch (err) {
+      console.warn("Offline fallback saved to LocalStorage:", err);
+    }
+  };
+
   const handleDeleteUser = async (userId) => {
     setUsers((prev) => prev.filter((u) => u.id !== userId));
     try {
