@@ -128,3 +128,11 @@ Centralização completa e testes de conectividade ao vivo em tempo real para to
 - **Pinning Determinístico para `pnpm@9`:** Fixação do gerenciador de pacotes na versão 9 (`npm install -g pnpm@9`) em todos os containers, garantindo a execução e compilação sem bloqueios dos binários nativos do `esbuild` no ciclo de build do Vite.
 - **Validação de Sintaxe e Bundling:** Correção definitiva no empacotador do frontend (`App.jsx`), assegurando builds 100% verdes no GitHub Actions e publicação automatizada no GHCR (`ghcr.io/wittemberg/infraops-web:latest`, `ghcr.io/wittemberg/infraops-api:latest`, `ghcr.io/wittemberg/infraops-worker:latest`) com acionamento do Webhook do Portainer.
 
+### 3.8. Exigência Rigorosa de Provedor de IA & Eliminação de Respostas Simuladas
+- **Transparência e Autenticidade:** O Console de IA (`🤖 Console IA`) e a Mineração de Recomendações (`💡 Inteligência & Advisor`) exigem expressamente um provedor de IA com chave de API ativa (`OpenAI`, `Groq`, `DeepSeek`, `Anthropic`, `Gemini` ou `Ollama local`).
+- **Bloqueio de Dados Fictícios:** Eliminação de qualquer resposta heurística simulada ou genérica quando a chave estiver ausente ou inválida. O sistema orienta o operador de forma transparente a inserir e validar sua chave no botão `⚙️ Configurar Modelo / Chave de API`.
+- **Análise Generativa Autêntica:** Com a chave configurada, a IA recebe a topologia real cadastrada (nós Proxmox, VMs QEMU, containers e storages) e gera diagnósticos técnicos e planos de mudança estritamente sob medida para o ambiente do cliente.
+
+### 3.9. Ajuste de Contraste e Tipografia nos Temas Claro / Escuro
+- **Legibilidade nos Balões de Mensagens:** Ajustadas as cores do Console de IA com variáveis CSS dinâmicas (`var(--text-primary)`, `var(--bg-card)`), garantindo contraste perfeito e eliminando problemas de texto invisível (branco sobre branco) no modo claro.
+
