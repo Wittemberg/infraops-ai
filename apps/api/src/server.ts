@@ -6,6 +6,16 @@ import { SecretVaultService } from "./security/secret_vault.service.js";
 import { ProxmoxProvider } from "./integrations/proxmox/proxmox_provider.js";
 import { VirtualizorProvider } from "./integrations/virtualizor/virtualizor_provider.js";
 import { generateEnrollmentToken } from "./agent/agent.controller.js";
+import { InventoryService } from "./inventory/inventoryService.js";
+import { TopologyService } from "./topology/topologyService.js";
+import { NetworkService } from "./network/networkService.js";
+import { DiscoveryService } from "./discovery/discoveryService.js";
+import { OperationalService } from "./operational/operationalService.js";
+import { Site, Location, Rack, Asset, AssetDocument, AssetTimelineEvent, AssetResourceLink } from "./inventory/types.js";
+import { AssetInterface, Connection } from "./topology/topologyService.js";
+import { Vlan, Subnet, IpAddress, WanCircuit } from "./network/networkService.js";
+import { DiscoveryCandidate } from "./discovery/discoveryService.js";
+import { VisitChecklist } from "./operational/operationalService.js";
 
 const port = Number(process.env.PORT) || 3000;
 const secretVault = new SecretVaultService(process.env.ENCRYPTION_MASTER_KEY || "master_key_1234567890_32bytes_sec!");
@@ -494,9 +504,40 @@ interface DataStore {
       primaryColor: string;
     };
   };
+  // --- STAGE 26: INFRASTRUCTURE SOURCE OF TRUTH & TOPOLOGY ---
+  sites?: Site[];
+  locations?: Location[];
+  racks?: Rack[];
+  assets?: Asset[];
+  assetDocuments?: AssetDocument[];
+  assetTimelineEvents?: AssetTimelineEvent[];
+  assetResourceLinks?: AssetResourceLink[];
+  assetInterfaces?: AssetInterface[];
+  connections?: Connection[];
+  vlans?: Vlan[];
+  subnets?: Subnet[];
+  ipAddresses?: IpAddress[];
+  wanCircuits?: WanCircuit[];
+  discoveryCandidates?: DiscoveryCandidate[];
+  visitChecklists?: VisitChecklist[];
 }
 
 const defaultStore: DataStore = {
+  sites: [],
+  locations: [],
+  racks: [],
+  assets: [],
+  assetDocuments: [],
+  assetTimelineEvents: [],
+  assetResourceLinks: [],
+  assetInterfaces: [],
+  connections: [],
+  vlans: [],
+  subnets: [],
+  ipAddresses: [],
+  wanCircuits: [],
+  discoveryCandidates: [],
+  visitChecklists: [],
   tenants: [
     { id: "tenant-default", name: "Default Tenant (infraops-prod)", domain: "infraopsai.awecloudsolution.com", createdAt: new Date().toISOString() },
     { id: "tenant-wrtec", name: "WR Tecnologia", domain: "wrtec.com.br", createdAt: new Date().toISOString() },
@@ -2323,6 +2364,10 @@ const server = createServer(async (req, res) => {
 
     const tenantNodes = store.nodes.filter((n) => n.tenantId === tenantId);
     const tenantWorkloads = store.workloads.filter((w) => w.tenantId === tenantId);
+    const tenantAssets = (store.assets || []).filter((a) => a.tenantId === tenantId);
+    const tenantRacks = (store.racks || []).filter((r) => r.tenantId === tenantId);
+    const tenantConns = (store.connections || []).filter((c) => c.tenantId === tenantId);
+    const tenantSubnets = (store.subnets || []).filter((s) => s.tenantId === tenantId);
 
     // If no API key is provided and not using local Ollama, strictly inform the user to configure
     if (!config.apiKey && config.provider !== "ollama") {
@@ -2353,6 +2398,10 @@ const server = createServer(async (req, res) => {
         const headers: Record<string, string> = { "Content-Type": "application/json" };
         if (config.apiKey) headers["Authorization"] = `Bearer ${config.apiKey}`;
 
+        const inventorySummary = tenantAssets.length > 0
+          ? tenantAssets.map((a) => `${a.name} [${a.category}, Serial: ${a.serialNumber || "N/A"}, IP: ${a.managementIp || "N/A"}, Proveniência: ${a.source}]`).join("; ")
+          : "Nó pve (Supermicro)";
+
         const payload =
           config.provider === "ollama"
             ? {
@@ -2360,7 +2409,14 @@ const server = createServer(async (req, res) => {
                 messages: [
                   {
                     role: "system",
-                    content: `Você é o InfraOps AI, assistente de operações de infraestrutura de TI do tenant '${tenantId}'. Nós: ${tenantNodes.map((n) => n.name).join(", ") || "pve"}. VMs: ${tenantWorkloads.map((w) => w.name).join(", ") || "SRV-CW, CALVI IIS, CALVI BANCO, SRV-Concentrador, SRV-AD-PortoNovo"}. Responda em português com precisão técnica e formatação Markdown.`,
+                    content: `Você é o InfraOps AI, assistente de operações de infraestrutura de TI do tenant '${tenantId}'.
+Nós: ${tenantNodes.map((n) => n.name).join(", ") || "pve"}.
+VMs: ${tenantWorkloads.map((w) => w.name).join(", ") || "SRV-CW, CALVI IIS, CALVI BANCO, SRV-Concentrador, SRV-AD-PortoNovo"}.
+Inventário Físico: ${inventorySummary}.
+Racks: ${tenantRacks.map((r) => `${r.name} (${r.heightU}U)`).join(", ") || "Rack Principal"}.
+Conexões Físicas: ${tenantConns.length} cabos registrados.
+Subnets: ${tenantSubnets.map((s) => s.cidr).join(", ") || "38.52.129.0/24"}.
+Responda em português com precisão técnica, especificando se o dado é MANUAL, DISCOVERED ou VERIFIED.`,
                   },
                   { role: "user", content: prompt },
                 ],
@@ -2373,10 +2429,14 @@ const server = createServer(async (req, res) => {
                     role: "system",
                     content: `Você é o InfraOps AI, assistente operacional e de governança de infraestrutura de TI do cliente '${tenantId}'.
 A infraestrutura real cadastrada possui:
-- Nós: ${tenantNodes.map((n) => `${n.name} (${n.ipAddress || "38.52.129.130"}, ${n.os || "Proxmox VE"})`).join(", ") || "pve (38.52.129.130, Proxmox VE 8.4.19)"}
+- Nós Proxmox: ${tenantNodes.map((n) => `${n.name} (${n.ipAddress || "38.52.129.130"}, ${n.os || "Proxmox VE"})`).join(", ") || "pve (38.52.129.130, Proxmox VE 8.4.19)"}
 - Workloads / VMs: ${tenantWorkloads.map((w) => `${w.name} (${w.type || "qemu"}, ${w.status || "running"})`).join(", ") || "SRV-CW, CALVI IIS, CALVI BANCO, SRV-Concentrador, SRV-AD-PortoNovo"}
 - Storages: HDD_backups, HDD_storage, nvme_storage, local, rpool.
-Responda de forma direta, técnica, estruturada em Markdown e em português do Brasil.`,
+- Inventário Físico & Ativos (Source of Truth): ${inventorySummary}.
+- Racks: ${tenantRacks.map((r) => `${r.name} (${r.heightU}U)`).join(", ") || "Rack Principal 42U"}.
+- Conexões de Rede Físicas: ${tenantConns.length} conexões mapeadas.
+- Subnets / IPAM: ${tenantSubnets.map((s) => s.cidr).join(", ") || "38.52.129.0/24"}.
+Responda de forma direta, técnica, estruturada em Markdown e em português do Brasil. Ao responder sobre ativos ou portas, indique a proveniência dos dados (MANUAL, DISCOVERED ou VERIFIED).`,
                   },
                   { role: "user", content: prompt },
                 ],
@@ -3551,6 +3611,365 @@ Responda EXCLUSIVAMENTE um objeto JSON válido.`;
       message: "Relatório Executivo gerado e consolidado com sucesso.",
       executiveReview: newRev,
     });
+    return;
+  }
+
+  // =========================================================================
+  // --- STAGE 26: INFRASTRUCTURE SOURCE OF TRUTH & PHYSICAL TOPOLOGY ---
+  // =========================================================================
+
+  // 1. Sites
+  if (url.startsWith("/api/v1/inventory/sites") && method === "GET") {
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const sites = InventoryService.getSites(store as any, tenantId);
+    sendJson(res, 200, { sites });
+    return;
+  }
+
+  if (url === "/api/v1/inventory/sites" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const site = InventoryService.createSite(store as any, tenantId, body);
+    saveStore(store);
+    sendJson(res, 201, { success: true, site });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/inventory/sites/") && method === "DELETE") {
+    const id = url.replace("/api/v1/inventory/sites/", "");
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const result = InventoryService.deleteSite(store as any, tenantId, id);
+    if (!result.success) {
+      sendJson(res, 400, { error: result.error });
+      return;
+    }
+    saveStore(store);
+    sendJson(res, 200, { success: true });
+    return;
+  }
+
+  // 2. Locations
+  if (url.startsWith("/api/v1/inventory/locations") && method === "GET") {
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const locations = InventoryService.getLocations(store as any, tenantId);
+    sendJson(res, 200, { locations });
+    return;
+  }
+
+  if (url === "/api/v1/inventory/locations" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const location = InventoryService.createLocation(store as any, tenantId, body);
+    saveStore(store);
+    sendJson(res, 201, { success: true, location });
+    return;
+  }
+
+  // 3. Racks
+  if (url.startsWith("/api/v1/inventory/racks") && method === "GET") {
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const racks = InventoryService.getRacks(store as any, tenantId);
+    sendJson(res, 200, { racks });
+    return;
+  }
+
+  if (url === "/api/v1/inventory/racks" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const rack = InventoryService.createRack(store as any, tenantId, body);
+    saveStore(store);
+    sendJson(res, 201, { success: true, rack });
+    return;
+  }
+
+  // 4. Assets
+  if (url.startsWith("/api/v1/inventory/assets") && method === "GET" && !url.includes("/qr")) {
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const assets = InventoryService.getAssets(store as any, tenantId);
+    sendJson(res, 200, { assets });
+    return;
+  }
+
+  if (url === "/api/v1/inventory/assets" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const resAsset = InventoryService.createAsset(store as any, tenantId, body);
+    if (resAsset.error) {
+      sendJson(res, 400, { error: resAsset.error });
+      return;
+    }
+    saveStore(store);
+    sendJson(res, 201, { success: true, asset: resAsset.asset });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/inventory/assets/") && method === "PUT") {
+    const id = url.replace("/api/v1/inventory/assets/", "");
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const resAsset = InventoryService.updateAsset(store as any, tenantId, id, body);
+    if (resAsset.error) {
+      sendJson(res, 400, { error: resAsset.error });
+      return;
+    }
+    saveStore(store);
+    sendJson(res, 200, { success: true, asset: resAsset.asset });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/inventory/assets/") && method === "DELETE") {
+    const id = url.replace("/api/v1/inventory/assets/", "");
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const resDel = InventoryService.deleteAsset(store as any, tenantId, id);
+    if (!resDel.success) {
+      sendJson(res, 400, { error: resDel.error });
+      return;
+    }
+    saveStore(store);
+    sendJson(res, 200, { success: true });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/inventory/assets/") && url.endsWith("/qr") && method === "GET") {
+    const id = url.replace("/api/v1/inventory/assets/", "").replace("/qr", "");
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const asset = InventoryService.getAssetById(store as any, tenantId, id);
+    if (!asset) {
+      sendJson(res, 404, { error: "Ativo não encontrado." });
+      return;
+    }
+    const qrData = InventoryService.getQrPayload(asset);
+    sendJson(res, 200, { success: true, asset, ...qrData });
+    return;
+  }
+
+  // 5. Topology: Interfaces & Connections
+  if (url.startsWith("/api/v1/topology/interfaces") && method === "GET") {
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const interfaces = TopologyService.getInterfaces(store as any, tenantId);
+    sendJson(res, 200, { interfaces });
+    return;
+  }
+
+  if (url === "/api/v1/topology/interfaces" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const iface = TopologyService.createInterface(store as any, tenantId, body);
+    saveStore(store);
+    sendJson(res, 201, { success: true, interface: iface });
+    return;
+  }
+
+  if (url === "/api/v1/topology/interfaces/generate-switch-ports" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const ports = TopologyService.generateSwitchPorts(store as any, { ...body, tenantId });
+    saveStore(store);
+    sendJson(res, 201, { success: true, generatedCount: ports.length, ports });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/topology/connections") && method === "GET") {
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const connections = TopologyService.getConnections(store as any, tenantId);
+    sendJson(res, 200, { connections });
+    return;
+  }
+
+  if (url === "/api/v1/topology/connections" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const resConn = TopologyService.createConnection(store as any, tenantId, body);
+    if (resConn.error) {
+      sendJson(res, 400, { error: resConn.error });
+      return;
+    }
+    saveStore(store);
+    sendJson(res, 201, { success: true, connection: resConn.connection });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/topology/connections/") && method === "DELETE") {
+    const id = url.replace("/api/v1/topology/connections/", "");
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const resDel = TopologyService.deleteConnection(store as any, tenantId, id);
+    if (!resDel.success) {
+      sendJson(res, 400, { error: resDel.error });
+      return;
+    }
+    saveStore(store);
+    sendJson(res, 200, { success: true });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/topology/graph") && method === "GET") {
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const assets = (store.assets || []).filter((a) => a.tenantId === tenantId);
+    const graph = TopologyService.getTopologyGraph(store as any, assets, tenantId);
+    sendJson(res, 200, { graph });
+    return;
+  }
+
+  // 6. Network: VLANs, Subnets, IPAM, WAN
+  if (url.startsWith("/api/v1/network/vlans") && method === "GET") {
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const vlans = NetworkService.getVlans(store as any, tenantId);
+    sendJson(res, 200, { vlans });
+    return;
+  }
+
+  if (url === "/api/v1/network/vlans" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const resVlan = NetworkService.createVlan(store as any, tenantId, body);
+    if (resVlan.error) {
+      sendJson(res, 400, { error: resVlan.error });
+      return;
+    }
+    saveStore(store);
+    sendJson(res, 201, { success: true, vlan: resVlan.vlan });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/network/subnets") && method === "GET") {
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const subnets = NetworkService.getSubnets(store as any, tenantId);
+    sendJson(res, 200, { subnets });
+    return;
+  }
+
+  if (url === "/api/v1/network/subnets" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const resSub = NetworkService.createSubnet(store as any, tenantId, body);
+    if (resSub.error) {
+      sendJson(res, 400, { error: resSub.error });
+      return;
+    }
+    saveStore(store);
+    sendJson(res, 201, { success: true, subnet: resSub.subnet });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/network/ip-addresses") && method === "GET") {
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const ipAddresses = NetworkService.getIpAddresses(store as any, tenantId);
+    sendJson(res, 200, { ipAddresses });
+    return;
+  }
+
+  if (url === "/api/v1/network/ip-addresses" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const resIp = NetworkService.setIpAllocation(store as any, tenantId, body);
+    if (resIp.error) {
+      sendJson(res, 400, { error: resIp.error });
+      return;
+    }
+    saveStore(store);
+    sendJson(res, 200, { success: true, ip: resIp.ip });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/network/wan-circuits") && method === "GET") {
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const wanCircuits = NetworkService.getWanCircuits(store as any, tenantId);
+    sendJson(res, 200, { wanCircuits });
+    return;
+  }
+
+  if (url === "/api/v1/network/wan-circuits" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const circuit = NetworkService.createWanCircuit(store as any, tenantId, body);
+    saveStore(store);
+    sendJson(res, 201, { success: true, circuit });
+    return;
+  }
+
+  // 7. Discovery & Reconciliation
+  if (url.startsWith("/api/v1/discovery/candidates") && method === "GET") {
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const candidates = DiscoveryService.getCandidates(store as any, tenantId);
+    sendJson(res, 200, { candidates });
+    return;
+  }
+
+  if (url === "/api/v1/discovery/scan" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const cidr = body.cidr || "38.52.129.0/24";
+    if (!store.assets) store.assets = [];
+    const scanResult = DiscoveryService.runSubnetScan(store as any, store.assets, tenantId, cidr);
+    saveStore(store);
+    sendJson(res, 200, { success: true, ...scanResult });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/discovery/candidates/") && url.endsWith("/resolve") && method === "POST") {
+    const candidateId = url.replace("/api/v1/discovery/candidates/", "").replace("/resolve", "");
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    if (!store.assets) store.assets = [];
+    const resResolve = DiscoveryService.resolveCandidate(store as any, store.assets, tenantId, candidateId, body.action || "approve_merge");
+    saveStore(store);
+    sendJson(res, resResolve.success ? 200 : 400, resResolve);
+    return;
+  }
+
+  // 8. Operational Tools: Health Score, Checklists, Monthly Report
+  if (url.startsWith("/api/v1/operational/health-score") && method === "GET") {
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const health = OperationalService.calculateHealthScore(
+      store.assets || [],
+      store.connections || [],
+      store.wanCircuits || [],
+      tenantId
+    );
+    sendJson(res, 200, { health });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/operational/checklists") && method === "GET") {
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const checklists = OperationalService.getChecklists(store as any, tenantId);
+    sendJson(res, 200, { checklists });
+    return;
+  }
+
+  if (url === "/api/v1/operational/checklists" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const checklist = OperationalService.createChecklist(store as any, tenantId, body);
+    saveStore(store);
+    sendJson(res, 201, { success: true, checklist });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/operational/checklists/") && method === "PUT") {
+    const id = url.replace("/api/v1/operational/checklists/", "");
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const updated = OperationalService.updateChecklist(store as any, tenantId, id, body);
+    if (!updated) {
+      sendJson(res, 404, { error: "Checklist não encontrado." });
+      return;
+    }
+    saveStore(store);
+    sendJson(res, 200, { success: true, checklist: updated });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/operational/monthly-report") && method === "GET") {
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const tenant = (store.tenants || []).find((t) => t.id === tenantId);
+    const report = OperationalService.generateMonthlyReport(
+      tenant?.name || "Supermercados Calvi",
+      (store.assets || []).filter((a) => a.tenantId === tenantId),
+      (store.connections || []).filter((c) => c.tenantId === tenantId),
+      (store.visitChecklists || []).filter((v) => v.tenantId === tenantId)
+    );
+    sendJson(res, 200, { report });
     return;
   }
 

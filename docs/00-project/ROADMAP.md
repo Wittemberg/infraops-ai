@@ -58,3 +58,24 @@ Funcionalidades de alto valor agregadas à plataforma:
 8. **Change Plan Governed Generator:** Conversão de recomendações em planos de mudança com pré-requisitos, janelas e aprovação.
 9. **Recommendation Validation Loop:** Validação contínua *before/after* comprovando ganho de performance e resolução de falhas.
 10. **Executive Infrastructure Review:** Relatórios executivos consolidados para MSPs e gestores com cálculo de horas economizadas e ROI.
+
+---
+
+## 5. Etapa 26 — Infrastructure Source of Truth & Physical Topology 🟡 (PLANEJADA)
+
+> *"Se faz parte da infraestrutura do tenant, o InfraOps AI deve saber o que é, onde está, a que está conectado e do que depende — sem inventar informação e sem depender de plataforma externa."*
+
+### Público prioritário
+Pequenos e médios prestadores de TI, MEIs, MSPs e departamentos de TI que administram múltiplos clientes e precisam substituir planilhas, anotações dispersas e conhecimento informal por uma fonte confiável, centralizada e simples.
+
+### Objetivo
+Dar ao tenant controle documental e operacional completo de sua infraestrutura física e lógica com fonte da verdade nativa (*Single Source of Truth*), sem dependência mandatória de ferramentas externas como NetBox ou Device42.
+
+### Sub-Releases Planejadas:
+- **26A — Customer Infrastructure Book:** Sites, Locations, Racks, Assets físicos, número de patrimônio/serial/MAC/IP, documentos, garantias, contatos de suporte, QR Code e timeline histórica de eventos.
+- **26B — Rack & Connectivity:** Racks (U), visualização de ocupação, interfaces de rede, assistente em lote para portas de switches (*Switch Port Wizard*), conexões físicas (Porta A ↔ Porta B) e derivação de topologia.
+- **26C — Network Source of Truth:** VLANs, Subnets, IPAM básico com estados operacionais (`USED`, `RESERVED`, `DHCP`, `AVAILABLE`, `CONFLICT`, `UNKNOWN`) e Circuitos WAN / Operadoras.
+- **26D — Network Discovery & Reconciliation Engine:** Descoberta de ativos autorizada na subnet via SNMP/LLDP, com matching determinístico (Serial > MAC > IP > Hostname) e classificação estrita de proveniência (`MANUAL`, `DISCOVERED`, `VERIFIED`).
+- **26E — Operational Tools:** Health Score de infraestrutura, Checklist de Visita Técnica com relatório automático para cliente, Relatório Executivo Mensal de MSP e gestão de Ciclo de Vida/Garantias/EOL.
+- **26F — AI & Advisor Integration:** Ferramentas *read-only* de consulta natural para a IA operacional (ex: *"Em qual switch e porta está a VM CALVI BANCO?"*, *"Quais equipamentos estão sem garantia?"*), diagnóstico de SPOFs físicos e enriquecimento contextual.
+

@@ -14,6 +14,7 @@ import { AutomationsSchedulerView } from "./components/AutomationsSchedulerView.
 import { AlertChannelsView } from "./components/AlertChannelsView.jsx";
 import { InfrastructureIntelligenceView } from "./components/InfrastructureIntelligenceView.jsx";
 import { SystemSettingsView } from "./components/SystemSettingsView.jsx";
+import InfrastructureSourceOfTruthView from "./components/InfrastructureSourceOfTruthView.jsx";
 
 const API_BASE = "https://infraopsai.awecloudsolution.com";
 
@@ -604,6 +605,9 @@ export function App() {
           <li className={`nav-item ${currentNav === "nodes" ? "active" : ""}`} onClick={() => setCurrentNav("nodes")}>
             🖥️ Nós & Workloads
           </li>
+          <li className={`nav-item ${currentNav === "infrastructure" ? "active" : ""}`} onClick={() => setCurrentNav("infrastructure")}>
+            🏢 Infra & Topologia
+          </li>
           {isOperator && (
             <li className={`nav-item ${currentNav === "ai" ? "active" : ""}`} onClick={() => setCurrentNav("ai")}>
               🤖 Console IA
@@ -679,8 +683,13 @@ export function App() {
             {currentNav === "tenants" && (isSuperAdmin ? "Gestão de Clientes & Usuários (RBAC)" : `Gestão de Usuários — ${activeTenant?.name}`)}
             {currentNav === "integrations" && "Integrações Proxmox & Virtualizor"}
             {currentNav === "nodes" && "Inventário de Nós & Workloads"}
+            {currentNav === "infrastructure" && "Infraestrutura & Topologia Física (Source of Truth)"}
             {currentNav === "ai" && "Console Operacional de IA"}
             {currentNav === "approvals" && "Central de Aprovações & Auditoria"}
+            {currentNav === "actions" && "Catálogo de Actions & Operações"}
+            {currentNav === "automations" && "Automações & Políticas de Auto-Recuperação"}
+            {currentNav === "intelligence" && "Inteligência & Advisor de Infraestrutura"}
+            {currentNav === "settings" && "Configurações Gerais da Plataforma"}
           </h1>
 
           <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
@@ -794,6 +803,12 @@ export function App() {
             onOpenActionModal={handleOpenActionModal}
             onOpenAddWorkload={() => setWorkloadModalOpen(true)}
             onOpenEnrollAgent={() => setEnrollModalOpen(true)}
+          />
+        )}
+        {currentNav === "infrastructure" && (
+          <InfrastructureSourceOfTruthView
+            activeTenant={activeTenant}
+            currentUser={currentUser}
           />
         )}
         {currentNav === "ai" && isOperator && <AiConsoleView activeTenant={activeTenant} onOpenActionModal={handleOpenActionModal} />}

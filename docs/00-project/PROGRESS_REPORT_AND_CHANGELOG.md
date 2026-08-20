@@ -136,3 +136,29 @@ Centralização completa e testes de conectividade ao vivo em tempo real para to
 ### 3.9. Ajuste de Contraste e Tipografia nos Temas Claro / Escuro
 - **Legibilidade nos Balões de Mensagens:** Ajustadas as cores do Console de IA com variáveis CSS dinâmicas (`var(--text-primary)`, `var(--bg-card)`), garantindo contraste perfeito e eliminando problemas de texto invisível (branco sobre branco) no modo claro.
 
+---
+
+## 4. Etapa 26 — Native Infrastructure Source of Truth & Physical Topology 🟢 (CONCLUÍDA)
+
+A Etapa 26 transforma o InfraOps AI na fonte da verdade nativa (*Single Source of Truth*) para a infraestrutura física e lógica dos tenants, eliminando a dependência mandatória de CMDBs/IPAMs externos pesados:
+
+### 4.1. Módulos de Domínio no Backend (`apps/api/src/`)
+- **`inventory/` (`inventoryService.ts`, `types.ts`):** CRUD tenant-scoped para Sites, Locais, Racks e Ativos. Validação rigorosa contra sobreposição de Us em Racks (`validateRackOverlap`), normalização de MACs e rastreabilidade de proveniência (`MANUAL`, `DISCOVERED`, `VERIFIED`).
+- **`topology/` (`topologyService.ts`):** Mapeamento de interfaces de rede, conexões físicas porta-a-porta com tipo e cor de cabo, assistente de criação de portas (*Switch Port Wizard* para 24/48 portas RJ45 + SFP+) e derivação de grafo topológico.
+- **`network/` (`networkService.ts`):** Gestão de VLANs (1 a 4094), Subnets CIDR, IPAM operacional com estados de alocação (`USED`, `RESERVED`, `DHCP`, `AVAILABLE`, `CONFLICT`, `UNKNOWN`) e cadastro de Circuitos WAN de internet com suporte e operadoras.
+- **`discovery/` (`discoveryService.ts`):** Varredura autorizada via SNMP/LLDP com motor de correspondência (*Matching Engine*) baseado em prioridade `Serial > MAC > IP de Gerência > Hostname`, permitindo aprovação de mesclagem (`merge`), criação ou descarte auditado.
+- **`operational/` (`operationalService.ts`):** Cálculo automatizado de *Infrastructure Health Score* (0–100 / Notas A–F), Checklists de Visita Técnica presencial com assinatura/conclusão e geração do Relatório Executivo Mensal de MSP (*Monthly Client Report*).
+
+### 4.2. Interface Visual no Frontend (`apps/web/src/components/InfrastructureSourceOfTruthView.jsx`)
+- Novo módulo central no menu lateral: **`🏢 Infra & Topologia`**.
+- 5 sub-abas especializadas:
+  1. 🏢 **Customer Infrastructure Book:** Listagem e busca avançada de ativos, Quick Add, ficha com QR Code seguro e timeline de eventos.
+  2. 🗄️ **Racks & Conectividade:** Elevação visual de Rack 42U com ocupação codificada por cor de ativo e tabela de conexões físicas.
+  3. 🌐 **Redes & IPAM:** Mapa de Subnets e alocação de IPs com barras de utilização e circuitos de internet.
+  4. 📡 **Discovery & Reconciliação:** Fila de candidatos de rede com % de confiança de correspondência.
+  5. 📋 **Ferramentas Operacionais:** Painel de Health Score, Checklists de Visita e Relatório Mensal de Gestão.
+
+### 4.3. Contexto Nativo para IA Operacional
+- Orquestrador de IA conectado ao inventário físico, permitindo consultas naturais sobre localização em rack, portas de switch conectadas, garantias expirando e IPAM com indicação explícita da proveniência dos dados.
+
+
