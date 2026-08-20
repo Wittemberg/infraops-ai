@@ -470,17 +470,6 @@ export function App() {
     }
   };
 
-    try {
-      await fetch(`${API_BASE}/api/v1/integrations`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newIntegration),
-      });
-    } catch (err) {
-      console.warn("Offline fallback saved to LocalStorage:", err);
-    }
-  };
-
   const handleUpdateIntegration = async (updatedIntegration) => {
     setIntegrations((prev) => prev.map((i) => (i.id === updatedIntegration.id ? updatedIntegration : i)));
     try {

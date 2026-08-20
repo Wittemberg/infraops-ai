@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages ./packages
@@ -6,7 +6,7 @@ COPY apps/web ./apps/web
 RUN npm install -g pnpm && pnpm install --no-frozen-lockfile
 RUN pnpm --filter @infraops/web build
 
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 RUN npm install -g serve
