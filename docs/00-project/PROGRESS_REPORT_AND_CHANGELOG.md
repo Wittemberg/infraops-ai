@@ -123,6 +123,8 @@ Centralização completa e testes de conectividade ao vivo em tempo real para to
 - **Isolamento de Tenant no Advisor:** Módulos de Recomendações Estruturais, Incidentes Recorrentes, Projeção de Capacidade (*Capacity Forecasting*), Auditoria de SPOFs, *Technical Debt Score* e Relatórios Executivos (QBR) passam a filtrar estritamente por `activeTenant.id`.
 - **Baseline de Dívida Técnica:** Tenants novos sem incidentes iniciam com score 100/100 (verde) e sem recomendações pré-fabricadas, passando a receber diagnósticos somente após a detecção real de telemetria ou logs.
 
-### 3.7. Pipeline de CI/CD & Deploy
-- **Upgrade para Node.js 22 LTS:** Atualização do workflow `.github/workflows/deploy.yml` para Node.js 22 LTS, eliminando avisos de depreciação de runners e garantindo builds consistentes do frontend no GitHub Actions e Portainer Webhook.
+### 3.7. Pipeline de CI/CD, Imagens Docker & Gerenciador de Pacotes
+- **Upgrade para Node.js 22 LTS:** Atualização do workflow `.github/workflows/deploy.yml` e das imagens base dos Dockerfiles (`apps/web/Dockerfile`, `apps/api/Dockerfile`, `apps/worker/Dockerfile`) para `node:22-alpine` (Node.js 22 LTS), eliminando avisos de depreciação do runner.
+- **Pinning Determinístico para `pnpm@9`:** Fixação do gerenciador de pacotes na versão 9 (`npm install -g pnpm@9`) em todos os containers, garantindo a execução e compilação sem bloqueios dos binários nativos do `esbuild` no ciclo de build do Vite.
+- **Validação de Sintaxe e Bundling:** Correção definitiva no empacotador do frontend (`App.jsx`), assegurando builds 100% verdes no GitHub Actions e publicação automatizada no GHCR (`ghcr.io/wittemberg/infraops-web:latest`, `ghcr.io/wittemberg/infraops-api:latest`, `ghcr.io/wittemberg/infraops-worker:latest`) com acionamento do Webhook do Portainer.
 
