@@ -10,12 +10,14 @@ InfraOps AI é uma plataforma completa de Governança, Operações Autônomas e 
 - **Status do Roadmap:** **25/25 Etapas Concluídas (100%) + Módulos Especiais Homologados**.
 - **Segurança:** Todas as regras não-negociáveis do `AGENTS.md` e ADRs (incluindo ADR-016 e ADR-017) permanecem 100% ativas.
 - **Recursos em Produção:**
+  - ⚙️ **Configurações Gerais da Plataforma (9 Subsistemas):** Gestão centralizada e testes de conectividade ao vivo para SMTP, Storage S3/MinIO, PostgreSQL 16, Redis (BullMQ), Telemetria Prometheus, Provedores de IA, Agente de Host, White-Label MSP e Políticas Globais.
+  - 🔑 **Gestão de Identidade, Credenciais & Primeiro Acesso:** Fluxo interativo de "Esqueci a Senha" (PIN de 6 dígitos), troca obrigatória de senha no primeiro login (`mustChangePassword`), gerador seguro de senhas, controle de status (🟢 Ativo / 🔴 Inativo) e exclusão segura de usuários.
   - 🤖 **IA Contextual Multi-Provedor:** Groq Cloud, OpenAI, DeepSeek, Claude e Ollama local com validação upstream de chaves ao vivo (`🟢 CHAVE ATIVA`).
-  - ⏰ **Autonomous Scheduler & Automation Engine (Etapa 21):** Agendamentos Cron/Intervalo, presets diários de briefing, health sweep e auditoria de backups.
-  - ⚡ **Conditional Triggers & Event Automation (Etapa 22):** Gatilhos orientados a telemetria com proteção anti-flapping (Debounce, Cooldown, Circuit Breaker e Deduplicação SHA-256).
-  - 🛡️ **Autonomous Policies & Self-Healing (Etapa 23):** Matriz de autonomia Níveis 0 a 5, prechecks, postchecks, orçamentos de risco (*Risk Budget*) e auto-escalonamento para canais de alerta.
-  - 🎯 **Goal-Oriented Infrastructure Management (Etapa 24):** Definição declarativa de metas e SLOs contínuos (Storage $\ge$ 20%, Backup RPO $\le$ 24h, Uptime $\ge$ 99.9%) com medidores visuais de conformidade (*Compliance Gauges*).
-  - 💡 **Infrastructure Intelligence & Advisor (Etapa 25):** Mineração de incidentes recorrentes, recomendações estruturais evidence-backed, previsão preditiva de capacidade (7 a 180 dias), detecção de SPOFs, score explicável de dívida técnica e relatórios executivos para MSPs.
+  - ⏰ **Autonomous Scheduler & Automation Engine:** Agendamentos Cron/Intervalo, presets diários de briefing, health sweep e auditoria de backups.
+  - ⚡ **Conditional Triggers & Event Automation:** Gatilhos orientados a telemetria com proteção anti-flapping (Debounce, Cooldown, Circuit Breaker e Deduplicação SHA-256).
+  - 🛡️ **Autonomous Policies & Self-Healing:** Matriz de autonomia Níveis 0 a 5, prechecks, postchecks, orçamentos de risco (*Risk Budget*) e auto-escalonamento para canais de alerta.
+  - 🎯 **Goal-Oriented Infrastructure Management:** Definição declarativa de metas e SLOs contínuos (Storage $\ge$ 20%, Backup RPO $\le$ 24h, Uptime $\ge$ 99.9%) com medidores visuais de conformidade (*Compliance Gauges*).
+  - 💡 **Infrastructure Intelligence & Advisor:** Mineração de incidentes recorrentes, recomendações estruturais evidence-backed, previsão preditiva de capacidade (7 a 180 dias), detecção de SPOFs, score explicável de dívida técnica e relatórios executivos para MSPs.
   - ⚡ **Catálogo de Actions & Governança Operacional:** Contratos declarativos de Actions tipadas (Precheck, Postcheck, Idempotência) e ajuste de nível de autonomia (1 a 5) por tenant.
   - 🔔 **Canais de Disparo Omnichannel por Tenant:** Chatwoot API (*Account API & Public API*), Quepasa WhatsApp Gateway, Telegram Bot, WhatsApp Webhook, E-mail SMTP e Webhooks HTTP com teste de disparo ao vivo.
   - 🔌 **Integrações Nativas:** Proxmox VE e Virtualizor com sincronização de nós e workloads.

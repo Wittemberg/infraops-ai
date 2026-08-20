@@ -34,5 +34,6 @@ Melhoria contínua baseada em evidências; Capacity Planning; SPOF; Technical De
 - Transforme histórico operacional em decisões de infraestrutura.
 - Menos firefighting. Mais evolução.
 
-## Regra de comunicação
-Stage 25 antes da homologação: usar “planejado”, “roadmap”, “em desenvolvimento”. Não prometer prevenção absoluta, ROI garantido ou mudança estrutural autônoma.
+## Regra de Comunicação & Posicionamento
+Plataforma 100% homologada e em produção. Posicionar como solução completa de Governança AIOps, Operações Autônomas e Inteligência Estrutural com White-Label MSP. Manter a transparência: o cálculo de ROI é baseado em parâmetros configurados e horas técnicas economizadas; ações estruturais requerem Change Plan e aprovação humana (ADR-017).
+

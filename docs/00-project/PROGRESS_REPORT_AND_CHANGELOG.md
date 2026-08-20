@@ -80,3 +80,29 @@ O InfraOps AI concluiu integralmente todas as **25 etapas de engenharia, arquite
   - Auditoria do ganho real de estabilidade e performance após a implementação de uma recomendação.
 - **Relatório Executivo para MSPs & QBR (25.10):**
   - Painel consolidado demonstrando horas técnicas economizadas, incidentes evitados e justificativas de investimento com ROI comprovado.
+
+---
+
+## 3. Avanços Recentes de Plataforma, Identidade & Operações Gerais 🟢
+
+### 3.1. Painel Mestre de Configurações Gerais do Sistema (9 Subsistemas)
+Centralização completa e testes de conectividade ao vivo em tempo real para toda a infraestrutura:
+1. **📧 Servidor SMTP:** Suporte a Host, Porta, STARTTLS/SSL, autenticação e botão de teste ao vivo (`POST /api/v1/settings/system/test-smtp`).
+2. **🪣 Storage S3 / MinIO:** Configuração de Endpoints, Buckets, Access/Secret Keys e Path-Style com validação ao vivo (`POST /api/v1/settings/system/test-s3`).
+3. **🗄️ PostgreSQL 16:** Gestão de Host, Porta, Database, Usuário e Pool de Conexões.
+4. **⚡ Redis & Filas (BullMQ):** Gerenciamento do broker de mensageria assíncrona, filas de jobs e teste de latência (`POST /api/v1/settings/system/test-redis`).
+5. **📊 Telemetria (Prometheus / Grafana):** Configuração de endpoints de coleta, intervalos de scrape, retenção e dashboards embed com teste (`POST /api/v1/settings/system/test-telemetry`).
+6. **🤖 Provedores de IA & LLMs:** Parametrização multi-motor (OpenAI, Anthropic, Gemini, Ollama local), chaves de API, modelos e teste de inferência ao vivo (`POST /api/v1/settings/system/test-ai`).
+7. **📦 Agente de Host (Outbound):** Endpoint de enrollment, frequência de heartbeat, limites de detecção de nós offline e nível de autonomia padrão.
+8. **🏢 White-Label & Suporte MSP:** Personalização da identidade visual, logotipo, empresa MSP, contatos de WhatsApp do NOC e texto de rodapé.
+9. **🔐 Segurança & Políticas Globais:** TTL de sessão JWT, tentativas máximas de login, duração do lockout temporário e complexidade de senhas.
+
+### 3.2. Governança de Identidade, Credenciais e Primeiro Acesso
+- **Troca Mandatória no Primeiro Login (`mustChangePassword`):** Novos usuários são forçados a redefinir sua credencial antes de obter acesso à plataforma.
+- **Gerador Seguro de Senhas:** Criação assistida de senhas complexas e aleatórias no cadastro e edição de usuários.
+- **Fluxo "Esqueci a Senha":** Recuperação segura por PIN/Token de 6 dígitos com expiração de 15 minutos e redefinição direta de credencial (`POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password`).
+- **Ciclo de Vida de Usuários:** Exclusão segura de usuários (`DELETE /api/v1/users/:id`), alternador rápido de status `🟢 Ativo / 🔴 Inativo` e bloqueio imediato na autenticação (HTTP 403) para contas inativas.
+
+### 3.3. Padronização Visual Corporativa
+- Remoção total de tags de desenvolvimento e etapas dos componentes visuais, garantindo uma interface limpa, moderna e 100% orientada a ambiente corporativo e clientes finais.
+
