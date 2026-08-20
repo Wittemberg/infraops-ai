@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { NetworkDevicesView } from "./NetworkDevicesView.jsx";
 
 const API_BASE = "https://infraopsai.awecloudsolution.com";
 
@@ -561,6 +562,26 @@ export default function InfrastructureSourceOfTruthView({ activeTenant, currentU
         >
           <span>🌐</span>
           Redes & IPAM ({subnets.length})
+        </button>
+
+        <button
+          onClick={() => setActiveTab("routers")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "10px 16px",
+            border: "none",
+            background: "none",
+            borderBottom: activeTab === "routers" ? "2px solid var(--accent-color, #3b82f6)" : "2px solid transparent",
+            color: activeTab === "routers" ? "var(--text-primary)" : "var(--text-secondary)",
+            fontWeight: activeTab === "routers" ? "600" : "400",
+            cursor: "pointer",
+            fontSize: "14px",
+          }}
+        >
+          <span>📡</span>
+          Roteadores & Links WAN
         </button>
 
         <button
@@ -1603,6 +1624,11 @@ export default function InfrastructureSourceOfTruthView({ activeTenant, currentU
             )}
           </div>
         </div>
+      )}
+
+      {/* TAB: NETWORK DEVICES & WAN (STAGE 27) */}
+      {activeTab === "routers" && (
+        <NetworkDevicesView activeTenant={activeTenant} currentUser={currentUser} />
       )}
 
       {/* MODAL: ASSET CREATE / EDIT */}

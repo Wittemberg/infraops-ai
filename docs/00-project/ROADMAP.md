@@ -61,21 +61,41 @@ Funcionalidades de alto valor agregadas à plataforma:
 
 ---
 
-## 5. Etapa 26 — Infrastructure Source of Truth & Physical Topology 🟡 (PLANEJADA)
+## 5. Etapa 26 — Infrastructure Source of Truth & Physical Topology 🟢 (CONCLUÍDA)
 
 > *"Se faz parte da infraestrutura do tenant, o InfraOps AI deve saber o que é, onde está, a que está conectado e do que depende — sem inventar informação e sem depender de plataforma externa."*
-
-### Público prioritário
-Pequenos e médios prestadores de TI, MEIs, MSPs e departamentos de TI que administram múltiplos clientes e precisam substituir planilhas, anotações dispersas e conhecimento informal por uma fonte confiável, centralizada e simples.
 
 ### Objetivo
 Dar ao tenant controle documental e operacional completo de sua infraestrutura física e lógica com fonte da verdade nativa (*Single Source of Truth*), sem dependência mandatória de ferramentas externas como NetBox ou Device42.
 
-### Sub-Releases Planejadas:
+### Sub-Releases Concluídas:
 - **26A — Customer Infrastructure Book:** Sites, Locations, Racks, Assets físicos, número de patrimônio/serial/MAC/IP, documentos, garantias, contatos de suporte, QR Code e timeline histórica de eventos.
 - **26B — Rack & Connectivity:** Racks (U), visualização de ocupação, interfaces de rede, assistente em lote para portas de switches (*Switch Port Wizard*), conexões físicas (Porta A ↔ Porta B) e derivação de topologia.
 - **26C — Network Source of Truth:** VLANs, Subnets, IPAM básico com estados operacionais (`USED`, `RESERVED`, `DHCP`, `AVAILABLE`, `CONFLICT`, `UNKNOWN`) e Circuitos WAN / Operadoras.
 - **26D — Network Discovery & Reconciliation Engine:** Descoberta de ativos autorizada na subnet via SNMP/LLDP, com matching determinístico (Serial > MAC > IP > Hostname) e classificação estrita de proveniência (`MANUAL`, `DISCOVERED`, `VERIFIED`).
 - **26E — Operational Tools:** Health Score de infraestrutura, Checklist de Visita Técnica com relatório automático para cliente, Relatório Executivo Mensal de MSP e gestão de Ciclo de Vida/Garantias/EOL.
 - **26F — AI & Advisor Integration:** Ferramentas *read-only* de consulta natural para a IA operacional (ex: *"Em qual switch e porta está a VM CALVI BANCO?"*, *"Quais equipamentos estão sem garantia?"*), diagnóstico de SPOFs físicos e enriquecimento contextual.
+
+---
+
+## 6. Etapa 27 — Network Device Monitoring & Governed WAN Actions 🟡 (EM IMPLEMENTAÇÃO)
+
+### Objetivo
+Integrar **MikroTik RouterOS** e **pfSense** ao mesmo modelo operacional do InfraOps AI já utilizado para infraestrutura computacional: inventário + telemetria + integridade + IA + Ações governadas + auditoria com hash.
+
+> *"Monitorar a saúde da WAN em tempo real e permitir que a IA, sob política rigorosa e governança de Actions, altere o link de Internet preferencial/padrão com segurança, precheck, postcheck e rollback determinístico."*
+
+### Drivers Oficiais:
+1. **MikroTik RouterOS** (v7 REST API & Protocolo API/SNMP com suporte a rotas, distâncias e interfaces).
+2. **pfSense** (XML-RPC / API segura / Gateway Groups com monitoramento via dpinger e Tiers 1/2).
+
+### Sub-Releases:
+- **27A — Driver Framework:** Interface neutra `NetworkDeviceDriver`, detecção de recursos (*capabilities*), credenciais via Secrets e tratamento tipado de erros não suportados.
+- **27B — MikroTik Monitoring:** Identidade, modelo, serial, RouterOS version, CPU, RAM, temperatura, interfaces, throughput, status de gateway e latência/perda.
+- **27C — pfSense Monitoring:** Identidade, versão, CPU/RAM, interfaces, gateways dpinger, loss/delay, gateway groups e tiers.
+- **27D — Governed WAN Actions:** Ações normalizadas `network.set_primary_wan`, `network.set_wan_failover`, `network.set_wan_balance`, `network.enable_wan`, `network.disable_wan`.
+- **27E — Safe Change Workflow:** Pipeline mandatória: `Intent -> Capability Check -> Policy -> Approval -> Precheck -> Snapshot -> Execute -> Postcheck -> Rollback if needed -> Audit`.
+- **27F — AI Experience:** Análise contextual de qualidade de link e geração de planos de mudança transparentes (com proibição expressa de comandos de terminal livres).
+- **27G — Autonomous WAN Failover:** Auto-recuperação com proteção anti-flapping (debounce, histerese, cooldown, recovery window e circuit breaker).
+
 

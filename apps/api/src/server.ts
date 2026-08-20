@@ -16,6 +16,10 @@ import { AssetInterface, Connection } from "./topology/topologyService.js";
 import { Vlan, Subnet, IpAddress, WanCircuit } from "./network/networkService.js";
 import { DiscoveryCandidate } from "./discovery/discoveryService.js";
 import { VisitChecklist } from "./operational/operationalService.js";
+import { NetworkDeviceProfile, WanLink, NetworkChangeSnapshot, NetworkActionRun, WanFailoverPolicy } from "./network-devices/types.js";
+import { NetworkDeviceService } from "./network-devices/networkDeviceService.js";
+import { WanActionManager } from "./network-devices/actions/wanActions.js";
+import { WanSelfHealingEngine } from "./network-devices/automation/wanSelfHealing.js";
 
 const port = Number(process.env.PORT) || 3000;
 const secretVault = new SecretVaultService(process.env.ENCRYPTION_MASTER_KEY || "master_key_1234567890_32bytes_sec!");
@@ -520,6 +524,12 @@ interface DataStore {
   wanCircuits?: WanCircuit[];
   discoveryCandidates?: DiscoveryCandidate[];
   visitChecklists?: VisitChecklist[];
+  // --- STAGE 27: NETWORK DEVICE MONITORING & GOVERNED WAN ACTIONS ---
+  networkDevices?: NetworkDeviceProfile[];
+  wanLinks?: WanLink[];
+  networkSnapshots?: NetworkChangeSnapshot[];
+  networkActionRuns?: NetworkActionRun[];
+  wanFailoverPolicies?: WanFailoverPolicy[];
 }
 
 const defaultStore: DataStore = {
@@ -538,6 +548,11 @@ const defaultStore: DataStore = {
   wanCircuits: [],
   discoveryCandidates: [],
   visitChecklists: [],
+  networkDevices: [],
+  wanLinks: [],
+  networkSnapshots: [],
+  networkActionRuns: [],
+  wanFailoverPolicies: [],
   tenants: [
     { id: "tenant-default", name: "Default Tenant (infraops-prod)", domain: "infraopsai.awecloudsolution.com", createdAt: new Date().toISOString() },
     { id: "tenant-wrtec", name: "WR Tecnologia", domain: "wrtec.com.br", createdAt: new Date().toISOString() },
@@ -1428,6 +1443,11 @@ function loadStore(): DataStore {
         wanCircuits: parsed.wanCircuits || [],
         discoveryCandidates: parsed.discoveryCandidates || [],
         visitChecklists: parsed.visitChecklists || [],
+        networkDevices: parsed.networkDevices || [],
+        wanLinks: parsed.wanLinks || [],
+        networkSnapshots: parsed.networkSnapshots || [],
+        networkActionRuns: parsed.networkActionRuns || [],
+        wanFailoverPolicies: parsed.wanFailoverPolicies || [],
       };
     }
   } catch (e) {
@@ -2383,6 +2403,8 @@ const server = createServer(async (req, res) => {
     const tenantRacks = (store.racks || []).filter((r) => r.tenantId === tenantId);
     const tenantConns = (store.connections || []).filter((c) => c.tenantId === tenantId);
     const tenantSubnets = (store.subnets || []).filter((s) => s.tenantId === tenantId);
+    const tenantNetDevs = (store.networkDevices || []).filter((d) => d.tenantId === tenantId);
+    const tenantWans = (store.wanLinks || []).filter((w) => w.tenantId === tenantId);
 
     // If no API key is provided and not using local Ollama, strictly inform the user to configure
     if (!config.apiKey && config.provider !== "ollama") {
@@ -2417,6 +2439,14 @@ const server = createServer(async (req, res) => {
           ? tenantAssets.map((a) => `${a.name} [${a.category}, Serial: ${a.serialNumber || "N/A"}, IP: ${a.managementIp || "N/A"}, Proveniência: ${a.source}]`).join("; ")
           : "Nó pve (Supermicro)";
 
+        const wanSummary = tenantWans.length > 0
+          ? tenantWans.map((w) => `${w.name} (${w.provider}) [${w.isPrimary ? "LINK PRIMÁRIO ATIVO" : "BACKUP"}, Latência: ${w.latencyMs}ms, Perda: ${w.packetLossPercent}%, Status: ${w.status}]`).join("; ")
+          : "Vivo Fibra 500M (Primário) e Claro Backup (Secundário)";
+
+        const netDevsSummary = tenantNetDevs.length > 0
+          ? tenantNetDevs.map((d) => `${d.name} (${d.vendor.toUpperCase()}, ${d.model}, IP: ${d.ipAddress})`).join("; ")
+          : "MikroTik CCR2004 / pfSense Firewall";
+
         const payload =
           config.provider === "ollama"
             ? {
@@ -2427,11 +2457,12 @@ const server = createServer(async (req, res) => {
                     content: `Você é o InfraOps AI, assistente de operações de infraestrutura de TI do tenant '${tenantId}'.
 Nós: ${tenantNodes.map((n) => n.name).join(", ") || "pve"}.
 VMs: ${tenantWorkloads.map((w) => w.name).join(", ") || "SRV-CW, CALVI IIS, CALVI BANCO, SRV-Concentrador, SRV-AD-PortoNovo"}.
+Roteadores & Firewalls: ${netDevsSummary}.
+Links WAN: ${wanSummary}.
 Inventário Físico: ${inventorySummary}.
 Racks: ${tenantRacks.map((r) => `${r.name} (${r.heightU}U)`).join(", ") || "Rack Principal"}.
-Conexões Físicas: ${tenantConns.length} cabos registrados.
 Subnets: ${tenantSubnets.map((s) => s.cidr).join(", ") || "38.52.129.0/24"}.
-Responda em português com precisão técnica, especificando se o dado é MANUAL, DISCOVERED ou VERIFIED.`,
+Responda em português com precisão técnica. Nunca gere comandos livres para roteadores; indique sempre que ações de WAN usam o fluxo governado 'network.set_primary_wan'.`,
                   },
                   { role: "user", content: prompt },
                 ],
@@ -2447,11 +2478,13 @@ A infraestrutura real cadastrada possui:
 - Nós Proxmox: ${tenantNodes.map((n) => `${n.name} (${n.ipAddress || "38.52.129.130"}, ${n.os || "Proxmox VE"})`).join(", ") || "pve (38.52.129.130, Proxmox VE 8.4.19)"}
 - Workloads / VMs: ${tenantWorkloads.map((w) => `${w.name} (${w.type || "qemu"}, ${w.status || "running"})`).join(", ") || "SRV-CW, CALVI IIS, CALVI BANCO, SRV-Concentrador, SRV-AD-PortoNovo"}
 - Storages: HDD_backups, HDD_storage, nvme_storage, local, rpool.
+- Roteadores & Firewalls (Stage 27): ${netDevsSummary}.
+- Links WAN de Internet: ${wanSummary}.
 - Inventário Físico & Ativos (Source of Truth): ${inventorySummary}.
 - Racks: ${tenantRacks.map((r) => `${r.name} (${r.heightU}U)`).join(", ") || "Rack Principal 42U"}.
 - Conexões de Rede Físicas: ${tenantConns.length} conexões mapeadas.
 - Subnets / IPAM: ${tenantSubnets.map((s) => s.cidr).join(", ") || "38.52.129.0/24"}.
-Responda de forma direta, técnica, estruturada em Markdown e em português do Brasil. Ao responder sobre ativos ou portas, indique a proveniência dos dados (MANUAL, DISCOVERED ou VERIFIED).`,
+Responda de forma direta, técnica, estruturada em Markdown e em português do Brasil. Ao sugerir comutação de link WAN, NUNCA gere comandos CLI livres; indique sempre a ação governada 'network.set_primary_wan' com precheck e rollback automático.`,
                   },
                   { role: "user", content: prompt },
                 ],
@@ -3985,6 +4018,225 @@ Responda EXCLUSIVAMENTE um objeto JSON válido.`;
       (store.visitChecklists || []).filter((v) => v.tenantId === tenantId)
     );
     sendJson(res, 200, { report });
+    return;
+  }
+
+  // ==========================================
+  // --- STAGE 27: NETWORK DEVICE MONITORING & GOVERNED WAN ACTIONS ---
+  // ==========================================
+
+  // 1. Devices List & Create
+  if (url === "/api/v1/network-devices" && method === "GET") {
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const devices = NetworkDeviceService.getDevices(store as any, tenantId);
+    sendJson(res, 200, { devices });
+    return;
+  }
+
+  if (url === "/api/v1/network-devices" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const device = NetworkDeviceService.createDevice(store as any, tenantId, body);
+    saveStore(store);
+    sendJson(res, 201, { success: true, device });
+    return;
+  }
+
+  // 2. Device Health, Interfaces, Details
+  if (url.startsWith("/api/v1/network-devices/") && url.endsWith("/health") && method === "GET") {
+    const id = url.replace("/api/v1/network-devices/", "").replace("/health", "");
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const device = NetworkDeviceService.getDeviceById(store as any, tenantId, id);
+    if (!device) {
+      sendJson(res, 404, { error: "Dispositivo não encontrado." });
+      return;
+    }
+    const driver = NetworkDeviceService.getDriver(device.vendor);
+    const health = await driver.getSystemHealth(device);
+    sendJson(res, 200, { health });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/network-devices/") && url.endsWith("/interfaces") && method === "GET") {
+    const id = url.replace("/api/v1/network-devices/", "").replace("/interfaces", "");
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const device = NetworkDeviceService.getDeviceById(store as any, tenantId, id);
+    if (!device) {
+      sendJson(res, 404, { error: "Dispositivo não encontrado." });
+      return;
+    }
+    const driver = NetworkDeviceService.getDriver(device.vendor);
+    const ifaces = await driver.listInterfaces(device);
+    sendJson(res, 200, { interfaces: ifaces });
+    return;
+  }
+
+  // 3. WAN Links for Device
+  if (url.startsWith("/api/v1/network-devices/") && url.endsWith("/wan-links") && method === "GET") {
+    const id = url.replace("/api/v1/network-devices/", "").replace("/wan-links", "");
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const wanLinks = NetworkDeviceService.getWanLinks(store as any, tenantId, id);
+    sendJson(res, 200, { wanLinks });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/network-devices/") && url.endsWith("/wan-links") && method === "POST") {
+    const id = url.replace("/api/v1/network-devices/", "").replace("/wan-links", "");
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const resWan = NetworkDeviceService.createWanLink(store as any, tenantId, { ...body, deviceId: id });
+    if (resWan.error) {
+      sendJson(res, 400, { error: resWan.error });
+      return;
+    }
+    saveStore(store);
+    sendJson(res, 201, { success: true, wanLink: resWan.wanLink });
+    return;
+  }
+
+  // 4. Governed WAN Actions
+  if (url.startsWith("/api/v1/network-devices/") && url.endsWith("/actions/set-primary-wan") && method === "POST") {
+    const deviceId = url.replace("/api/v1/network-devices/", "").replace("/actions/set-primary-wan", "");
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const requestedBy = body.requestedBy || "Operador NOC / Console IA";
+
+    try {
+      const result = await WanActionManager.executeAction(store as any, {
+        actionKey: "network.set_primary_wan",
+        deviceId,
+        tenantId,
+        targetWanId: body.targetWanId,
+        requestedBy,
+        reason: body.reason || "Comutação manual de link primário",
+      });
+      saveStore(store);
+      sendJson(res, result.success ? 200 : 400, result);
+    } catch (err: any) {
+      sendJson(res, 500, { success: false, error: err.message });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/v1/network-devices/") && url.endsWith("/actions/set-wan-failover") && method === "POST") {
+    const deviceId = url.replace("/api/v1/network-devices/", "").replace("/actions/set-wan-failover", "");
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const requestedBy = body.requestedBy || "Operador NOC";
+
+    try {
+      const result = await WanActionManager.executeAction(store as any, {
+        actionKey: "network.set_wan_failover",
+        deviceId,
+        tenantId,
+        targetWanId: body.primaryWanId,
+        secondaryWanId: body.backupWanId,
+        requestedBy,
+        reason: body.reason || "Configuração de failover",
+      });
+      saveStore(store);
+      sendJson(res, result.success ? 200 : 400, result);
+    } catch (err: any) {
+      sendJson(res, 500, { success: false, error: err.message });
+    }
+    return;
+  }
+
+  if (url.startsWith("/api/v1/network-devices/") && url.endsWith("/actions/rollback") && method === "POST") {
+    const deviceId = url.replace("/api/v1/network-devices/", "").replace("/actions/rollback", "");
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const requestedBy = body.requestedBy || "Operador / Rollback Forçado";
+
+    try {
+      const result = await WanActionManager.executeAction(store as any, {
+        actionKey: "network.rollback_wan_change",
+        deviceId,
+        tenantId,
+        snapshotId: body.snapshotId,
+        requestedBy,
+        reason: "Reversão manual solicitada pelo operador",
+      });
+      saveStore(store);
+      sendJson(res, result.success ? 200 : 400, result);
+    } catch (err: any) {
+      sendJson(res, 500, { success: false, error: err.message });
+    }
+    return;
+  }
+
+  // 5. Snapshots and Action Runs
+  if (url.startsWith("/api/v1/network-devices/") && url.endsWith("/snapshots") && method === "GET") {
+    const id = url.replace("/api/v1/network-devices/", "").replace("/snapshots", "");
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const snapshots = NetworkDeviceService.getSnapshots(store as any, tenantId, id);
+    sendJson(res, 200, { snapshots });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/network-devices/") && url.endsWith("/action-runs") && method === "GET") {
+    const id = url.replace("/api/v1/network-devices/", "").replace("/action-runs", "");
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const runs = (store.networkActionRuns || []).filter((r) => r.tenantId === tenantId && r.deviceId === id);
+    sendJson(res, 200, { actionRuns: runs });
+    return;
+  }
+
+  // 6. Failover Policies (Self-Healing)
+  if (url.startsWith("/api/v1/network-devices/policies") && method === "GET") {
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const policies = WanSelfHealingEngine.getPolicies(store as any, tenantId);
+    sendJson(res, 200, { policies });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/network-devices/") && url.endsWith("/policies/evaluate") && method === "POST") {
+    const id = url.replace("/api/v1/network-devices/", "").replace("/policies/evaluate", "");
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const evaluations = await WanSelfHealingEngine.evaluateDeviceWanHealth(store as any, tenantId, id);
+    saveStore(store);
+    sendJson(res, 200, { success: true, evaluations });
+    return;
+  }
+
+  // 7. Device CRUD: GET by ID, PUT, DELETE
+  if (url.startsWith("/api/v1/network-devices/") && method === "GET") {
+    const id = url.replace("/api/v1/network-devices/", "");
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const device = NetworkDeviceService.getDeviceById(store as any, tenantId, id);
+    if (!device) {
+      sendJson(res, 404, { error: "Dispositivo não encontrado." });
+      return;
+    }
+    const wanLinks = NetworkDeviceService.getWanLinks(store as any, tenantId, id);
+    sendJson(res, 200, { device, wanLinks });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/network-devices/") && method === "PUT") {
+    const id = url.replace("/api/v1/network-devices/", "");
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const resDev = NetworkDeviceService.updateDevice(store as any, tenantId, id, body);
+    if (resDev.error) {
+      sendJson(res, 400, { error: resDev.error });
+      return;
+    }
+    saveStore(store);
+    sendJson(res, 200, { success: true, device: resDev.device });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/network-devices/") && method === "DELETE") {
+    const id = url.replace("/api/v1/network-devices/", "");
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const resDel = NetworkDeviceService.deleteDevice(store as any, tenantId, id);
+    if (!resDel.success) {
+      sendJson(res, 400, { error: resDel.error });
+      return;
+    }
+    saveStore(store);
+    sendJson(res, 200, { success: true });
     return;
   }
 

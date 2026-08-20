@@ -161,4 +161,30 @@ A Etapa 26 transforma o InfraOps AI na fonte da verdade nativa (*Single Source o
 ### 4.3. Contexto Nativo para IA Operacional
 - Orquestrador de IA conectado ao inventário físico, permitindo consultas naturais sobre localização em rack, portas de switch conectadas, garantias expirando e IPAM com indicação explícita da proveniência dos dados.
 
+---
+
+## 5. Etapa 27 — Network Device Monitoring & Governed WAN Actions 🟢 (CONCLUÍDA)
+
+A Etapa 27 traz a governança de roteadores de borda (**MikroTik RouterOS** e **pfSense**) para dentro do ecossistema do InfraOps AI, viabilizando o monitoramento em tempo real de links WAN de Internet e a execução de ações governadas de comutação de link e failover autônomo com proteção anti-flapping (ADR-020 & ADR-021):
+
+### 5.1. Módulos de Domínio & Drivers de Rede (`apps/api/src/network-devices/`)
+- **`types.ts`:** Definição de `NetworkDeviceProfile`, `WanLink`, `NetworkChangeSnapshot`, `NetworkActionRun` e `WanFailoverPolicy`.
+- **`drivers/driverInterface.ts`:** Interface neutra `INetworkDeviceDriver` desacoplando sintaxes de fabricantes da IA e do Policy Engine.
+- **`drivers/mikrotikDriver.ts`:** Driver para MikroTik RouterOS com suporte a coleta de telemetria (CPU, RAM, temperatura, uptime), ajuste atômico de distâncias de rotas padrão (`/ip/route`) e probes de validação.
+- **`drivers/pfsenseDriver.ts`:** Driver para pfSense com telemetria, manipulação de Gateway Groups (Tiers 1/2) e integração com métricas dpinger.
+- **`networkDeviceService.ts`:** CRUD multi-tenant para roteadores e links WAN, captura de snapshots de estado pré-mudança e orquestração de reversão.
+- **`actions/wanActions.ts`:** Ações governadas (`network.set_primary_wan`, `network.set_wan_failover`, `network.set_wan_balance`, `network.enable_wan`, `network.disable_wan`, `network.rollback_wan_change`) com fluxo obrigatório de **Precheck ➔ Snapshot ➔ Execução ➔ Postcheck ➔ Rollback Automático em caso de falha ➔ Auditoria com Hash**.
+- **`automation/wanSelfHealing.ts`:** Auto-recuperação de links com proteção contra flapping (*debounce* de 60s, histerese de 120s, *cooldown* de 15m e *circuit breaker* de no máximo 3 trocas por hora).
+
+### 5.2. Interface Visual (`apps/web/src/components/NetworkDevicesView.jsx`)
+- Nova sub-aba **`📡 Roteadores & Links WAN`** integrada diretamente à visão de **`🏢 Infra & Topologia`**.
+- Visualizador de telemetria dos roteadores (CPU, RAM, Firmware, Porta de Gerência).
+- Tabela dinâmica de links WAN com latência (ms), perda de pacotes (%), consumo de banda (Rx/Tx) e indicação visual de Link Primário.
+- Modal de Comutação Segura com comparativo *Antes vs Depois*, resumo de precheck/postcheck e botão de comutação atômica.
+- Painel de Snapshots com botão de `🛡️ Reverter para este Snapshot`.
+
+### 5.3. Integração com o Assistente de IA
+- Injeção contextual da lista de roteadores e do estado/latência/perda de cada link WAN no system prompt do Console IA, proibindo geração de comandos CLI livres e direcionando consultas para a ação governada `network.set_primary_wan`.
+
+
 
