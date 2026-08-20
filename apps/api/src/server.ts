@@ -530,9 +530,11 @@ interface DataStore {
   networkSnapshots?: NetworkChangeSnapshot[];
   networkActionRuns?: NetworkActionRun[];
   wanFailoverPolicies?: WanFailoverPolicy[];
+  aiChatHistories?: Record<string, Array<{ id: string; sender: "user" | "ai"; text: string; timestamp: string; toolCall?: any }>>;
 }
 
 const defaultStore: DataStore = {
+  aiChatHistories: {},
   sites: [],
   locations: [],
   racks: [],
@@ -1448,6 +1450,7 @@ function loadStore(): DataStore {
         networkSnapshots: parsed.networkSnapshots || [],
         networkActionRuns: parsed.networkActionRuns || [],
         wanFailoverPolicies: parsed.wanFailoverPolicies || [],
+        aiChatHistories: parsed.aiChatHistories || {},
       };
     }
   } catch (e) {
@@ -2507,8 +2510,30 @@ Responda de forma direta, técnica, estruturada em Markdown e em português do B
         responseText = `⚠️ **Erro de Conexão com ${config.provider.toUpperCase()}:** Não foi possível conectar ao endpoint do provedor de IA (${err.message || err}). Verifique sua conexão e chave de API.`;
       }
     } else {
-      responseText = `⚠️ **Provedor de IA não suportado diretamente via REST.** Por favor, selecione OpenAI, Groq, DeepSeek ou Ollama.`;
+    // Persist interaction to cloud history
+    if (!store.aiChatHistories) store.aiChatHistories = {};
+    if (!store.aiChatHistories[tenantId]) store.aiChatHistories[tenantId] = [];
+
+    store.aiChatHistories[tenantId].push({
+      id: `u-${Date.now()}`,
+      sender: "user",
+      text: prompt,
+      timestamp: new Date().toLocaleTimeString("pt-BR"),
+    });
+
+    store.aiChatHistories[tenantId].push({
+      id: `a-${Date.now() + 1}`,
+      sender: "ai",
+      text: responseText,
+      toolCall,
+      timestamp: new Date().toLocaleTimeString("pt-BR"),
+    });
+
+    // Keep up to 60 messages per tenant in cloud
+    if (store.aiChatHistories[tenantId].length > 60) {
+      store.aiChatHistories[tenantId] = store.aiChatHistories[tenantId].slice(-60);
     }
+    saveStore(store);
 
     sendJson(res, 200, {
       response: responseText,
@@ -2517,6 +2542,36 @@ Responda de forma direta, técnica, estruturada em Markdown e em português do B
       provider: config.provider,
       tenantId,
     });
+    return;
+  }
+
+  // --- AI CHAT CLOUD HISTORY SYNC ENDPOINTS ---
+  if (url.startsWith("/api/v1/ai/chat/history") && method === "GET") {
+    const tenantId = (req.headers["x-tenant-id"] as string) || (new URL(url, "http://localhost").searchParams.get("tenantId")) || "tenant-default";
+    if (!store.aiChatHistories) store.aiChatHistories = {};
+    const messages = store.aiChatHistories[tenantId] || [];
+    sendJson(res, 200, { tenantId, messages, syncedAt: new Date().toISOString() });
+    return;
+  }
+
+  if (url === "/api/v1/ai/chat/history" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || (req.headers["x-tenant-id"] as string) || "tenant-default";
+    if (!store.aiChatHistories) store.aiChatHistories = {};
+    if (Array.isArray(body.messages)) {
+      store.aiChatHistories[tenantId] = body.messages.slice(-60);
+      saveStore(store);
+    }
+    sendJson(res, 200, { success: true, tenantId, count: (store.aiChatHistories[tenantId] || []).length, syncedAt: new Date().toISOString() });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/ai/chat/history") && method === "DELETE") {
+    const tenantId = (req.headers["x-tenant-id"] as string) || (new URL(url, "http://localhost").searchParams.get("tenantId")) || "tenant-default";
+    if (!store.aiChatHistories) store.aiChatHistories = {};
+    delete store.aiChatHistories[tenantId];
+    saveStore(store);
+    sendJson(res, 200, { success: true, message: `Histórico de chat do tenant '${tenantId}' limpo na nuvem.` });
     return;
   }
 

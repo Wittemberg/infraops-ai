@@ -26,21 +26,39 @@ export function AiConsoleView({ activeTenant, onOpenActionModal }) {
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [testFeedback, setTestFeedback] = useState(null);
+  const [cloudSynced, setCloudSynced] = useState(false);
 
-  // Sync / switch chat history when tenant changes
+  // Sync / switch chat history when tenant changes (load local immediately, then sync with cloud)
   useEffect(() => {
-    const storageKey = `infraops_ai_chat_${activeTenant?.id || "default"}`;
+    const tenantId = activeTenant?.id || "tenant-default";
+    const storageKey = `infraops_ai_chat_${tenantId}`;
     const saved = localStorage.getItem(storageKey);
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           setMessages(parsed);
-          return;
         }
       } catch {}
+    } else {
+      setMessages(getInitialMessages(activeTenant));
     }
-    setMessages(getInitialMessages(activeTenant));
+
+    // Fetch cloud-persisted history for multi-device sync
+    fetch(`https://infraopsai.awecloudsolution.com/api/v1/ai/chat/history`, {
+      headers: { "x-tenant-id": tenantId },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.messages && Array.isArray(data.messages) && data.messages.length > 0) {
+          setMessages(data.messages);
+          localStorage.setItem(storageKey, JSON.stringify(data.messages));
+          setCloudSynced(true);
+        } else {
+          setCloudSynced(true);
+        }
+      })
+      .catch(() => setCloudSynced(false));
   }, [activeTenant?.id]);
 
   // Persist messages whenever they change
@@ -51,10 +69,18 @@ export function AiConsoleView({ activeTenant, onOpenActionModal }) {
     }
   }, [messages, activeTenant?.id]);
 
-  const handleClearChat = () => {
-    const storageKey = `infraops_ai_chat_${activeTenant?.id || "default"}`;
+  const handleClearChat = async () => {
+    const tenantId = activeTenant?.id || "tenant-default";
+    const storageKey = `infraops_ai_chat_${tenantId}`;
     localStorage.removeItem(storageKey);
     setMessages(getInitialMessages(activeTenant));
+
+    try {
+      await fetch(`https://infraopsai.awecloudsolution.com/api/v1/ai/chat/history`, {
+        method: "DELETE",
+        headers: { "x-tenant-id": tenantId },
+      });
+    } catch {}
   };
 
   // AI Configuration State (Persisted in localStorage with separate keys per provider)
@@ -308,6 +334,24 @@ export function AiConsoleView({ activeTenant, onOpenActionModal }) {
                 </span>
               </span>
             )}
+
+            <span
+              className="badge"
+              style={{
+                textTransform: "none",
+                fontSize: "0.75rem",
+                padding: "0.25rem 0.6rem",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.35rem",
+                background: "rgba(59, 130, 246, 0.12)",
+                color: "#3b82f6",
+                border: "1px solid rgba(59, 130, 246, 0.25)",
+              }}
+              title="Histórico de mensagens sincronizado e persistido na nuvem"
+            >
+              ☁️ Nuvem Sincronizada
+            </span>
           </div>
 
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
