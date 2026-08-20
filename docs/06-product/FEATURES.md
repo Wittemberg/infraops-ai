@@ -1,7 +1,7 @@
 # Features — InfraOps AI
 
 ## Implemented / Production (100% Homologado)
-- **Core Platform & Multi-Tenancy:** Isolamento estrito de tenants, RBAC granular (`superadmin`, `admin`, `operator`, `auditor`, `viewer`), auditoria SHA-256 criptográfica e controle seguro de credenciais.
+- **Core Platform & Multi-Tenancy:** Isolamento estrito de tenants, RBAC granular (`superadmin`, `admin`, `operator`, `auditor`, `viewer`), auditoria SHA-256 criptográfica, controle seguro de credenciais e onboarding limpo (*Zero-State*) para novos clientes.
 - **Painel de Configurações Gerais (9 Subsistemas):** Gestão centralizada e testes ao vivo para SMTP, Storage S3/MinIO, PostgreSQL 16, Redis (BullMQ), Telemetria Prometheus/Grafana, Provedores de IA, Agente de Host, White-Label MSP e Políticas Globais.
 - **Gestão de Identidade & Primeiro Acesso:** Troca mandatória de senha no primeiro login (`mustChangePassword`), gerador seguro de senhas, fluxo interativo de "Esqueci a Senha" (PIN de 6 dígitos), exclusão e alternador rápido de status (Ativo/Inativo com HTTP 403).
 - **Agentes de Host:** Golang Linux & PowerShell Windows com conexões mTLS exclusivamente outbound e auto-registro (Enrollment).

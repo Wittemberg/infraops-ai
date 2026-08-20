@@ -103,6 +103,12 @@ Centralização completa e testes de conectividade ao vivo em tempo real para to
 - **Fluxo "Esqueci a Senha":** Recuperação segura por PIN/Token de 6 dígitos com expiração de 15 minutos e redefinição direta de credencial (`POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password`).
 - **Ciclo de Vida de Usuários:** Exclusão segura de usuários (`DELETE /api/v1/users/:id`), alternador rápido de status `🟢 Ativo / 🔴 Inativo` e bloqueio imediato na autenticação (HTTP 403) para contas inativas.
 
-### 3.3. Padronização Visual Corporativa
+### 3.3. Isolamento Rigoroso Multi-Tenant & RBAC de Organizações
+- **Visão Estrita para Tenant Owners / Admins:** Usuários com papéis de clientes específicos (`tenantId !== "global"`, ex: `waldes@calvi.com.br`) não visualizam dados, tabelas ou cadastros de outros clientes.
+- **Top Bar com Trava de Tenant:** Substituição do dropdown seletor por identificador estático com badge da organização ativa para usuários não-SuperAdmin.
+- **Restrição de Configurações Globais:** Acesso exclusivo ao menu `⚙️ Configurações Gerais` (infraestrutura master) apenas para o `SuperAdmin` (MSP).
+- **Ambiente Limpo para Novos Clientes (*Zero-State Onboarding*):** Escopo estrito e isolamento por `tenantId` aplicado em Aprovações, Auditoria SHA-256, Canais de Alerta, Rotinas Agendadas, Triggers, Políticas Self-Healing e Metas (SLOs), garantindo que novos clientes iniciem com ambiente 100% limpo e sem vazamento de dados de teste/demonstração.
+
+### 3.4. Padronização Visual Corporativa
 - Remoção total de tags de desenvolvimento e etapas dos componentes visuais, garantindo uma interface limpa, moderna e 100% orientada a ambiente corporativo e clientes finais.
 

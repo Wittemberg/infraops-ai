@@ -10,6 +10,7 @@ InfraOps AI é uma plataforma completa de Governança, Operações Autônomas e 
 - **Status do Roadmap:** **25/25 Etapas Concluídas (100%) + Módulos Especiais Homologados**.
 - **Segurança:** Todas as regras não-negociáveis do `AGENTS.md` e ADRs (incluindo ADR-016 e ADR-017) permanecem 100% ativas.
 - **Recursos em Produção:**
+  - 🏢 **Isolamento Rigoroso Multi-Tenant & RBAC:** Visão restrita e isolada para Tenant Owners e Admins (sem acesso a outros clientes ou infraestrutura master do MSP), trava dinâmica de tenant no topo e onboarding limpo (*Zero-State*) para novos clientes.
   - ⚙️ **Configurações Gerais da Plataforma (9 Subsistemas):** Gestão centralizada e testes de conectividade ao vivo para SMTP, Storage S3/MinIO, PostgreSQL 16, Redis (BullMQ), Telemetria Prometheus, Provedores de IA, Agente de Host, White-Label MSP e Políticas Globais.
   - 🔑 **Gestão de Identidade, Credenciais & Primeiro Acesso:** Fluxo interativo de "Esqueci a Senha" (PIN de 6 dígitos), troca obrigatória de senha no primeiro login (`mustChangePassword`), gerador seguro de senhas, controle de status (🟢 Ativo / 🔴 Inativo) e exclusão segura de usuários.
   - 🤖 **IA Contextual Multi-Provedor:** Groq Cloud, OpenAI, DeepSeek, Claude e Ollama local com validação upstream de chaves ao vivo (`🟢 CHAVE ATIVA`).
