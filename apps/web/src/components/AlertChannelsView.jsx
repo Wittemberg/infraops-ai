@@ -149,7 +149,7 @@ export function AlertChannelsView({ activeTenant }) {
     fetchChannels();
   }, [activeTenant]);
 
-  const tenantChannels = channels.filter((c) => !c.tenantId || c.tenantId === activeTenant?.id);
+  const tenantChannels = channels.filter((c) => c.tenantId === activeTenant?.id);
 
   const filteredChannels = tenantChannels.filter((c) => {
     if (selectedTypeFilter === "all") return true;

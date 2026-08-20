@@ -745,10 +745,15 @@ export function AutomationsSchedulerView({ activeTenant }) {
     }
   };
 
-  const activeSchedulesCount = schedules.filter((s) => s.enabled).length;
-  const activeTriggersCount = triggers.filter((t) => t.enabled).length;
-  const activePoliciesCount = policies.filter((p) => p.enabled).length;
-  const compliantGoalsCount = goals.filter((g) => g.complianceStatus === "compliant").length;
+  const tenantSchedules = schedules.filter((s) => s.tenantId === activeTenant?.id);
+  const tenantTriggers = triggers.filter((t) => t.tenantId === activeTenant?.id);
+  const tenantPolicies = policies.filter((p) => p.tenantId === activeTenant?.id);
+  const tenantGoals = goals.filter((g) => g.tenantId === activeTenant?.id);
+
+  const activeSchedulesCount = tenantSchedules.filter((s) => s.enabled).length;
+  const activeTriggersCount = tenantTriggers.filter((t) => t.enabled).length;
+  const activePoliciesCount = tenantPolicies.filter((p) => p.enabled).length;
+  const compliantGoalsCount = tenantGoals.filter((g) => g.complianceStatus === "compliant").length;
 
   return (
     <div style={{ padding: "1.25rem 1.5rem" }}>
@@ -814,25 +819,25 @@ export function AutomationsSchedulerView({ activeTenant }) {
       <div className="kpi-grid" style={{ padding: "0 0 1.25rem 0" }}>
         <div className="glass-panel kpi-card">
           <div className="kpi-title">📅 Rotinas Agendadas</div>
-          <div className="kpi-value" style={{ color: "var(--accent-indigo)" }}>{schedules.length}</div>
+          <div className="kpi-value" style={{ color: "var(--accent-indigo)" }}>{tenantSchedules.length}</div>
           <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{activeSchedulesCount} ativas</span>
         </div>
 
         <div className="glass-panel kpi-card">
           <div className="kpi-title">⚡ Triggers & Eventos</div>
-          <div className="kpi-value" style={{ color: "var(--accent-cyan)" }}>{triggers.length}</div>
+          <div className="kpi-value" style={{ color: "var(--accent-cyan)" }}>{tenantTriggers.length}</div>
           <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Anti-flapping & Circuit Breaker</span>
         </div>
 
         <div className="glass-panel kpi-card">
           <div className="kpi-title">🛡️ Self-Healing & Políticas</div>
-          <div className="kpi-value" style={{ color: "var(--accent-emerald)" }}>{policies.length}</div>
+          <div className="kpi-value" style={{ color: "var(--accent-emerald)" }}>{tenantPolicies.length}</div>
           <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Precheck & Postcheck Ativos</span>
         </div>
 
         <div className="glass-panel kpi-card">
           <div className="kpi-title">🎯 Metas & SLOs</div>
-          <div className="kpi-value" style={{ color: "var(--accent-purple)" }}>{goals.length}</div>
+          <div className="kpi-value" style={{ color: "var(--accent-purple)" }}>{tenantGoals.length}</div>
           <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{compliantGoalsCount} em conformidade</span>
         </div>
       </div>
@@ -898,59 +903,68 @@ export function AutomationsSchedulerView({ activeTenant }) {
               </button>
             </div>
 
-            <div style={{ width: "100%", overflowX: "auto" }}>
-              <table className="custom-table" style={{ width: "100%", minWidth: "900px" }}>
-                <thead>
-                  <tr>
-                    <th style={{ width: "30%" }}>Nome da Rotina</th>
-                    <th style={{ width: "15%" }}>Frequência</th>
-                    <th style={{ width: "15%" }}>Tipo de Tarefa</th>
-                    <th style={{ width: "15%" }}>Nível de Autonomia</th>
-                    <th style={{ width: "10%" }}>Status</th>
-                    <th style={{ width: "15%" }}>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {schedules.map((sch) => (
-                    <tr key={sch.id}>
-                      <td>
-                        <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>{sch.name}</div>
-                        <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>ID: {sch.id}</div>
-                      </td>
-                      <td>
-                        <code style={{ fontSize: "0.75rem", color: "var(--accent-cyan)" }}>{sch.scheduleExpression}</code>
-                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>{sch.timezone}</div>
-                      </td>
-                      <td>
-                        <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>
-                          {sch.jobType === "ai_analysis" && "🤖 Análise de IA"}
-                          {sch.jobType === "health_sweep" && "🩺 Health Sweep"}
-                          {sch.jobType === "backup_compliance" && "💾 Auditoria Backup"}
-                          {sch.jobType === "action" && `⚡ Action (${sch.actionKey})`}
-                        </span>
-                      </td>
-                      <td>{getAutonomyBadge(sch.autonomyLevel)}</td>
-                      <td>
-                        <span className={`badge ${sch.enabled ? "badge-online" : "badge-offline"}`} style={{ fontSize: "0.7rem" }}>
-                          {sch.enabled ? "🟢 ATIVO" : "⏸️ PAUSADO"}
-                        </span>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          disabled={runningId === sch.id}
-                          onClick={() => handleRunNow(sch)}
-                          style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}
-                        >
-                          {runningId === sch.id ? "⏳ Executando..." : "⚡ Executar Agora"}
-                        </button>
-                      </td>
+            {tenantSchedules.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "2.5rem 0", color: "var(--text-muted)" }}>
+                <p>Nenhuma automação agendada cadastrada para o cliente <strong>{activeTenant?.name}</strong>.</p>
+                <button type="button" className="btn btn-primary" onClick={() => handleOpenScheduleModal()} style={{ fontSize: "0.85rem", marginTop: "0.75rem" }}>
+                  + Criar Primeira Rotina Agendada
+                </button>
+              </div>
+            ) : (
+              <div style={{ width: "100%", overflowX: "auto" }}>
+                <table className="custom-table" style={{ width: "100%", minWidth: "900px" }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: "30%" }}>Nome da Rotina</th>
+                      <th style={{ width: "15%" }}>Frequência</th>
+                      <th style={{ width: "15%" }}>Tipo de Tarefa</th>
+                      <th style={{ width: "15%" }}>Nível de Autonomia</th>
+                      <th style={{ width: "10%" }}>Status</th>
+                      <th style={{ width: "15%" }}>Ações</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {tenantSchedules.map((sch) => (
+                      <tr key={sch.id}>
+                        <td>
+                          <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>{sch.name}</div>
+                          <div style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>ID: {sch.id}</div>
+                        </td>
+                        <td>
+                          <code style={{ fontSize: "0.75rem", color: "var(--accent-cyan)" }}>{sch.scheduleExpression}</code>
+                          <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>{sch.timezone}</div>
+                        </td>
+                        <td>
+                          <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>
+                            {sch.jobType === "ai_analysis" && "🤖 Análise de IA"}
+                            {sch.jobType === "health_sweep" && "🩺 Health Sweep"}
+                            {sch.jobType === "backup_compliance" && "💾 Auditoria Backup"}
+                            {sch.jobType === "action" && `⚡ Action (${sch.actionKey})`}
+                          </span>
+                        </td>
+                        <td>{getAutonomyBadge(sch.autonomyLevel)}</td>
+                        <td>
+                          <span className={`badge ${sch.enabled ? "badge-online" : "badge-offline"}`} style={{ fontSize: "0.7rem" }}>
+                            {sch.enabled ? "🟢 ATIVO" : "⏸️ PAUSADO"}
+                          </span>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            disabled={runningId === sch.id}
+                            onClick={() => handleRunNow(sch)}
+                            style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}
+                          >
+                            {runningId === sch.id ? "⏳ Executando..." : "⚡ Executar Agora"}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -969,66 +983,75 @@ export function AutomationsSchedulerView({ activeTenant }) {
               </button>
             </div>
 
-            <div style={{ width: "100%", overflowX: "auto" }}>
-              <table className="custom-table" style={{ width: "100%", minWidth: "900px" }}>
-                <thead>
-                  <tr>
-                    <th style={{ width: "25%" }}>Nome do Trigger</th>
-                    <th style={{ width: "20%" }}>Condição Avaliada</th>
-                    <th style={{ width: "15%" }}>Travas Anti-Flapping</th>
-                    <th style={{ width: "15%" }}>Ação / Nível</th>
-                    <th style={{ width: "10%" }}>Circuit Breaker</th>
-                    <th style={{ width: "15%" }}>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {triggers.map((trg) => (
-                    <tr key={trg.id}>
-                      <td>
-                        <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>{trg.name}</div>
-                        <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Fonte: {trg.source}</span>
-                      </td>
-                      <td>
-                        <code style={{ fontSize: "0.75rem", color: "var(--accent-amber)" }}>
-                          {trg.metricName} {trg.operator} {trg.threshold}
-                        </code>
-                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>Persistência: {trg.duration}</div>
-                      </td>
-                      <td>
-                        <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                          Cooldown: <strong>{trg.cooldownMinutes}m</strong>
-                        </div>
-                        <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>Max: {trg.circuitBreakerMaxPerHour} disparos/h</div>
-                      </td>
-                      <td>
-                        <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--accent-indigo)" }}>
-                          {trg.actionKey || "diagnostics.sweep"}
-                        </div>
-                        {getAutonomyBadge(trg.autonomyLevel)}
-                      </td>
-                      <td>
-                        {trg.circuitBreakerTripped ? (
-                          <span className="badge badge-offline" style={{ fontSize: "0.7rem" }}>🔴 TRIPPED</span>
-                        ) : (
-                          <span className="badge badge-online" style={{ fontSize: "0.7rem" }}>🟢 OK</span>
-                        )}
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          disabled={simulatingTriggerId === trg.id}
-                          onClick={() => handleSimulateTrigger(trg)}
-                          style={{ padding: "0.25rem 0.5rem", fontSize: "0.72rem" }}
-                        >
-                          {simulatingTriggerId === trg.id ? "⏳ Testando..." : "🧪 Simular"}
-                        </button>
-                      </td>
+            {tenantTriggers.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "2.5rem 0", color: "var(--text-muted)" }}>
+                <p>Nenhum trigger reativo cadastrado para o cliente <strong>{activeTenant?.name}</strong>.</p>
+                <button type="button" className="btn btn-primary" onClick={() => handleOpenTriggerModal()} style={{ fontSize: "0.85rem", marginTop: "0.75rem" }}>
+                  + Criar Primeiro Trigger
+                </button>
+              </div>
+            ) : (
+              <div style={{ width: "100%", overflowX: "auto" }}>
+                <table className="custom-table" style={{ width: "100%", minWidth: "900px" }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: "25%" }}>Nome do Trigger</th>
+                      <th style={{ width: "20%" }}>Condição Avaliada</th>
+                      <th style={{ width: "15%" }}>Travas Anti-Flapping</th>
+                      <th style={{ width: "15%" }}>Ação / Nível</th>
+                      <th style={{ width: "10%" }}>Circuit Breaker</th>
+                      <th style={{ width: "15%" }}>Ações</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {tenantTriggers.map((trg) => (
+                      <tr key={trg.id}>
+                        <td>
+                          <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>{trg.name}</div>
+                          <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Fonte: {trg.source}</span>
+                        </td>
+                        <td>
+                          <code style={{ fontSize: "0.75rem", color: "var(--accent-amber)" }}>
+                            {trg.metricName} {trg.operator} {trg.threshold}
+                          </code>
+                          <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>Persistência: {trg.duration}</div>
+                        </td>
+                        <td>
+                          <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                            Cooldown: <strong>{trg.cooldownMinutes}m</strong>
+                          </div>
+                          <div style={{ fontSize: "0.68rem", color: "var(--text-muted)" }}>Max: {trg.circuitBreakerMaxPerHour} disparos/h</div>
+                        </td>
+                        <td>
+                          <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--accent-indigo)" }}>
+                            {trg.actionKey || "diagnostics.sweep"}
+                          </div>
+                          {getAutonomyBadge(trg.autonomyLevel)}
+                        </td>
+                        <td>
+                          {trg.circuitBreakerTripped ? (
+                            <span className="badge badge-offline" style={{ fontSize: "0.7rem" }}>🔴 TRIPPED</span>
+                          ) : (
+                            <span className="badge badge-online" style={{ fontSize: "0.7rem" }}>🟢 OK</span>
+                          )}
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            disabled={simulatingTriggerId === trg.id}
+                            onClick={() => handleSimulateTrigger(trg)}
+                            style={{ padding: "0.25rem 0.5rem", fontSize: "0.72rem" }}
+                          >
+                            {simulatingTriggerId === trg.id ? "⏳ Testando..." : "🧪 Simular"}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -1047,53 +1070,62 @@ export function AutomationsSchedulerView({ activeTenant }) {
               </button>
             </div>
 
-            <div style={{ width: "100%", overflowX: "auto" }}>
-              <table className="custom-table" style={{ width: "100%", minWidth: "960px" }}>
-                <thead>
-                  <tr>
-                    <th style={{ width: "26%" }}>Nome da Política</th>
-                    <th style={{ width: "14%" }}>Nível de Autonomia</th>
-                    <th style={{ width: "16%" }}>Action Homologada</th>
-                    <th style={{ width: "16%" }}>Orçamento de Risco (Budget)</th>
-                    <th style={{ width: "12%" }}>Pós-Validação</th>
-                    <th style={{ width: "16%" }}>Ações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {policies.map((pol) => (
-                    <tr key={pol.id}>
-                      <td>
-                        <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>{pol.name}</div>
-                        <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Cenário: <strong>{pol.scenario}</strong></span>
-                      </td>
-                      <td>{getAutonomyBadge(pol.autonomyLevel)}</td>
-                      <td>
-                        <code style={{ fontSize: "0.75rem", color: "var(--accent-indigo)" }}>{pol.allowedActions.join(", ")}</code>
-                      </td>
-                      <td>
-                        <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                          <strong>{pol.riskBudget.actionsExecutedThisHour}/{pol.riskBudget.maxActionsPerHour}</strong> ações/hora
-                        </div>
-                      </td>
-                      <td>
-                        <span className="badge badge-online" style={{ fontSize: "0.7rem" }}>✓ Postcheck Ativo</span>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          disabled={executingPolicyId === pol.id}
-                          onClick={() => handleExecuteSelfHealing(pol)}
-                          style={{ padding: "0.25rem 0.55rem", fontSize: "0.72rem" }}
-                        >
-                          {executingPolicyId === pol.id ? "⏳ Remediando..." : "🧪 Testar Remediação"}
-                        </button>
-                      </td>
+            {tenantPolicies.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "2.5rem 0", color: "var(--text-muted)" }}>
+                <p>Nenhuma política self-healing cadastrada para o cliente <strong>{activeTenant?.name}</strong>.</p>
+                <button type="button" className="btn btn-primary" onClick={() => handleOpenPolicyModal()} style={{ fontSize: "0.85rem", marginTop: "0.75rem" }}>
+                  + Criar Primeira Política Self-Healing
+                </button>
+              </div>
+            ) : (
+              <div style={{ width: "100%", overflowX: "auto" }}>
+                <table className="custom-table" style={{ width: "100%", minWidth: "960px" }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: "26%" }}>Nome da Política</th>
+                      <th style={{ width: "14%" }}>Nível de Autonomia</th>
+                      <th style={{ width: "16%" }}>Action Homologada</th>
+                      <th style={{ width: "16%" }}>Orçamento de Risco (Budget)</th>
+                      <th style={{ width: "12%" }}>Pós-Validação</th>
+                      <th style={{ width: "16%" }}>Ações</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {tenantPolicies.map((pol) => (
+                      <tr key={pol.id}>
+                        <td>
+                          <div style={{ fontWeight: 600, fontSize: "0.85rem" }}>{pol.name}</div>
+                          <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>Cenário: <strong>{pol.scenario}</strong></span>
+                        </td>
+                        <td>{getAutonomyBadge(pol.autonomyLevel)}</td>
+                        <td>
+                          <code style={{ fontSize: "0.75rem", color: "var(--accent-indigo)" }}>{pol.allowedActions.join(", ")}</code>
+                        </td>
+                        <td>
+                          <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                            <strong>{pol.riskBudget.actionsExecutedThisHour}/{pol.riskBudget.maxActionsPerHour}</strong> ações/hora
+                          </div>
+                        </td>
+                        <td>
+                          <span className="badge badge-online" style={{ fontSize: "0.7rem" }}>✓ Postcheck Ativo</span>
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            disabled={executingPolicyId === pol.id}
+                            onClick={() => handleExecuteSelfHealing(pol)}
+                            style={{ padding: "0.25rem 0.55rem", fontSize: "0.72rem" }}
+                          >
+                            {executingPolicyId === pol.id ? "⏳ Remediando..." : "🧪 Testar Remediação"}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -1121,66 +1153,75 @@ export function AutomationsSchedulerView({ activeTenant }) {
             </div>
 
             {/* Goals Cards Grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
-              {goals.map((g) => (
-                <div key={g.id} className="glass-panel" style={{ padding: "1rem", border: "1px solid var(--border-subtle)", position: "relative" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
-                    <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text-primary)" }}>{g.name}</div>
-                    {getComplianceStatusBadge(g.complianceStatus)}
-                  </div>
+            {tenantGoals.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "2.5rem 0", color: "var(--text-muted)" }}>
+                <p>Nenhuma meta/SLO cadastrada para o cliente <strong>{activeTenant?.name}</strong>.</p>
+                <button type="button" className="btn btn-primary" onClick={() => handleOpenGoalModal()} style={{ fontSize: "0.85rem", marginTop: "0.75rem" }}>
+                  + Criar Primeira Meta (SLO)
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
+                {tenantGoals.map((g) => (
+                  <div key={g.id} className="glass-panel" style={{ padding: "1rem", border: "1px solid var(--border-subtle)", position: "relative" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
+                      <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "var(--text-primary)" }}>{g.name}</div>
+                      {getComplianceStatusBadge(g.complianceStatus)}
+                    </div>
 
-                  {/* Progress Gauge */}
-                  <div style={{ margin: "0.75rem 0" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", marginBottom: "0.3rem" }}>
-                      <span style={{ color: "var(--text-secondary)" }}>Conformidade do SLO</span>
-                      <strong style={{ color: g.complianceStatus === "compliant" ? "var(--accent-emerald)" : "var(--accent-amber)" }}>
-                        {g.compliancePercent}%
-                      </strong>
+                    {/* Progress Gauge */}
+                    <div style={{ margin: "0.75rem 0" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", marginBottom: "0.3rem" }}>
+                        <span style={{ color: "var(--text-secondary)" }}>Conformidade do SLO</span>
+                        <strong style={{ color: g.complianceStatus === "compliant" ? "var(--accent-emerald)" : "var(--accent-amber)" }}>
+                          {g.compliancePercent}%
+                        </strong>
+                      </div>
+                      <div style={{ width: "100%", height: "8px", background: "rgba(255,255,255,0.08)", borderRadius: "4px", overflow: "hidden" }}>
+                        <div
+                          style={{
+                            width: `${Math.min(100, g.compliancePercent)}%`,
+                            height: "100%",
+                            background: g.complianceStatus === "compliant" ? "var(--accent-emerald)" : "var(--accent-amber)",
+                            transition: "width 0.4s ease",
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div style={{ width: "100%", height: "8px", background: "rgba(255,255,255,0.08)", borderRadius: "4px", overflow: "hidden" }}>
-                      <div
-                        style={{
-                          width: `${Math.min(100, g.compliancePercent)}%`,
-                          height: "100%",
-                          background: g.complianceStatus === "compliant" ? "var(--accent-emerald)" : "var(--accent-amber)",
-                          transition: "width 0.4s ease",
-                        }}
-                      />
-                    </div>
-                  </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "0.75rem" }}>
-                    <div>
-                      Valor Atual: <strong style={{ color: "#fff" }}>{g.currentValue}{g.objective?.unit}</strong>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem", fontSize: "0.75rem", color: "var(--text-secondary)", marginBottom: "0.75rem" }}>
+                      <div>
+                        Valor Atual: <strong style={{ color: "#fff" }}>{g.currentValue}{g.objective?.unit}</strong>
+                      </div>
+                      <div>
+                        Meta (Target): <strong style={{ color: "var(--accent-indigo)" }}>{g.objective?.operator} {g.objective?.targetValue}{g.objective?.unit}</strong>
+                      </div>
+                      <div>
+                        Intervalo: <strong>{g.evaluationInterval}</strong>
+                      </div>
+                      <div>
+                        Autonomia: <strong>Nível {g.autonomyLevel}</strong>
+                      </div>
                     </div>
-                    <div>
-                      Meta (Target): <strong style={{ color: "var(--accent-indigo)" }}>{g.objective?.operator} {g.objective?.targetValue}{g.objective?.unit}</strong>
-                    </div>
-                    <div>
-                      Intervalo: <strong>{g.evaluationInterval}</strong>
-                    </div>
-                    <div>
-                      Autonomia: <strong>Nível {g.autonomyLevel}</strong>
-                    </div>
-                  </div>
 
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border-subtle)", paddingTop: "0.75rem" }}>
-                    <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                      Última avaliação: {g.lastEvaluatedAt ? new Date(g.lastEvaluatedAt).toLocaleTimeString("pt-BR") : "Pendente"}
-                    </span>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      disabled={evaluatingGoalId === g.id}
-                      onClick={() => handleEvaluateGoal(g)}
-                      style={{ padding: "0.25rem 0.6rem", fontSize: "0.75rem" }}
-                    >
-                      {evaluatingGoalId === g.id ? "⏳ Avaliando..." : "🔍 Avaliar Agora"}
-                    </button>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid var(--border-subtle)", paddingTop: "0.75rem" }}>
+                      <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                        Última avaliação: {g.lastEvaluatedAt ? new Date(g.lastEvaluatedAt).toLocaleTimeString("pt-BR") : "Pendente"}
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={evaluatingGoalId === g.id}
+                        onClick={() => handleEvaluateGoal(g)}
+                        style={{ padding: "0.25rem 0.6rem", fontSize: "0.75rem" }}
+                      >
+                        {evaluatingGoalId === g.id ? "⏳ Avaliando..." : "🔍 Avaliar Agora"}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

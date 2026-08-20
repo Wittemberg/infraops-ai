@@ -1,55 +1,80 @@
 import React, { useState } from "react";
 
 export function ApprovalsAuditView({ activeTenant }) {
-  const [approvals, setApprovals] = useState([
-    {
-      id: "appr-9012",
-      tenantId: activeTenant?.id || "tenant-default",
-      requester: "ai-orchestrator",
-      isAi: true,
-      action: "system.packages_update",
-      target: "node-pve01",
-      risk: "MEDIUM",
-      status: "pending",
-      expiresAt: "14m",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "appr-9013",
-      tenantId: activeTenant?.id || "tenant-default",
-      requester: "usr-operator",
-      isAi: false,
-      action: "service.restart",
-      target: "srv-db-postgres",
-      risk: "HIGH",
-      status: "pending",
-      expiresAt: "45m",
-      createdAt: new Date().toISOString(),
-    },
-  ]);
+  const [approvals, setApprovals] = useState(() => {
+    const cached = localStorage.getItem("infraops_approvals");
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch {
+        return [];
+      }
+    }
+    return [
+      {
+        id: "appr-9012",
+        tenantId: "tenant-default",
+        requester: "ai-orchestrator",
+        isAi: true,
+        action: "system.packages_update",
+        target: "node-pve01",
+        risk: "MEDIUM",
+        status: "pending",
+        expiresAt: "14m",
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: "appr-9013",
+        tenantId: "tenant-default",
+        requester: "usr-operator",
+        isAi: false,
+        action: "service.restart",
+        target: "srv-db-postgres",
+        risk: "HIGH",
+        status: "pending",
+        expiresAt: "45m",
+        createdAt: new Date().toISOString(),
+      },
+    ];
+  });
 
-  const [auditEvents, setAuditEvents] = useState([
-    {
-      id: "ev-100",
-      timestamp: new Date(Date.now() - 1000 * 60 * 12).toLocaleString("pt-BR"),
-      actor: "usr-admin",
-      eventType: "policy.decision",
-      action: "service.restart",
-      target: "web-server-01",
-      eventHash: "a7b9c1d3e5f7890123456789abcdef0123456789abcdef0123456789abcdef01",
-      prevHash: "0000000000000000000000000000000000000000000000000000000000000000",
-    },
-    {
-      id: "ev-101",
-      timestamp: new Date(Date.now() - 1000 * 60 * 5).toLocaleString("pt-BR"),
-      actor: "ai-orchestrator",
-      eventType: "ai.recommendation",
-      action: "system.packages_update",
-      target: "node-pve01",
-      eventHash: "f2e4d6c8b0a123456789abcdef0123456789abcdef0123456789abcdef012345",
-      prevHash: "a7b9c1d3e5f7890123456789abcdef0123456789abcdef0123456789abcdef01",
-    },
-  ]);
+  const [auditEvents, setAuditEvents] = useState(() => {
+    const cached = localStorage.getItem("infraops_audit_events");
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch {
+        return [];
+      }
+    }
+    return [
+      {
+        id: "ev-100",
+        tenantId: "tenant-default",
+        timestamp: new Date(Date.now() - 1000 * 60 * 12).toLocaleString("pt-BR"),
+        actor: "usr-admin",
+        eventType: "policy.decision",
+        action: "service.restart",
+        target: "web-server-01",
+        eventHash: "a7b9c1d3e5f7890123456789abcdef0123456789abcdef0123456789abcdef01",
+        prevHash: "0000000000000000000000000000000000000000000000000000000000000000",
+      },
+      {
+        id: "ev-101",
+        tenantId: "tenant-default",
+        timestamp: new Date(Date.now() - 1000 * 60 * 5).toLocaleString("pt-BR"),
+        actor: "ai-orchestrator",
+        eventType: "ai.recommendation",
+        action: "system.packages_update",
+        target: "node-pve01",
+        eventHash: "f2e4d6c8b0a123456789abcdef0123456789abcdef0123456789abcdef012345",
+        prevHash: "a7b9c1d3e5f7890123456789abcdef0123456789abcdef0123456789abcdef01",
+      },
+    ];
+  });
+
+  const tenantApprovals = approvals.filter((a) => a.tenantId === activeTenant?.id);
+  const tenantAuditEvents = auditEvents.filter((ev) => ev.tenantId === activeTenant?.id);
 
   const [verifying, setVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState(null);
@@ -137,9 +162,9 @@ export function ApprovalsAuditView({ activeTenant }) {
           </div>
         </div>
 
-        {approvals.length === 0 ? (
+        {tenantApprovals.length === 0 ? (
           <div style={{ textAlign: "center", padding: "2rem 0", color: "var(--text-muted)" }}>
-            <p>Nenhuma aprovação pendente no momento.</p>
+            <p>✅ Nenhuma aprovação pendente no momento para o cliente <strong>{activeTenant?.name}</strong>.</p>
           </div>
         ) : (
           <table className="custom-table">
@@ -156,7 +181,7 @@ export function ApprovalsAuditView({ activeTenant }) {
               </tr>
             </thead>
             <tbody>
-              {approvals.map((appr) => (
+              {tenantApprovals.map((appr) => (
                 <tr key={appr.id}>
                   <td style={{ fontFamily: "var(--font-mono)", color: "var(--accent-indigo)" }}>{appr.id}</td>
                   <td style={{ fontWeight: 600 }}>{appr.requester}</td>
@@ -223,7 +248,7 @@ export function ApprovalsAuditView({ activeTenant }) {
           <button
             className="btn btn-secondary"
             onClick={handleVerifyChain}
-            disabled={verifying}
+            disabled={verifying || tenantAuditEvents.length === 0}
             style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }}
           >
             {verifying ? "🔄 Calculando Hashes..." : "🔒 Validar Integridade Criptográfica"}
@@ -236,34 +261,40 @@ export function ApprovalsAuditView({ activeTenant }) {
           </div>
         )}
 
-        <table className="custom-table">
-          <thead>
-            <tr>
-              <th>Data / Hora</th>
-              <th>Ator Responsável</th>
-              <th>Tipo de Evento</th>
-              <th>Ação / Alvo</th>
-              <th>Hash do Evento (SHA-256)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {auditEvents.map((ev) => (
-              <tr key={ev.id}>
-                <td style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{ev.timestamp}</td>
-                <td style={{ fontWeight: 600 }}>{ev.actor}</td>
-                <td>
-                  <span className="badge badge-online">{ev.eventType}</span>
-                </td>
-                <td style={{ color: "var(--text-primary)", fontSize: "0.85rem" }}>
-                  <strong>{ev.action}</strong> {ev.target && `→ ${ev.target}`}
-                </td>
-                <td style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--accent-indigo)" }} title={ev.eventHash}>
-                  {ev.eventHash.substring(0, 16)}...{ev.eventHash.substring(48)}
-                </td>
+        {tenantAuditEvents.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "2rem 0", color: "var(--text-muted)" }}>
+            <p>Nenhum evento de auditoria registrado ainda para o cliente <strong>{activeTenant?.name}</strong>.</p>
+          </div>
+        ) : (
+          <table className="custom-table">
+            <thead>
+              <tr>
+                <th>Data / Hora</th>
+                <th>Ator Responsável</th>
+                <th>Tipo de Evento</th>
+                <th>Ação / Alvo</th>
+                <th>Hash do Evento (SHA-256)</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {tenantAuditEvents.map((ev) => (
+                <tr key={ev.id}>
+                  <td style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>{ev.timestamp}</td>
+                  <td style={{ fontWeight: 600 }}>{ev.actor}</td>
+                  <td>
+                    <span className="badge badge-online">{ev.eventType}</span>
+                  </td>
+                  <td style={{ color: "var(--text-primary)", fontSize: "0.85rem" }}>
+                    <strong>{ev.action}</strong> {ev.target && `→ ${ev.target}`}
+                  </td>
+                  <td style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--accent-indigo)" }} title={ev.eventHash}>
+                    {ev.eventHash.substring(0, 16)}...{ev.eventHash.substring(48)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
