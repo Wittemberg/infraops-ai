@@ -24,6 +24,7 @@ export function TenantsUsersView({
     email: "",
     role: "operator",
     password: "",
+    mustChangePassword: true,
   });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -51,6 +52,7 @@ export function TenantsUsersView({
       email: "",
       role: "operator",
       password: "",
+      mustChangePassword: true,
     });
     setShowPassword(false);
     setUserModalOpen(true);
@@ -64,6 +66,7 @@ export function TenantsUsersView({
       email: user.email,
       role: user.role,
       password: "",
+      mustChangePassword: Boolean(user.mustChangePassword),
     });
     setShowPassword(false);
     setUserModalOpen(true);
@@ -101,6 +104,7 @@ export function TenantsUsersView({
       name: userForm.name,
       email: userForm.email,
       role: userForm.role,
+      mustChangePassword: userForm.mustChangePassword,
     };
 
     if (userForm.password && userForm.password.trim()) {
@@ -233,7 +237,7 @@ export function TenantsUsersView({
                   <th>E-mail de Login</th>
                   <th>Cliente (Tenant)</th>
                   <th>Papel (Role RBAC)</th>
-                  <th>Autenticação</th>
+                  <th>Status de Senha</th>
                   <th>Ações</th>
                 </tr>
               </thead>
@@ -256,9 +260,15 @@ export function TenantsUsersView({
                       </span>
                     </td>
                     <td>
-                      <span className="badge badge-online" style={{ fontSize: "0.7rem" }}>
-                        🔑 Senha Configurada
-                      </span>
+                      {u.mustChangePassword ? (
+                        <span className="badge badge-requires_approval" style={{ fontSize: "0.7rem" }} title="Troca obrigatória no primeiro login">
+                          🟡 1º Acesso Pendente
+                        </span>
+                      ) : (
+                        <span className="badge badge-online" style={{ fontSize: "0.7rem" }} title="Senha pessoal ativa e validada">
+                          🟢 Senha Ativa
+                        </span>
+                      )}
                     </td>
                     <td>
                       <button
@@ -444,10 +454,10 @@ export function TenantsUsersView({
               </div>
 
               {/* Password Configuration Section */}
-              <div style={{ marginBottom: "1.5rem", background: "rgba(99, 102, 241, 0.06)", border: "1px solid rgba(99, 102, 241, 0.2)", padding: "0.85rem", borderRadius: "8px" }}>
+              <div style={{ marginBottom: "1.25rem", background: "rgba(99, 102, 241, 0.06)", border: "1px solid rgba(99, 102, 241, 0.2)", padding: "0.85rem", borderRadius: "8px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.35rem" }}>
                   <label style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--accent-indigo)" }}>
-                    🔑 Senha de Acesso {editingUser ? "(Opcional na edição)" : "*"}
+                    🔑 Senha Temporária Inicial {editingUser ? "(Opcional na edição)" : "*"}
                   </label>
                   <button
                     type="button"
@@ -469,7 +479,7 @@ export function TenantsUsersView({
                 <div style={{ display: "flex", gap: "0.5rem" }}>
                   <input
                     type={showPassword ? "text" : "password"}
-                    placeholder={editingUser ? "Deixe em branco para manter a senha atual" : "Digite uma senha ou use 'Gerar Senha'"}
+                    placeholder={editingUser ? "Deixe em branco para manter a senha atual" : "Digite uma senha temporária ou clique em 'Gerar'"}
                     value={userForm.password}
                     onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
                     style={{
@@ -496,13 +506,23 @@ export function TenantsUsersView({
                     }}
                     title={showPassword ? "Ocultar senha" : "Ver senha"}
                   >
-                    {showPassword ? "🙈 Ocultar" : "👁️ Ver"}
+                    {showPassword ? "🙈" : "👁️"}
                   </button>
                 </div>
-                <div style={{ fontSize: "0.72rem", color: "var(--text-muted)", marginTop: "0.35rem" }}>
-                  {editingUser
-                    ? "Caso deseje alterar a senha do usuário, digite uma nova senha acima."
-                    : "Defina a senha inicial que o usuário utilizará na tela de Login."}
+
+                {/* Mandatory Change Password Note & Toggle */}
+                <div style={{ marginTop: "0.6rem", paddingTop: "0.5rem", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+                  <label style={{ fontSize: "0.78rem", color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: "0.4rem", cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={userForm.mustChangePassword}
+                      onChange={(e) => setUserForm({ ...userForm, mustChangePassword: e.target.checked })}
+                    />
+                    🔒 Exigir troca obrigatória de senha no próximo login
+                  </label>
+                  <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
+                    Ao entrar no sistema com a senha temporária, o usuário será direcionado para definir sua senha pessoal antes de acessar o painel.
+                  </div>
                 </div>
               </div>
 

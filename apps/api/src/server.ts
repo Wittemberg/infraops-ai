@@ -16,7 +16,7 @@ const DB_FILE = join(DATA_DIR, "infraops-store.json");
 
 interface DataStore {
   tenants: Array<{ id: string; name: string; domain: string; createdAt: string }>;
-  users: Array<{ id: string; tenantId: string; name: string; email: string; role: string; password?: string; createdAt?: string }>;
+  users: Array<{ id: string; tenantId: string; name: string; email: string; role: string; password?: string; mustChangePassword?: boolean; createdAt?: string }>;
   integrations: Array<{
     id: string;
     tenantId: string;
@@ -1329,12 +1329,14 @@ const server = createServer(async (req, res) => {
       if (password === expectedPassword || password === superAdminPass) {
         sendJson(res, 200, {
           token: `jwt-user-${user.id}-${Date.now()}`,
+          mustChangePassword: Boolean(user.mustChangePassword),
           user: {
             id: user.id,
             tenantId: user.tenantId,
             name: user.name,
             email: user.email,
             role: user.role,
+            mustChangePassword: Boolean(user.mustChangePassword),
           },
         });
         return;
@@ -1345,6 +1347,53 @@ const server = createServer(async (req, res) => {
     }
 
     sendJson(res, 401, { error: "Credenciais inválidas. Usuário não encontrado ou senha incorreta." });
+    return;
+  }
+
+  // --- CHANGE PASSWORD ENDPOINT (FORCED ON FIRST LOGIN OR ON DEMAND) ---
+  if (url === "/api/v1/auth/change-password" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const email = (body.email || "").trim().toLowerCase();
+    const currentPassword = body.currentPassword || "";
+    const newPassword = (body.newPassword || "").trim();
+
+    if (!newPassword || newPassword.length < 6) {
+      sendJson(res, 400, { error: "A nova senha deve possuir no mínimo 6 caracteres." });
+      return;
+    }
+
+    const userIndex = store.users.findIndex((u) => u.email.toLowerCase() === email);
+    if (userIndex === -1) {
+      sendJson(res, 404, { error: "Usuário não encontrado." });
+      return;
+    }
+
+    const targetUser = store.users[userIndex];
+    const superAdminPass = process.env.SUPERADMIN_PASSWORD || "Admin@InfraOps2026!";
+    const expectedCurrent = targetUser.password || superAdminPass;
+
+    if (currentPassword && currentPassword !== expectedCurrent && currentPassword !== superAdminPass) {
+      sendJson(res, 401, { error: "Senha atual informada é incorreta." });
+      return;
+    }
+
+    targetUser.password = newPassword;
+    targetUser.mustChangePassword = false;
+    saveStore(store);
+
+    sendJson(res, 200, {
+      success: true,
+      message: "Senha alterada com sucesso! Você já está autenticado.",
+      token: `jwt-user-${targetUser.id}-${Date.now()}`,
+      user: {
+        id: targetUser.id,
+        tenantId: targetUser.tenantId,
+        name: targetUser.name,
+        email: targetUser.email,
+        role: targetUser.role,
+        mustChangePassword: false,
+      },
+    });
     return;
   }
 
@@ -1391,6 +1440,7 @@ const server = createServer(async (req, res) => {
       name: u.name,
       email: u.email,
       role: u.role,
+      mustChangePassword: Boolean(u.mustChangePassword),
       hasCustomPassword: Boolean(u.password && u.password !== "Admin@InfraOps2026!"),
       createdAt: u.createdAt || new Date().toISOString(),
     }));
@@ -1407,6 +1457,7 @@ const server = createServer(async (req, res) => {
       email: body.email,
       role: body.role || "operator",
       password: body.password || "Admin@InfraOps2026!",
+      mustChangePassword: body.mustChangePassword !== false, // Always true by default for new users!
       createdAt: new Date().toISOString(),
     };
     store.users.push(newUser);
@@ -1418,6 +1469,7 @@ const server = createServer(async (req, res) => {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
+        mustChangePassword: newUser.mustChangePassword,
         hasCustomPassword: Boolean(newUser.password && newUser.password !== "Admin@InfraOps2026!"),
       },
     });
@@ -1433,6 +1485,9 @@ const server = createServer(async (req, res) => {
       if (body.password) {
         store.users[index].password = body.password;
       }
+      if (body.mustChangePassword !== undefined) {
+        store.users[index].mustChangePassword = Boolean(body.mustChangePassword);
+      }
       saveStore(store);
       sendJson(res, 200, {
         user: {
@@ -1441,6 +1496,7 @@ const server = createServer(async (req, res) => {
           name: store.users[index].name,
           email: store.users[index].email,
           role: store.users[index].role,
+          mustChangePassword: Boolean(store.users[index].mustChangePassword),
           hasCustomPassword: Boolean(store.users[index].password && store.users[index].password !== "Admin@InfraOps2026!"),
         },
       });

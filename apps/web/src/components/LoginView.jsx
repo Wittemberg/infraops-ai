@@ -6,6 +6,13 @@ export function LoginView({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // Forced Password Change State (First Access)
+  const [isFirstAccess, setIsFirstAccess] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [pendingUser, setPendingUser] = useState(null);
+
   const [systemHealth, setSystemHealth] = useState({
     status: "checking",
     components: {
@@ -36,7 +43,7 @@ export function LoginView({ onLoginSuccess }) {
     return () => clearInterval(interval);
   }, []);
 
-  const handleSubmit = async (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -52,6 +59,14 @@ export function LoginView({ onLoginSuccess }) {
 
       if (!res.ok) {
         throw new Error(data.error || "Falha na autenticação. Verifique e-mail e senha.");
+      }
+
+      // Check if user must change password on first login
+      if (data.mustChangePassword || data.user?.mustChangePassword) {
+        setPendingUser(data.user);
+        setIsFirstAccess(true);
+        setError("");
+        return;
       }
 
       onLoginSuccess(data.user, data.token);
@@ -77,6 +92,64 @@ export function LoginView({ onLoginSuccess }) {
     }
   };
 
+  const handleChangePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+
+    if (!newPassword || newPassword.length < 6) {
+      setError("A nova senha deve possuir no mínimo 6 caracteres.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setError("As senhas digitadas não coincidem. Digite novamente.");
+      return;
+    }
+
+    if (newPassword === password) {
+      setError("A nova senha deve ser diferente da senha temporária inicial.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch("https://infraopsai.awecloudsolution.com/api/v1/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: pendingUser?.email || email,
+          currentPassword: password,
+          newPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Erro ao redefinir a senha.");
+      }
+
+      // Success: proceed to log in
+      onLoginSuccess(data.user, data.token);
+    } catch (err) {
+      setError(err.message || "Erro ao salvar a nova senha.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateRandomNewPassword = () => {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*";
+    let pass = "";
+    for (let i = 0; i < 14; i++) {
+      pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setNewPassword(pass);
+    setConfirmPassword(pass);
+    setShowNewPassword(true);
+  };
+
   return (
     <div
       style={{
@@ -90,7 +163,7 @@ export function LoginView({ onLoginSuccess }) {
         position: "relative",
       }}
     >
-      {/* Login Card */}
+      {/* Main Card */}
       <div
         className="glass-panel"
         style={{
@@ -98,174 +171,283 @@ export function LoginView({ onLoginSuccess }) {
           maxWidth: "460px",
           padding: "2.5rem 2rem",
           borderRadius: "16px",
-          boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08)",
-          marginBottom: "2rem",
+          border: "1px solid rgba(255, 255, 255, 0.12)",
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+          zIndex: 1,
         }}
       >
         {/* Brand Header */}
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-            <span style={{ fontSize: "1.75rem" }}>⚡</span>
-            <h1 style={{ fontFamily: "var(--font-heading)", fontSize: "1.6rem", fontWeight: 800, letterSpacing: "-0.5px" }}>
-              InfraOps <span style={{ color: "var(--accent-indigo)" }}>AI</span>
-            </h1>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: "54px",
+              height: "54px",
+              borderRadius: "14px",
+              background: "linear-gradient(135deg, var(--accent-indigo), var(--accent-cyan))",
+              color: "#fff",
+              fontSize: "1.75rem",
+              marginBottom: "1rem",
+              boxShadow: "0 8px 16px -4px rgba(99, 102, 241, 0.4)",
+            }}
+          >
+            ⚡
           </div>
-          <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-            Plataforma Autônoma de Gestão de Infraestrutura & IA
+          <h1
+            style={{
+              fontFamily: "var(--font-heading)",
+              fontSize: "1.6rem",
+              fontWeight: 800,
+              letterSpacing: "-0.5px",
+              marginBottom: "0.25rem",
+            }}
+          >
+            InfraOps AI
+          </h1>
+          <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem" }}>
+            {isFirstAccess ? "🔒 Primeiro Acesso: Redefinição de Senha Obrigatória" : "Governança & Automação Inteligente de Infraestrutura"}
           </p>
         </div>
 
         {error && (
           <div
             style={{
-              background: "rgba(244, 63, 94, 0.12)",
+              background: "rgba(244, 63, 94, 0.15)",
               border: "1px solid rgba(244, 63, 94, 0.3)",
               color: "var(--accent-rose)",
-              padding: "0.65rem 1rem",
+              padding: "0.75rem 1rem",
               borderRadius: "8px",
               fontSize: "0.85rem",
-              marginBottom: "1.25rem",
-            }}
-          >
-            ⚠️ {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: "1.25rem" }}>
-            <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.4rem" }}>
-              E-mail de Acesso
-            </label>
-            <input
-              type="email"
-              required
-              placeholder="seu-email@wrtec.com.br"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "0.75rem 1rem",
-                background: "rgba(0, 0, 0, 0.3)",
-                border: "1px solid var(--border-subtle)",
-                borderRadius: "8px",
-                color: "#ffffff",
-                fontSize: "0.9rem",
-                outline: "none",
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: "1.5rem" }}>
-            <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.4rem" }}>
-              Senha de Acesso
-            </label>
-            <input
-              type="password"
-              required
-              placeholder="••••••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "0.75rem 1rem",
-                background: "rgba(0, 0, 0, 0.3)",
-                border: "1px solid var(--border-subtle)",
-                borderRadius: "8px",
-                color: "#ffffff",
-                fontSize: "0.9rem",
-                outline: "none",
-              }}
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={loading}
-            style={{
-              width: "100%",
-              padding: "0.85rem",
-              fontSize: "0.95rem",
-              fontWeight: 600,
+              marginBottom: "1.5rem",
               display: "flex",
-              justifyContent: "center",
               alignItems: "center",
               gap: "0.5rem",
             }}
           >
-            {loading ? "Autenticando..." : "Entrar na Plataforma ⚡"}
-          </button>
-        </form>
+            <span>⚠️</span> {error}
+          </div>
+        )}
+
+        {/* SCREEN 1: REGULAR LOGIN */}
+        {!isFirstAccess && (
+          <form onSubmit={handleLoginSubmit}>
+            <div style={{ marginBottom: "1.25rem" }}>
+              <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.5rem" }}>
+                E-mail Corporativo
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="seu.email@empresa.com.br"
+                style={{
+                  width: "100%",
+                  padding: "0.75rem 1rem",
+                  background: "rgba(0, 0, 0, 0.3)",
+                  border: "1px solid var(--border-subtle)",
+                  borderRadius: "8px",
+                  color: "#fff",
+                  fontSize: "0.95rem",
+                  outline: "none",
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: "1.75rem" }}>
+              <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.5rem" }}>
+                Senha de Acesso
+              </label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••••••"
+                style={{
+                  width: "100%",
+                  padding: "0.75rem 1rem",
+                  background: "rgba(0, 0, 0, 0.3)",
+                  border: "1px solid var(--border-subtle)",
+                  borderRadius: "8px",
+                  color: "#fff",
+                  fontSize: "0.95rem",
+                  outline: "none",
+                }}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-primary"
+              style={{
+                width: "100%",
+                padding: "0.85rem",
+                fontSize: "1rem",
+                fontWeight: 600,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: "0.5rem",
+              }}
+            >
+              {loading ? "⏳ Autenticando..." : "Entrar no Painel ➔"}
+            </button>
+          </form>
+        )}
+
+        {/* SCREEN 2: FORCED FIRST-ACCESS PASSWORD CHANGE */}
+        {isFirstAccess && (
+          <form onSubmit={handleChangePasswordSubmit}>
+            <div
+              style={{
+                background: "rgba(99, 102, 241, 0.1)",
+                border: "1px solid rgba(99, 102, 241, 0.25)",
+                padding: "0.85rem",
+                borderRadius: "8px",
+                fontSize: "0.8rem",
+                color: "var(--text-secondary)",
+                marginBottom: "1.25rem",
+              }}
+            >
+              Olá, <strong style={{ color: "#fff" }}>{pendingUser?.name || email}</strong>! Por políticas de segurança e conformidade, é obrigatório definir sua senha pessoal no primeiro acesso.
+            </div>
+
+            <div style={{ marginBottom: "1.25rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
+                <label style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>Nova Senha Pessoal *</label>
+                <button
+                  type="button"
+                  onClick={generateRandomNewPassword}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--accent-cyan)",
+                    fontSize: "0.75rem",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                    padding: 0,
+                  }}
+                >
+                  🎲 Gerar Senha Segura
+                </button>
+              </div>
+
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  style={{
+                    flex: 1,
+                    padding: "0.75rem 1rem",
+                    background: "rgba(0, 0, 0, 0.3)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: "8px",
+                    color: "#fff",
+                    fontSize: "0.95rem",
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  style={{
+                    padding: "0.55rem 0.75rem",
+                    background: "rgba(255,255,255,0.08)",
+                    border: "1px solid var(--border-subtle)",
+                    color: "#fff",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  {showNewPassword ? "🙈" : "👁️"}
+                </button>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: "1.75rem" }}>
+              <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.4rem" }}>
+                Confirmar Nova Senha *
+              </label>
+              <input
+                type={showNewPassword ? "text" : "password"}
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repita a nova senha"
+                style={{
+                  width: "100%",
+                  padding: "0.75rem 1rem",
+                  background: "rgba(0, 0, 0, 0.3)",
+                  border: "1px solid var(--border-subtle)",
+                  borderRadius: "8px",
+                  color: "#fff",
+                  fontSize: "0.95rem",
+                }}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: "0.75rem" }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setIsFirstAccess(false);
+                  setPassword("");
+                }}
+                style={{ flex: 1, padding: "0.85rem", fontSize: "0.9rem" }}
+              >
+                Voltar
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn btn-primary"
+                style={{ flex: 2, padding: "0.85rem", fontSize: "0.95rem", fontWeight: 600 }}
+              >
+                {loading ? "⏳ Salvando..." : "Salvar Senha & Acessar ➔"}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
 
-      {/* Modern Minimalist System Health Check Bar */}
+      {/* System Health Status Footer */}
       <div
-        className="glass-panel"
         style={{
-          width: "100%",
-          maxWidth: "820px",
-          padding: "1rem 1.5rem",
-          borderRadius: "12px",
+          marginTop: "1.5rem",
           display: "flex",
-          flexDirection: "column",
-          gap: "0.75rem",
-          boxShadow: "0 10px 25px rgba(0,0,0,0.3)",
+          alignItems: "center",
+          gap: "1rem",
+          fontSize: "0.75rem",
+          color: "var(--text-muted)",
+          zIndex: 1,
+          flexWrap: "wrap",
+          justifyContent: "center",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-secondary)", letterSpacing: "0.5px", textTransform: "uppercase" }}>
-            🩺 Health Check do Ambiente em Tempo Real
-          </span>
-          <span className="badge badge-online" style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem" }}>
-            ● Sistema 100% Operacional
-          </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+          <span
+            style={{
+              display: "inline-block",
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              backgroundColor: systemHealth.status === "healthy" ? "var(--accent-emerald)" : "var(--accent-amber)",
+            }}
+          />
+          <span>API Gateway: <strong>{systemHealth.components.backend.status.toUpperCase()}</strong></span>
         </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem" }}>
-          {/* Backend API */}
-          <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "0.65rem 0.85rem", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.2rem" }}>
-              <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981", display: "inline-block", boxShadow: "0 0 8px #10b981" }}></span>
-              <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Backend API</span>
-            </div>
-            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-              {systemHealth.components.backend.name} • 2ms
-            </div>
-          </div>
-
-          {/* Database */}
-          <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "0.65rem 0.85rem", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.2rem" }}>
-              <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981", display: "inline-block", boxShadow: "0 0 8px #10b981" }}></span>
-              <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Banco de Dados</span>
-            </div>
-            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-              Pool Ativo • Latência 4ms
-            </div>
-          </div>
-
-          {/* S3 Storage */}
-          <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "0.65rem 0.85rem", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.2rem" }}>
-              <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981", display: "inline-block", boxShadow: "0 0 8px #10b981" }}></span>
-              <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Storage de Objetos</span>
-            </div>
-            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-              Bucket Operacional
-            </div>
-          </div>
-
-          {/* Worker */}
-          <div style={{ background: "rgba(255, 255, 255, 0.03)", padding: "0.65rem 0.85rem", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.05)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginBottom: "0.2rem" }}>
-              <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981", display: "inline-block", boxShadow: "0 0 8px #10b981" }}></span>
-              <span style={{ fontSize: "0.8rem", fontWeight: 600 }}>Fila de Processamento</span>
-            </div>
-            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-              BullMQ Ativo • Processando
-            </div>
-          </div>
-        </div>
+        <div>•</div>
+        <div>Banco de Dados: <strong>PostgreSQL 16</strong></div>
+        <div>•</div>
+        <div>Auditoria: <strong>SHA-256 Chain</strong></div>
       </div>
     </div>
   );
