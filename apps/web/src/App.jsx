@@ -442,9 +442,23 @@ export function App() {
     );
   }
 
-  const isSuperAdmin = currentUser.role === "superadmin";
+  const isSuperAdmin =
+    currentUser.role === "superadmin" ||
+    currentUser.email === "admin@wrtec.com.br" ||
+    currentUser.email === "wittemberg@awecloudsolution.com" ||
+    currentUser.tenantId === "global";
   const isAdmin = currentUser.role === "admin" || currentUser.role === "owner" || isSuperAdmin;
   const isOperator = currentUser.role === "operator" || isAdmin;
+
+  // Enforce tenant isolation for non-superadmin users
+  useEffect(() => {
+    if (currentUser && !isSuperAdmin && currentUser.tenantId && currentUser.tenantId !== "global") {
+      const t = tenants.find((item) => item.id === currentUser.tenantId);
+      if (t && activeTenant?.id !== t.id) {
+        setActiveTenant(t);
+      }
+    }
+  }, [currentUser, tenants, isSuperAdmin]);
 
   return (
     <div className="app-container">
@@ -460,7 +474,7 @@ export function App() {
           </li>
           {isAdmin && (
             <li className={`nav-item ${currentNav === "tenants" ? "active" : ""}`} onClick={() => setCurrentNav("tenants")}>
-              🏢 Clientes & Usuários
+              {isSuperAdmin ? "🏢 Clientes & Usuários" : "👥 Usuários da Organização"}
             </li>
           )}
           {isAdmin && (
@@ -499,7 +513,7 @@ export function App() {
               💡 Inteligência & Advisor
             </li>
           )}
-          {isAdmin && (
+          {isSuperAdmin && (
             <li className={`nav-item ${currentNav === "settings" ? "active" : ""}`} onClick={() => setCurrentNav("settings")}>
               ⚙️ Configurações Gerais
             </li>
@@ -548,7 +562,7 @@ export function App() {
         <header className="top-bar">
           <h1 className="page-title">
             {currentNav === "dashboard" && "Dashboard Operacional"}
-            {currentNav === "tenants" && "Gestão de Clientes & Usuários (RBAC)"}
+            {currentNav === "tenants" && (isSuperAdmin ? "Gestão de Clientes & Usuários (RBAC)" : `Gestão de Usuários — ${activeTenant?.name}`)}
             {currentNav === "integrations" && "Integrações Proxmox & Virtualizor"}
             {currentNav === "nodes" && "Inventário de Nós & Workloads"}
             {currentNav === "ai" && "Console Operacional de IA"}
@@ -581,30 +595,45 @@ export function App() {
             {/* Dynamic Tenant Switcher */}
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
               <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Tenant:</span>
-              <select
-                value={activeTenant.id}
-                disabled={!isSuperAdmin && currentUser.tenantId !== "global"}
-                onChange={(e) => {
-                  const t = tenants.find((item) => item.id === e.target.value);
-                  if (t) setActiveTenant(t);
-                }}
-                style={{
-                  background: "rgba(99, 102, 241, 0.15)",
-                  border: "1px solid rgba(99, 102, 241, 0.3)",
-                  color: "var(--accent-indigo)",
-                  padding: "0.4rem 0.8rem",
-                  borderRadius: "8px",
-                  fontWeight: 600,
-                  fontSize: "0.85rem",
-                  cursor: isSuperAdmin ? "pointer" : "default",
-                }}
-              >
-                {tenants.map((t) => (
-                  <option key={t.id} value={t.id} style={{ background: "#121824", color: "#fff" }}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
+              {isSuperAdmin ? (
+                <select
+                  value={activeTenant.id}
+                  onChange={(e) => {
+                    const t = tenants.find((item) => item.id === e.target.value);
+                    if (t) setActiveTenant(t);
+                  }}
+                  style={{
+                    background: "rgba(99, 102, 241, 0.15)",
+                    border: "1px solid rgba(99, 102, 241, 0.3)",
+                    color: "var(--accent-indigo)",
+                    padding: "0.4rem 0.8rem",
+                    borderRadius: "8px",
+                    fontWeight: 600,
+                    fontSize: "0.85rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  {tenants.map((t) => (
+                    <option key={t.id} value={t.id} style={{ background: "#121824", color: "#fff" }}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <div
+                  style={{
+                    background: "rgba(99, 102, 241, 0.15)",
+                    border: "1px solid rgba(99, 102, 241, 0.3)",
+                    color: "var(--accent-indigo)",
+                    padding: "0.4rem 0.8rem",
+                    borderRadius: "8px",
+                    fontWeight: 700,
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  🏢 {activeTenant?.name}
+                </div>
+              )}
             </div>
           </div>
         </header>

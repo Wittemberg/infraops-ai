@@ -34,9 +34,10 @@ export function TenantsUsersView({
   });
   const [showPassword, setShowPassword] = useState(false);
 
-  const displayedUsers = filterActiveTenantOnly && activeTenant
-    ? users.filter((u) => u.tenantId === activeTenant.id)
-    : users;
+  const displayedUsers =
+    (!isSuperAdmin || filterActiveTenantOnly) && activeTenant
+      ? users.filter((u) => u.tenantId === activeTenant.id)
+      : users;
 
   const showToast = (text, type = "success") => {
     setToastMessage({ text, type });
@@ -194,99 +195,117 @@ export function TenantsUsersView({
         </div>
       )}
 
-      {/* Tenants Section */}
-      <div className="glass-panel" style={{ padding: "1.5rem", marginBottom: "1.5rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+      {/* Tenants Section (Only visible to SuperAdmin) */}
+      {isSuperAdmin ? (
+        <div className="glass-panel" style={{ padding: "1.5rem", marginBottom: "1.5rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+            <div>
+              <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", fontWeight: 700 }}>
+                🏢 Clientes Registrados (Tenants)
+              </h2>
+              <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.2rem" }}>
+                💡 Clique sobre um cliente para selecioná-lo, ou dê 2 cliques para editar os dados.
+              </p>
+            </div>
+            <button className="btn btn-primary" onClick={handleOpenAddTenant}>
+              + Cadastrar Novo Cliente
+            </button>
+          </div>
+
+          <div style={{ width: "100%", overflowX: "auto" }}>
+            <table className="custom-table" style={{ width: "100%", minWidth: "700px" }}>
+              <thead>
+                <tr>
+                  <th>ID Tenant</th>
+                  <th>Nome do Cliente</th>
+                  <th>Domínio</th>
+                  <th>Status Seleção</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tenants.map((t) => {
+                  const isSelected = activeTenant && activeTenant.id === t.id;
+                  return (
+                    <tr
+                      key={t.id}
+                      onClick={() => onSelectTenant(t)}
+                      onDoubleClick={() => handleOpenEditTenant(t)}
+                      style={{
+                        cursor: "pointer",
+                        background: isSelected ? "rgba(99, 102, 241, 0.15)" : "transparent",
+                      }}
+                      title="Clique para selecionar este cliente. Clique 2x para editar."
+                    >
+                      <td>
+                        <code>{t.id}</code>
+                      </td>
+                      <td style={{ fontWeight: 600 }}>{t.name}</td>
+                      <td style={{ color: "var(--text-secondary)" }}>{t.domain || "—"}</td>
+                      <td>
+                        {isSelected ? (
+                          <span className="badge badge-online">🟢 ATIVO NO PAINEL</span>
+                        ) : (
+                          <span className="badge" style={{ background: "rgba(255,255,255,0.05)", color: "var(--text-muted)" }}>
+                            Inativo
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-secondary"
+                          style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenEditTenant(t);
+                          }}
+                        >
+                          ✏️ Editar
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="glass-panel" style={{ padding: "1.25rem 1.5rem", marginBottom: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
           <div>
-            <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", fontWeight: 700 }}>
-              🏢 Clientes Registrados (Tenants)
+            <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "1.15rem", fontWeight: 700 }}>
+              🏢 Organização: {activeTenant?.name}
             </h2>
             <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", marginTop: "0.2rem" }}>
-              💡 Clique sobre um cliente para selecioná-lo, ou dê 2 cliques para editar os dados.
+              Domínio: <strong>{activeTenant?.domain || "calvi.com.br"}</strong> | ID: <code>{activeTenant?.id}</code>
             </p>
           </div>
-          <button className="btn btn-primary" onClick={handleOpenAddTenant}>
-            + Cadastrar Novo Cliente
-          </button>
+          <span className="badge badge-online" style={{ padding: "0.35rem 0.75rem", fontSize: "0.85rem" }}>
+            🟢 Tenant Ativo
+          </span>
         </div>
-
-        <div style={{ width: "100%", overflowX: "auto" }}>
-          <table className="custom-table" style={{ width: "100%", minWidth: "700px" }}>
-            <thead>
-              <tr>
-                <th>ID Tenant</th>
-                <th>Nome do Cliente</th>
-                <th>Domínio</th>
-                <th>Status Seleção</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tenants.map((t) => {
-                const isSelected = activeTenant && activeTenant.id === t.id;
-                return (
-                  <tr
-                    key={t.id}
-                    onClick={() => onSelectTenant(t)}
-                    onDoubleClick={() => handleOpenEditTenant(t)}
-                    style={{
-                      cursor: "pointer",
-                      background: isSelected ? "rgba(99, 102, 241, 0.15)" : "transparent",
-                    }}
-                    title="Clique para selecionar este cliente. Clique 2x para editar."
-                  >
-                    <td>
-                      <code>{t.id}</code>
-                    </td>
-                    <td style={{ fontWeight: 600 }}>{t.name}</td>
-                    <td style={{ color: "var(--text-secondary)" }}>{t.domain || "—"}</td>
-                    <td>
-                      {isSelected ? (
-                        <span className="badge badge-online">🟢 ATIVO NO PAINEL</span>
-                      ) : (
-                        <span className="badge" style={{ background: "rgba(255,255,255,0.05)", color: "var(--text-muted)" }}>
-                          Inativo
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <button
-                        className="btn btn-secondary"
-                        style={{ padding: "0.3rem 0.6rem", fontSize: "0.75rem" }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenEditTenant(t);
-                        }}
-                      >
-                        ✏️ Editar
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      )}
 
       {/* Users Section */}
       <div className="glass-panel" style={{ padding: "1.5rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
           <div>
             <h2 style={{ fontFamily: "var(--font-heading)", fontSize: "1.2rem", fontWeight: 700 }}>
-              👥 Usuários & Permissões de Acesso (RBAC)
+              👥 {isSuperAdmin ? "Usuários & Permissões de Acesso (RBAC)" : `Usuários da Organização (${activeTenant?.name})`}
             </h2>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.3rem" }}>
-              <label style={{ fontSize: "0.8rem", color: "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                <input
-                  type="checkbox"
-                  checked={filterActiveTenantOnly}
-                  onChange={(e) => setFilterActiveTenantOnly(e.target.checked)}
-                />
-                Exibir apenas usuários do cliente selecionado (
-                <strong style={{ color: "var(--accent-indigo)" }}>{activeTenant?.name || "Nenhum"}</strong>)
-              </label>
-            </div>
+            {isSuperAdmin && (
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.3rem" }}>
+                <label style={{ fontSize: "0.8rem", color: "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  <input
+                    type="checkbox"
+                    checked={filterActiveTenantOnly}
+                    onChange={(e) => setFilterActiveTenantOnly(e.target.checked)}
+                  />
+                  Exibir apenas usuários do cliente selecionado (
+                  <strong style={{ color: "var(--accent-indigo)" }}>{activeTenant?.name || "Nenhum"}</strong>)
+                </label>
+              </div>
+            )}
           </div>
           <button className="btn btn-primary" onClick={handleOpenAddUser}>
             + Cadastrar Novo Usuário
@@ -596,15 +615,24 @@ export function TenantsUsersView({
                 <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
                   Cliente / Tenant Pertencente *
                 </label>
-                <select
-                  value={userForm.tenantId}
-                  onChange={(e) => setUserForm({ ...userForm, tenantId: e.target.value })}
-                  style={{ width: "100%", padding: "0.6rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}
-                >
-                  {tenants.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name} ({t.id})</option>
-                  ))}
-                </select>
+                {isSuperAdmin ? (
+                  <select
+                    value={userForm.tenantId}
+                    onChange={(e) => setUserForm({ ...userForm, tenantId: e.target.value })}
+                    style={{ width: "100%", padding: "0.6rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}
+                  >
+                    {tenants.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name} ({t.id})</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    disabled
+                    value={`${activeTenant?.name} (${activeTenant?.id})`}
+                    style={{ width: "100%", padding: "0.6rem", background: "rgba(0,0,0,0.4)", border: "1px solid var(--border-subtle)", color: "var(--accent-indigo)", fontWeight: 600, borderRadius: "6px" }}
+                  />
+                )}
               </div>
 
               <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
