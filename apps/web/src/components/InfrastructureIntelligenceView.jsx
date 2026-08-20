@@ -755,7 +755,16 @@ export function InfrastructureIntelligenceView({ activeTenant }) {
                 <button
                   type="button"
                   className="btn btn-primary"
-                  dis            {/* Recommendations Grid */}
+                  disabled={analyzing}
+                  onClick={handleAnalyzeNow}
+                  style={{ fontSize: "0.8rem", padding: "0.4rem 0.8rem" }}
+                >
+                  {analyzing ? "⏳ Analisando..." : "⚡ Minerar Recomendações"}
+                </button>
+              </div>
+            </div>
+
+            {/* Recommendations Grid */}
             {filteredRecommendations.length === 0 ? (
               <div style={{ textAlign: "center", padding: "3rem 0", color: "var(--text-muted)" }}>
                 <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>✅</div>
