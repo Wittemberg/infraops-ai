@@ -19,7 +19,7 @@ export function IntegrationsView({ integrations, activeTenant, onAddIntegration,
   const [channels, setChannels] = useState([
     {
       id: "chan-wa-01",
-      tenantId: activeTenant?.id,
+      tenantId: "tenant-default",
       type: "whatsapp",
       name: "Plantão WhatsApp NOC",
       enabled: true,
@@ -28,7 +28,7 @@ export function IntegrationsView({ integrations, activeTenant, onAddIntegration,
     },
     {
       id: "chan-tg-01",
-      tenantId: activeTenant?.id,
+      tenantId: "tenant-default",
       type: "telegram",
       name: "Canal Telegram Suporte",
       enabled: true,
@@ -37,7 +37,7 @@ export function IntegrationsView({ integrations, activeTenant, onAddIntegration,
     },
     {
       id: "chan-em-01",
-      tenantId: activeTenant?.id,
+      tenantId: "tenant-default",
       type: "email",
       name: "E-mail Equipe de TI",
       enabled: true,
@@ -67,7 +67,7 @@ export function IntegrationsView({ integrations, activeTenant, onAddIntegration,
   const [testStatus, setTestStatus] = useState({});
 
   const tenantIntegrations = integrations.filter((i) => i.tenantId === activeTenant?.id);
-  const tenantChannels = channels.filter((c) => !c.tenantId || c.tenantId === activeTenant?.id);
+  const tenantChannels = channels.filter((c) => c.tenantId === activeTenant?.id);
 
   // Hypervisor modal handlers
   const handleOpenCreate = () => {
