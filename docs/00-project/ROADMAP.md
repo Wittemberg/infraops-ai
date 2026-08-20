@@ -1,6 +1,6 @@
 # Roadmap — InfraOps AI
 
-> **Estado atual:** 🟢 **Todas as 25 Etapas Concluídas e Ativas em Produção** (+ Módulos Especiais Homologados).  
+> **Estado atual:** 🟢 **Todas as 27 Etapas Concluídas e Ativas em Produção (100%)** (+ Módulos Especiais Homologados).  
 > **Ambiente Oficial:** https://infraopsai.awecloudsolution.com
 
 ---
@@ -29,9 +29,10 @@ Funcionalidades de alto valor agregadas à plataforma:
    - Suporte nativo ao **Chatwoot** (Account API e Public API).
    - Suporte nativo ao **Quepasa** (WhatsApp Gateway oficial).
    - Suporte a Telegram, WhatsApp, E-mail SMTP e Webhooks HTTP com botão de teste imediato.
-3. **🧠 Central IA com Validação Upstream em Tempo Real:**
+3. **🧠 Central IA com Validação Upstream em Tempo Real & Sincronismo em Nuvem:**
    - Teste ao vivo de chaves de API (`POST /api/v1/ai/test`) e indicadores de status `🟢 CHAVE ATIVA`.
    - Presets inteligentes para Groq Cloud (`llama-3.3-70b`, `deepseek-r1-70b`, etc.).
+   - Sincronização em nuvem e persistência contínua do chat por tenant entre múltiplos dispositivos e sessões.
 
 ---
 
@@ -78,7 +79,7 @@ Dar ao tenant controle documental e operacional completo de sua infraestrutura f
 
 ---
 
-## 6. Etapa 27 — Network Device Monitoring & Governed WAN Actions 🟡 (EM IMPLEMENTAÇÃO)
+## 6. Etapa 27 — Network Device Monitoring & Governed WAN Actions 🟢 (CONCLUÍDA)
 
 ### Objetivo
 Integrar **MikroTik RouterOS** e **pfSense** ao mesmo modelo operacional do InfraOps AI já utilizado para infraestrutura computacional: inventário + telemetria + integridade + IA + Ações governadas + auditoria com hash.
@@ -90,12 +91,14 @@ Integrar **MikroTik RouterOS** e **pfSense** ao mesmo modelo operacional do Infr
 2. **pfSense** (XML-RPC / API segura / Gateway Groups com monitoramento via dpinger e Tiers 1/2).
 
 ### Sub-Releases:
-- **27A — Driver Framework:** Interface neutra `NetworkDeviceDriver`, detecção de recursos (*capabilities*), credenciais via Secrets e tratamento tipado de erros não suportados.
+- **27A — Driver Framework:** Interface neutra `NetworkDeviceDriver`, detecção de recursos (*capabilities*), credenciais via Secrets e tratamento tipado de erros não suportados (ADR-020).
 - **27B — MikroTik Monitoring:** Identidade, modelo, serial, RouterOS version, CPU, RAM, temperatura, interfaces, throughput, status de gateway e latência/perda.
 - **27C — pfSense Monitoring:** Identidade, versão, CPU/RAM, interfaces, gateways dpinger, loss/delay, gateway groups e tiers.
 - **27D — Governed WAN Actions:** Ações normalizadas `network.set_primary_wan`, `network.set_wan_failover`, `network.set_wan_balance`, `network.enable_wan`, `network.disable_wan`.
-- **27E — Safe Change Workflow:** Pipeline mandatória: `Intent -> Capability Check -> Policy -> Approval -> Precheck -> Snapshot -> Execute -> Postcheck -> Rollback if needed -> Audit`.
-- **27F — AI Experience:** Análise contextual de qualidade de link e geração de planos de mudança transparentes (com proibição expressa de comandos de terminal livres).
+- **27E — Safe Change Workflow:** Pipeline mandatória (ADR-021): `Intent -> Precheck -> Snapshot -> Execute -> Postcheck -> Rollback if needed -> Audit Hash`.
+- **27F — AI Experience:** Análise contextual de qualidade de link e direcionamento para ações governadas sem permitir comandos CLI livres.
 - **27G — Autonomous WAN Failover:** Auto-recuperação com proteção anti-flapping (debounce, histerese, cooldown, recovery window e circuit breaker).
+- **27H — Frontend Dashboard:** Sub-aba especializada `📡 Roteadores & Links WAN` no menu `🏢 Infra & Topologia`.
+
 
 

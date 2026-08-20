@@ -7,9 +7,12 @@ InfraOps AI é uma plataforma completa de Governança, Operações Autônomas e 
 ## 🟢 Produção Atual
 
 - **Ambiente Oficial:** `https://infraopsai.awecloudsolution.com`
-- **Status do Roadmap:** **25/25 Etapas Concluídas (100%) + Módulos Especiais Homologados**.
-- **Segurança:** Todas as regras não-negociáveis do `AGENTS.md` e ADRs (incluindo ADR-016 e ADR-017) permanecem 100% ativas.
+- **Status do Roadmap:** **27/27 Etapas Concluídas (100%) + Módulos Especiais Homologados**.
+- **Segurança:** Todas as regras não-negociáveis do `AGENTS.md` e ADRs (incluindo ADR-016 a ADR-021) permanecem 100% ativas.
 - **Recursos em Produção:**
+  - 🏢 **Fonte da Verdade Nativa & Topologia Física (Stage 26):** Customer Infrastructure Book completo (Sites, Locais, Racks 42U com elevação visual, Ativos físicos, Switch Port Wizard, mapeamento de conexões porta-a-porta, VLANs, Subnets CIDR, IPAM e Discovery SNMP/LLDP com matching determinístico).
+  - 🌐 **Governança de Roteadores & Links WAN (Stage 27):** Drivers nativos para **MikroTik RouterOS** e **pfSense**, telemetria de hardware (CPU/RAM/Temp), monitoramento contínuo de latência/perda/banda e comutação governada de link primário com Precheck, Snapshot, Postcheck, Rollback determinístico e proteção anti-flapping (Debounce/Cooldown/Circuit Breaker).
+  - ☁️ **Sincronismo em Nuvem & Memória Multi-Dispositivo da IA:** Persistência automática do chat por tenant no backend com recarregamento instantâneo independente do navegador ou dispositivo do operador.
   - 🏢 **Isolamento Rigoroso Multi-Tenant & RBAC:** Visão restrita e isolada para Tenant Owners e Admins (sem acesso a outros clientes ou infraestrutura master do MSP), trava dinâmica de tenant no topo e onboarding limpo (*Zero-State*) para novos clientes.
   - ⚙️ **Configurações Gerais da Plataforma (9 Subsistemas):** Gestão centralizada e testes de conectividade ao vivo para SMTP, Storage S3/MinIO, PostgreSQL 16, Redis (BullMQ), Telemetria Prometheus, Provedores de IA, Agente de Host, White-Label MSP e Políticas Globais.
   - 🔑 **Gestão de Identidade, Credenciais & Primeiro Acesso:** Fluxo interativo de "Esqueci a Senha" (PIN de 6 dígitos), troca obrigatória de senha no primeiro login (`mustChangePassword`), gerador seguro de senhas, controle de status (🟢 Ativo / 🔴 Inativo) e exclusão segura de usuários.
