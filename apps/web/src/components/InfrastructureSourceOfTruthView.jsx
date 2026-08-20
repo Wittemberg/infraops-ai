@@ -389,7 +389,7 @@ export default function InfrastructureSourceOfTruthView({ activeTenant, currentU
               fontWeight: "500",
             }}
           >
-            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+            <span>🔄</span>
             Sincronizar
           </button>
 
@@ -433,7 +433,7 @@ export default function InfrastructureSourceOfTruthView({ activeTenant, currentU
               fontWeight: "600",
             }}
           >
-            <Plus size={15} />
+            <span>➕</span>
             Cadastrar Ativo
           </button>
         </div>
@@ -519,7 +519,7 @@ export default function InfrastructureSourceOfTruthView({ activeTenant, currentU
             fontSize: "14px",
           }}
         >
-          <Server size={16} />
+          <span>🖥️</span>
           Customer Infrastructure Book ({assets.length})
         </button>
 
@@ -539,7 +539,7 @@ export default function InfrastructureSourceOfTruthView({ activeTenant, currentU
             fontSize: "14px",
           }}
         >
-          <Layers size={16} />
+          <span>🗄️</span>
           Racks & Conectividade ({racks.length})
         </button>
 
@@ -559,7 +559,7 @@ export default function InfrastructureSourceOfTruthView({ activeTenant, currentU
             fontSize: "14px",
           }}
         >
-          <Network size={16} />
+          <span>🌐</span>
           Redes & IPAM ({subnets.length})
         </button>
 
@@ -579,7 +579,7 @@ export default function InfrastructureSourceOfTruthView({ activeTenant, currentU
             fontSize: "14px",
           }}
         >
-          <Radio size={16} />
+          <span>📡</span>
           Discovery & Reconciliação ({discoveryCandidates.filter((c) => c.status === "pending").length})
         </button>
 
@@ -599,7 +599,7 @@ export default function InfrastructureSourceOfTruthView({ activeTenant, currentU
             fontSize: "14px",
           }}
         >
-          <ClipboardList size={16} />
+          <span>📋</span>
           Ferramentas Operacionais
         </button>
       </div>
@@ -610,7 +610,7 @@ export default function InfrastructureSourceOfTruthView({ activeTenant, currentU
           {/* Action and Search Bar */}
           <div style={{ display: "flex", gap: "12px", marginBottom: "18px", flexWrap: "wrap" }}>
             <div style={{ position: "relative", flex: 1, minWidth: "260px" }}>
-              <Search size={16} style={{ position: "absolute", left: "12px", top: "11px", color: "var(--text-secondary)" }} />
+              <span>🔍</span>
               <input
                 type="text"
                 placeholder="Buscar por nome, patrimônio, serial, IP, MAC ou hostname..."
@@ -763,7 +763,7 @@ export default function InfrastructureSourceOfTruthView({ activeTenant, currentU
                               cursor: "pointer",
                             }}
                           >
-                            <QrCode size={14} />
+                            <span>📱</span>
                           </button>
                           <button
                             title="Editar Ativo"
@@ -801,7 +801,7 @@ export default function InfrastructureSourceOfTruthView({ activeTenant, currentU
                               cursor: "pointer",
                             }}
                           >
-                            <Edit3 size={14} />
+                            <span>✏️</span>
                           </button>
                           <button
                             title="Excluir Ativo"
@@ -815,7 +815,7 @@ export default function InfrastructureSourceOfTruthView({ activeTenant, currentU
                               cursor: "pointer",
                             }}
                           >
-                            <Trash2 size={14} />
+                            <span>🗑️</span>
                           </button>
                         </div>
                       </td>
@@ -947,7 +947,7 @@ export default function InfrastructureSourceOfTruthView({ activeTenant, currentU
                     fontWeight: "500",
                   }}
                 >
-                  <Zap size={14} color="#f59e0b" />
+                  <span>⚡</span>
                   Gerador de Portas (Wizard)
                 </button>
 
@@ -967,7 +967,7 @@ export default function InfrastructureSourceOfTruthView({ activeTenant, currentU
                     fontWeight: "600",
                   }}
                 >
-                  <Plus size={14} />
+                  <span>➕</span>
                   Conectar Portas
                 </button>
               </div>
@@ -1263,7 +1263,7 @@ export default function InfrastructureSourceOfTruthView({ activeTenant, currentU
                 cursor: "pointer",
               }}
             >
-              <Radio size={15} />
+              <span>📡</span>
               Executar Varredura de Rede
             </button>
           </div>
@@ -2129,7 +2129,7 @@ export default function InfrastructureSourceOfTruthView({ activeTenant, currentU
                 boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
               }}
             >
-              <QrCode size={140} color="#000000" />
+              <span>📱</span>
             </div>
 
             <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginBottom: "16px", wordBreak: "break-all" }}>

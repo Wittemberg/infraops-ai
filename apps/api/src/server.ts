@@ -1413,6 +1413,21 @@ function loadStore(): DataStore {
           ...(parsed.systemSettings || {}),
         },
         passwordResets: parsed.passwordResets || [],
+        sites: parsed.sites || [],
+        locations: parsed.locations || [],
+        racks: parsed.racks || [],
+        assets: parsed.assets || [],
+        assetDocuments: parsed.assetDocuments || [],
+        assetTimelineEvents: parsed.assetTimelineEvents || [],
+        assetResourceLinks: parsed.assetResourceLinks || [],
+        interfaces: parsed.interfaces || parsed.assetInterfaces || [],
+        connections: parsed.connections || [],
+        vlans: parsed.vlans || [],
+        subnets: parsed.subnets || [],
+        ipAddresses: parsed.ipAddresses || [],
+        wanCircuits: parsed.wanCircuits || [],
+        discoveryCandidates: parsed.discoveryCandidates || [],
+        visitChecklists: parsed.visitChecklists || [],
       };
     }
   } catch (e) {
@@ -1454,7 +1469,7 @@ function sendJson(res: ServerResponse, statusCode: number, data: any) {
     "Content-Type": "application/json",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, x-tenant-id, X-Tenant-Id, *",
   });
   res.end(JSON.stringify(data));
 }
@@ -1467,7 +1482,7 @@ const server = createServer(async (req, res) => {
     res.writeHead(204, {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, x-tenant-id, X-Tenant-Id, *",
     });
     res.end();
     return;
