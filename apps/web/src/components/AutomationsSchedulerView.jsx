@@ -362,7 +362,7 @@ export function AutomationsSchedulerView({ activeTenant }) {
   const [polFormPostcheck, setPolFormPostcheck] = useState("systemctl is-active --quiet nginx && curl -Is localhost:80 | head -1");
   const [polFormAutoEscalate, setPolFormAutoEscalate] = useState(true);
 
-  // Form Goal (Etapa 24)
+  // Form Goal
   const [goalFormName, setGoalFormName] = useState("");
   const [goalFormCategory, setGoalFormCategory] = useState("storage");
   const [goalFormMetric, setGoalFormMetric] = useState("disk.free_percent");
@@ -610,7 +610,7 @@ export function AutomationsSchedulerView({ activeTenant }) {
     }
   };
 
-  // Handlers: Goals & SLOs (Etapa 24)
+  // Handlers: Goals & SLOs
   const handleOpenGoalModal = (preset = null) => {
     if (preset === "storage") {
       setGoalFormName("💾 SLO de Storage: Espaço Livre Mínimo (>= 20%)");
@@ -769,7 +769,7 @@ export function AutomationsSchedulerView({ activeTenant }) {
         >
           <div>
             <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-              ⏰ Motor Completo de Operações Autônomas (Etapas 21–24) — Cliente:{" "}
+              ⏰ Motor de Operações Autônomas & Automações — Cliente:{" "}
               <strong style={{ color: "var(--accent-indigo)" }}>{activeTenant?.name}</strong>
             </span>
             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
@@ -813,25 +813,25 @@ export function AutomationsSchedulerView({ activeTenant }) {
       {/* KPI Cards */}
       <div className="kpi-grid" style={{ padding: "0 0 1.25rem 0" }}>
         <div className="glass-panel kpi-card">
-          <div className="kpi-title">📅 Rotinas Agendadas (E21)</div>
+          <div className="kpi-title">📅 Rotinas Agendadas</div>
           <div className="kpi-value" style={{ color: "var(--accent-indigo)" }}>{schedules.length}</div>
           <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{activeSchedulesCount} ativas</span>
         </div>
 
         <div className="glass-panel kpi-card">
-          <div className="kpi-title">⚡ Triggers & Eventos (E22)</div>
+          <div className="kpi-title">⚡ Triggers & Eventos</div>
           <div className="kpi-value" style={{ color: "var(--accent-cyan)" }}>{triggers.length}</div>
           <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Anti-flapping & Circuit Breaker</span>
         </div>
 
         <div className="glass-panel kpi-card">
-          <div className="kpi-title">🛡️ Self-Healing (E23)</div>
+          <div className="kpi-title">🛡️ Self-Healing & Políticas</div>
           <div className="kpi-value" style={{ color: "var(--accent-emerald)" }}>{policies.length}</div>
-          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Níveis 4 & 5 Pre/Postcheck</span>
+          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Precheck & Postcheck Ativos</span>
         </div>
 
         <div className="glass-panel kpi-card">
-          <div className="kpi-title">🎯 Metas & SLOs (E24)</div>
+          <div className="kpi-title">🎯 Metas & SLOs</div>
           <div className="kpi-value" style={{ color: "var(--accent-purple)" }}>{goals.length}</div>
           <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{compliantGoalsCount} em conformidade</span>
         </div>
@@ -847,7 +847,7 @@ export function AutomationsSchedulerView({ activeTenant }) {
             onClick={() => setActiveTab("schedules")}
             style={{ fontSize: "0.85rem" }}
           >
-            📅 Agendamentos & Cron (Etapa 21)
+            📅 Agendamentos & Cron
           </button>
           <button
             type="button"
@@ -855,7 +855,7 @@ export function AutomationsSchedulerView({ activeTenant }) {
             onClick={() => setActiveTab("triggers")}
             style={{ fontSize: "0.85rem" }}
           >
-            ⚡ Triggers & Eventos (Etapa 22)
+            ⚡ Triggers & Eventos
           </button>
           <button
             type="button"
@@ -863,7 +863,7 @@ export function AutomationsSchedulerView({ activeTenant }) {
             onClick={() => setActiveTab("policies")}
             style={{ fontSize: "0.85rem" }}
           >
-            🛡️ Self-Healing & Políticas (Etapa 23)
+            🛡️ Self-Healing & Políticas
           </button>
           <button
             type="button"
@@ -871,7 +871,7 @@ export function AutomationsSchedulerView({ activeTenant }) {
             onClick={() => setActiveTab("goals")}
             style={{ fontSize: "0.85rem" }}
           >
-            🎯 Metas & SLOs (Etapa 24)
+            🎯 Metas & SLOs
           </button>
           <button
             type="button"
@@ -1097,7 +1097,7 @@ export function AutomationsSchedulerView({ activeTenant }) {
           </div>
         )}
 
-        {/* TAB 4: GOALS & SLOS (ETAPA 24) */}
+        {/* TAB 4: GOALS & SLOS */}
         {activeTab === "goals" && (
           <div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
@@ -1278,7 +1278,7 @@ export function AutomationsSchedulerView({ activeTenant }) {
         )}
       </div>
 
-      {/* Modal: New Goal (Etapa 24) */}
+      {/* Modal: New Goal */}
       {goalModalOpen && (
         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setGoalModalOpen(false)}>
           <div className="glass-panel modal-content" style={{ maxWidth: "600px", position: "relative" }}>

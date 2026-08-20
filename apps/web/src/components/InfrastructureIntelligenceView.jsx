@@ -483,7 +483,7 @@ export function InfrastructureIntelligenceView({ activeTenant }) {
         >
           <div>
             <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
-              💡 Motor de Inteligência de Infraestrutura & Melhoria Contínua (Etapa 25) — Cliente:{" "}
+              💡 Motor de Inteligência de Infraestrutura & Melhoria Contínua — Cliente:{" "}
               <strong style={{ color: "var(--accent-emerald)" }}>{activeTenant?.name}</strong>
             </span>
             <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
