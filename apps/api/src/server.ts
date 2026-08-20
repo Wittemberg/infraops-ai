@@ -3275,45 +3275,49 @@ Responda de forma altamente profissional, técnica, estruturada em Markdown, dir
   }
 
   if (url === "/api/v1/intelligence/recommendations/analyze" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const tenantId = body.tenantId || "tenant-default";
+
     if (!store.recommendations) store.recommendations = defaultStore.recommendations;
     if (!store.capacityForecasts) store.capacityForecasts = defaultStore.capacityForecasts;
     if (!store.spofFindings) store.spofFindings = defaultStore.spofFindings;
     if (!store.incidentClusters) store.incidentClusters = defaultStore.incidentClusters;
 
     const now = new Date();
-    // Simulate mining live telemetry & recurring events to produce an actionable recommendation
     const newRecId = `rec-gen-${Math.random().toString(36).substring(2, 7)}`;
+
     const minedRec = {
       id: newRecId,
-      tenantId: "tenant-default",
-      title: `⚡ Otimização Preditiva: Escalonamento de I/O de Backups Noturnos`,
-      category: "optimization" as const,
-      problemStatement: "A correlação de métricas detectou 6 picos de IO Delay acima de 15% durante a janela das 03:00.",
-      rootCauseHypothesis: "Disparo simultâneo de snapshots ZFS em 8 VMs sem escalonamento em cascata.",
-      proposedChange: "Ajustar o agendador de backup para espaçamento escalonado de 10 minutos por VM crítica.",
-      priority: "medium" as const,
-      confidencePercent: 92,
+      tenantId: tenantId,
+      title: `🛡️ Resiliência & HA: Proteção de Nó Solitário Proxmox ('pve')`,
+      category: "resilience" as const,
+      problemStatement: "O ambiente opera em nó único ('pve' em 38.52.129.130) hospedando 5 VMs em produção (SRV-CW, CALVI IIS, CALVI BANCO, SRV-Concentrador, SRV-AD-PortoNovo) sem nó secundário de failover.",
+      rootCauseHypothesis: "Arquitetura Proxmox VE sem quórum ou replicação periódica para um segundo hipervisor.",
+      proposedChange: "Garantir retenção externa mandatória dos dumps do storage HDD_backups e planejar segundo nó para replicação ZFS a cada 15m.",
+      priority: "high" as const,
+      confidencePercent: 94,
       riskLevel: "low" as const,
-      effortLevel: "low" as const,
+      effortLevel: "medium" as const,
       status: "open" as const,
       evidences: [
-        { id: `ev-${Date.now()}-1`, metricName: "io_delay_percent", observedValue: "18.4% max", period: "Últimos 14 dias" },
-        { id: `ev-${Date.now()}-2`, metricName: "backup.concurrent_jobs", observedValue: "8 jobs concorrentes", period: "Madrugadas" },
+        { id: `ev-${Date.now()}-1`, metricName: "node.cluster_size", observedValue: "1 nó (Standalone pve)", period: "Tempo real" },
+        { id: `ev-${Date.now()}-2`, metricName: "workload.density", observedValue: "5 VMs QEMU ativas", period: "Supermercados Calvi" },
+        { id: `ev-${Date.now()}-3`, metricName: "storage.backup_target", observedValue: "HDD_backups (60% livre)", period: "Proxmox VZDump" },
       ],
       estimatedRoi: {
-        hoursSavedPerMonth: 4.5,
-        financialSavingsMonthly: 540,
-        paybackMonths: 0.5,
+        hoursSavedPerMonth: 6.0,
+        financialSavingsMonthly: 720,
+        paybackMonths: 1.0,
         currency: "BRL",
       },
       suggestedChangePlan: {
-        targetType: "backup_scheduler",
-        targetId: "sch-backup-nightly",
-        prerequisites: ["Validar capacidade do storage de destino", "Confirmar janela de 02:00 a 05:00"],
+        targetType: "node",
+        targetId: "pve",
+        prerequisites: ["Validar integridade do storage HDD_backups", "Verificar conectividade do nó pve"],
         maintenanceWindowRequired: false,
         estimatedDowntimeMinutes: 0,
-        actionsRequired: ["backup.reschedule_staggered"],
-        rollbackStrategy: "Restaurar cron anterior de disparo em lote.",
+        actionsRequired: ["backup.verify", "host.health_check"],
+        rollbackStrategy: "Manter execução standalone.",
       },
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
