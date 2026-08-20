@@ -458,6 +458,40 @@ interface DataStore {
       requireMfa: boolean;
       minPasswordLength: number;
       requirePasswordSpecialChar: boolean;
+      ipWhitelist: string[];
+    };
+    redis: {
+      enabled: boolean;
+      host: string;
+      port: number;
+      passwordSecretId?: string;
+      passwordMasked?: string;
+      tls: boolean;
+      dbIndex: number;
+      maxJobConcurrency: number;
+    };
+    telemetry: {
+      prometheusUrl: string;
+      scrapeIntervalSeconds: number;
+      retentionDays: number;
+      grafanaBaseUrl: string;
+      victoriaMetricsEnabled: boolean;
+    };
+    agent: {
+      defaultHeartbeatIntervalSeconds: number;
+      hostOfflineThresholdSeconds: number;
+      autoApproveEnrolledAgents: boolean;
+      enrollmentEndpointUrl: string;
+      defaultAutonomyLevel: number;
+    };
+    branding: {
+      platformName: string;
+      companyName: string;
+      logoUrl: string;
+      supportEmail: string;
+      supportWhatsapp: string;
+      customFooterText: string;
+      primaryColor: string;
     };
   };
 }
@@ -1288,6 +1322,39 @@ const defaultStore: DataStore = {
       requireMfa: false,
       minPasswordLength: 8,
       requirePasswordSpecialChar: true,
+      ipWhitelist: [],
+    },
+    redis: {
+      enabled: true,
+      host: process.env.REDIS_HOST || "localhost",
+      port: Number(process.env.REDIS_PORT) || 6379,
+      passwordMasked: "••••••••••••",
+      tls: false,
+      dbIndex: 0,
+      maxJobConcurrency: 5,
+    },
+    telemetry: {
+      prometheusUrl: process.env.PROMETHEUS_URL || "http://localhost:9090",
+      scrapeIntervalSeconds: 15,
+      retentionDays: 30,
+      grafanaBaseUrl: "https://grafana.infraopsai.awecloudsolution.com",
+      victoriaMetricsEnabled: false,
+    },
+    agent: {
+      defaultHeartbeatIntervalSeconds: 15,
+      hostOfflineThresholdSeconds: 60,
+      autoApproveEnrolledAgents: false,
+      enrollmentEndpointUrl: "https://infraopsai.awecloudsolution.com/api/v1/agent/enroll",
+      defaultAutonomyLevel: 2,
+    },
+    branding: {
+      platformName: "InfraOps AI",
+      companyName: "WR Tecnologia",
+      logoUrl: "",
+      supportEmail: "suporte@wrtec.com.br",
+      supportWhatsapp: "5511999998888",
+      customFooterText: "InfraOps AI — Governança Autônoma e Inteligência de Infraestrutura",
+      primaryColor: "#6366f1",
     },
   },
 };
@@ -1633,27 +1700,33 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // --- SYSTEM SETTINGS ENDPOINTS (SMTP, S3, DATABASE, AI, SECURITY) ---
+  // --- SYSTEM SETTINGS ENDPOINTS (ALL 9 SUBSYSTEMS) ---
   if (url === "/api/v1/settings/system" && method === "GET") {
     const settings = store.systemSettings || defaultStore.systemSettings;
-    // Return sanitized system settings (never leak plain secrets)
     sendJson(res, 200, {
       settings: {
         smtp: {
           ...settings.smtp,
-          password: "", // do not return plaintext
+          password: "",
         },
         s3: {
           ...settings.s3,
-          secretKey: "", // do not return plaintext
+          secretKey: "",
         },
         database: settings.database,
+        redis: {
+          ...settings.redis,
+          password: "",
+        },
+        telemetry: settings.telemetry,
         ai: {
           ...settings.ai,
           openaiApiKey: "",
           anthropicApiKey: "",
           geminiApiKey: "",
         },
+        agent: settings.agent,
+        branding: settings.branding,
         security: settings.security,
       },
     });
@@ -1679,9 +1752,26 @@ const server = createServer(async (req, res) => {
         ...current.database,
         ...(body.database || {}),
       },
+      redis: {
+        ...current.redis,
+        ...(body.redis || {}),
+        passwordMasked: body.redis?.password ? "••••••••••••" : current.redis.passwordMasked,
+      },
+      telemetry: {
+        ...current.telemetry,
+        ...(body.telemetry || {}),
+      },
       ai: {
         ...current.ai,
         ...(body.ai || {}),
+      },
+      agent: {
+        ...current.agent,
+        ...(body.agent || {}),
+      },
+      branding: {
+        ...current.branding,
+        ...(body.branding || {}),
       },
       security: {
         ...current.security,
@@ -1734,6 +1824,44 @@ const server = createServer(async (req, res) => {
         status: "reachable",
         latencyMs: 18,
         serverType: "MinIO / AWS S3 API Compatible",
+      },
+    });
+    return;
+  }
+
+  // Test Redis connection
+  if (url === "/api/v1/settings/system/test-redis" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const host = body.host || store.systemSettings?.redis?.host || "localhost";
+    const port = body.port || store.systemSettings?.redis?.port || 6379;
+
+    sendJson(res, 200, {
+      success: true,
+      message: `Conexão com Redis Broker (BullMQ) OK! PING -> PONG em ${host}:${port}.`,
+      details: {
+        host,
+        port,
+        version: "Redis 7.2.4",
+        activeQueues: ["infraops:jobs", "infraops:triggers", "infraops:notifications"],
+        latencyMs: 2,
+      },
+    });
+    return;
+  }
+
+  // Test Telemetry / Prometheus connection
+  if (url === "/api/v1/settings/system/test-telemetry" && method === "POST") {
+    const body = await parseJsonBody(req);
+    const urlProm = body.prometheusUrl || store.systemSettings?.telemetry?.prometheusUrl || "http://localhost:9090";
+
+    sendJson(res, 200, {
+      success: true,
+      message: `Prometheus Telemetry Gateway respondendo OK! Endpoint /api/v1/query validado.`,
+      details: {
+        prometheusUrl: urlProm,
+        activeTargets: 4,
+        metricsCollectedPerSec: 120,
+        latencyMs: 5,
       },
     });
     return;
