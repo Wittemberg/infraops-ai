@@ -13,6 +13,7 @@ export function TenantsUsersView({
   const [tenantModalOpen, setTenantModalOpen] = useState(false);
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [filterActiveTenantOnly, setFilterActiveTenantOnly] = useState(true);
+  const [toastMessage, setToastMessage] = useState(null);
 
   const [editingTenant, setEditingTenant] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
@@ -31,6 +32,13 @@ export function TenantsUsersView({
   const displayedUsers = filterActiveTenantOnly && activeTenant
     ? users.filter((u) => u.tenantId === activeTenant.id)
     : users;
+
+  const showToast = (text, type = "success") => {
+    setToastMessage({ text, type });
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 5000);
+  };
 
   const handleOpenAddTenant = () => {
     setEditingTenant(null);
@@ -88,8 +96,10 @@ export function TenantsUsersView({
 
     if (editingTenant) {
       onUpdateTenant({ ...editingTenant, ...tenantForm });
+      showToast(`Cliente "${tenantForm.name}" atualizado com sucesso!`);
     } else {
       onAddTenant(tenantForm);
+      showToast(`Cliente "${tenantForm.name}" criado com sucesso!`);
     }
 
     setTenantModalOpen(false);
@@ -100,9 +110,9 @@ export function TenantsUsersView({
     if (!userForm.name || !userForm.email) return;
 
     const payload = {
-      tenantId: userForm.tenantId,
-      name: userForm.name,
-      email: userForm.email,
+      tenantId: userForm.tenantId || activeTenant?.id || tenants[0]?.id,
+      name: userForm.name.trim(),
+      email: userForm.email.trim(),
       role: userForm.role,
       mustChangePassword: userForm.mustChangePassword,
     };
@@ -111,10 +121,18 @@ export function TenantsUsersView({
       payload.password = userForm.password.trim();
     }
 
+    const targetTenant = tenants.find((t) => t.id === payload.tenantId);
+
     if (editingUser) {
       onUpdateUser({ ...editingUser, ...payload });
+      showToast(`Usuário "${payload.name}" atualizado com sucesso!`);
     } else {
       onAddUser(payload);
+      showToast(`Usuário "${payload.name}" cadastrado com sucesso para o cliente "${targetTenant?.name || payload.tenantId}"!`);
+      // Ensure active tenant matches so user is immediately visible
+      if (targetTenant && activeTenant?.id !== targetTenant.id) {
+        onSelectTenant(targetTenant);
+      }
     }
 
     setUserModalOpen(false);
@@ -122,6 +140,35 @@ export function TenantsUsersView({
 
   return (
     <div style={{ padding: "1.5rem 2rem" }}>
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div
+          style={{
+            background: toastMessage.type === "success" ? "rgba(16, 185, 129, 0.2)" : "rgba(244, 63, 94, 0.2)",
+            border: `1px solid ${toastMessage.type === "success" ? "rgba(16, 185, 129, 0.5)" : "rgba(244, 63, 94, 0.5)"}`,
+            color: toastMessage.type === "success" ? "var(--accent-emerald)" : "var(--accent-rose)",
+            padding: "0.85rem 1.25rem",
+            borderRadius: "8px",
+            marginBottom: "1.5rem",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 600 }}>
+            <span>{toastMessage.type === "success" ? "✅" : "⚠️"}</span>
+            <span>{toastMessage.text}</span>
+          </div>
+          <button
+            onClick={() => setToastMessage(null)}
+            style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: "1rem" }}
+          >
+            ✖
+          </button>
+        </div>
+      )}
+
       {/* Tenants Section */}
       <div className="glass-panel" style={{ padding: "1.5rem", marginBottom: "1.5rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
@@ -212,7 +259,7 @@ export function TenantsUsersView({
                   onChange={(e) => setFilterActiveTenantOnly(e.target.checked)}
                 />
                 Exibir apenas usuários do cliente selecionado (
-                <strong style={{ color: "var(--accent-indigo)" }}>{activeTenant?.name}</strong>)
+                <strong style={{ color: "var(--accent-indigo)" }}>{activeTenant?.name || "Nenhum"}</strong>)
               </label>
             </div>
           </div>
@@ -224,9 +271,16 @@ export function TenantsUsersView({
         {displayedUsers.length === 0 ? (
           <div style={{ textAlign: "center", padding: "2rem 0", color: "var(--text-secondary)" }}>
             <p>Nenhum usuário cadastrado especificamente para o cliente <strong>{activeTenant?.name}</strong>.</p>
-            <button className="btn btn-secondary" style={{ marginTop: "0.75rem" }} onClick={handleOpenAddUser}>
-              + Cadastrar Primeiro Usuário
-            </button>
+            <div style={{ display: "flex", gap: "0.75rem", justifyContent: "center", marginTop: "0.75rem" }}>
+              <button className="btn btn-primary" onClick={handleOpenAddUser}>
+                + Cadastrar Usuário para {activeTenant?.name}
+              </button>
+              {filterActiveTenantOnly && users.length > 0 && (
+                <button className="btn btn-secondary" onClick={() => setFilterActiveTenantOnly(false)}>
+                  Ver Usuários de Todos os Clientes ({users.length})
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <div style={{ width: "100%", overflowX: "auto" }}>
@@ -324,7 +378,7 @@ export function TenantsUsersView({
             <form onSubmit={handleSaveTenant}>
               <div style={{ marginBottom: "1rem" }}>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
-                  Nome da Empresa / Organização
+                  Nome da Empresa / Organização *
                 </label>
                 <input
                   type="text"
@@ -424,7 +478,7 @@ export function TenantsUsersView({
 
               <div style={{ marginBottom: "1rem" }}>
                 <label style={{ display: "block", fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
-                  Cliente / Tenant Pertencente
+                  Cliente / Tenant Pertencente *
                 </label>
                 <select
                   value={userForm.tenantId}
@@ -432,7 +486,7 @@ export function TenantsUsersView({
                   style={{ width: "100%", padding: "0.6rem", background: "rgba(0,0,0,0.3)", border: "1px solid var(--border-subtle)", color: "#fff", borderRadius: "6px" }}
                 >
                   {tenants.map((t) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
+                    <option key={t.id} value={t.id}>{t.name} ({t.id})</option>
                   ))}
                 </select>
               </div>
@@ -518,7 +572,7 @@ export function TenantsUsersView({
                       checked={userForm.mustChangePassword}
                       onChange={(e) => setUserForm({ ...userForm, mustChangePassword: e.target.checked })}
                     />
-                    🔒 Exigir troca obrigatória de senha no próximo login
+                    🔒 Exigir troca obrigatória de senha no primeiro login
                   </label>
                   <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
                     Ao entrar no sistema com a senha temporária, o usuário será direcionado para definir sua senha pessoal antes de acessar o painel.

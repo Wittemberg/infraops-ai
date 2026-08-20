@@ -260,32 +260,49 @@ export function App() {
   const handleAddUser = async (userData) => {
     const newUser = {
       id: `usr-${Math.random().toString(36).substring(2, 8)}`,
-      tenantId: userData.tenantId || activeTenant.id,
+      tenantId: userData.tenantId || activeTenant?.id || "tenant-default",
       name: userData.name,
       email: userData.email,
       role: userData.role,
+      password: userData.password,
+      mustChangePassword: userData.mustChangePassword !== false,
+      createdAt: new Date().toISOString(),
     };
-    setUsers((prev) => [...prev, newUser]);
+    setUsers((prev) => [...prev.filter((u) => u.id !== newUser.id), newUser]);
+
+    // If user was created for a specific tenant, ensure activeTenant is synchronized
+    const targetTenant = tenants.find((t) => t.id === newUser.tenantId);
+    if (targetTenant && activeTenant?.id !== targetTenant.id) {
+      setActiveTenant(targetTenant);
+    }
 
     try {
-      await fetch(`${API_BASE}/api/v1/users`, {
+      const res = await fetch(`${API_BASE}/api/v1/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newUser),
       });
+      const data = await res.json();
+      if (data.user) {
+        setUsers((prev) => [...prev.filter((u) => u.id !== newUser.id && u.id !== data.user.id), data.user]);
+      }
     } catch (err) {
       console.warn("Offline fallback saved to LocalStorage:", err);
     }
   };
 
   const handleUpdateUser = async (updatedUser) => {
-    setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
+    setUsers((prev) => prev.map((u) => (u.id === updatedUser.id ? { ...u, ...updatedUser } : u)));
     try {
-      await fetch(`${API_BASE}/api/v1/users/${updatedUser.id}`, {
+      const res = await fetch(`${API_BASE}/api/v1/users/${updatedUser.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedUser),
       });
+      const data = await res.json();
+      if (data.user) {
+        setUsers((prev) => prev.map((u) => (u.id === data.user.id ? data.user : u)));
+      }
     } catch (err) {
       console.warn("Offline fallback saved to LocalStorage:", err);
     }
