@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages ./packages
 COPY apps/worker ./apps/worker
-RUN npm install -g pnpm && pnpm install --no-frozen-lockfile
+RUN npm install -g pnpm@9 && pnpm install --no-frozen-lockfile
 
 FROM node:22-alpine AS runner
 WORKDIR /app
