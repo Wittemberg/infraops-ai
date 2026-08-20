@@ -336,50 +336,50 @@ export function InfrastructureIntelligenceView({ activeTenant }) {
   // Handlers
   const handleAnalyzeNow = async () => {
     setAnalyzing(true);
+    setFeedbackMsg(null);
+
+    // Read active AI config from localStorage
+    let aiConfig = null;
+    try {
+      const saved = localStorage.getItem("infraops_ai_config_v2");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const prov = parsed.activeProvider || "openai";
+        const key = (parsed.keys?.[prov] || "").trim();
+        const model = parsed.models?.[prov] || "gpt-4o";
+        const baseUrl = parsed.baseUrl?.[prov] || "";
+        if (key || prov === "ollama") {
+          aiConfig = { provider: prov, apiKey: key, model, baseUrl };
+        }
+      }
+    } catch {}
+
+    if (!aiConfig) {
+      setAnalyzing(false);
+      setFeedbackMsg("⚠️ Chave de IA não configurada. Para minerar recomendações arquiteturais com inteligência generativa, por favor configure sua chave de API (OpenAI, Groq, DeepSeek ou Ollama) no Console IA.");
+      setTimeout(() => setFeedbackMsg(null), 8000);
+      return;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/api/v1/intelligence/recommendations/analyze`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tenantId: activeTenant?.id }),
+        body: JSON.stringify({ tenantId: activeTenant?.id, config: aiConfig }),
       });
       const data = await res.json();
-      if (data.newRecommendation) {
+      if (res.ok && data.newRecommendation) {
         const item = { ...data.newRecommendation, tenantId: activeTenant?.id };
         setRecommendations((prev) => [item, ...prev]);
-        setFeedbackMsg(`💡 Nova Recomendação Arquitetural Gerada: "${item.title}"`);
+        setFeedbackMsg(`💡 Nova Recomendação Arquitetural Gerada via ${aiConfig.provider.toUpperCase()}: "${item.title}"`);
+      } else {
+        setFeedbackMsg(`⚠️ ${data.error || "Não foi possível minerar recomendações com o provedor de IA."}`);
       }
     } catch (err) {
-      console.warn("Offline analysis:", err);
-      const mockRec = {
-        id: `rec-${Date.now()}`,
-        tenantId: activeTenant?.id,
-        title: `💾 Otimização de Storage & Snapshot para ${activeTenant?.name}`,
-        category: "capacity",
-        problemStatement: "Taxa de retenção padrão sem expiração automática configurada para novos volumes.",
-        rootCauseHypothesis: "Política de snapshots herdou defaults sem limite de retenção de 7 dias.",
-        proposedChange: "Configurar política de retenção restrita com expiração em 7 dias.",
-        priority: "medium",
-        confidencePercent: 92,
-        riskLevel: "low",
-        effortLevel: "low",
-        status: "open",
-        evidences: [
-          { id: `ev-${Date.now()}`, metricName: "storage.snapshot_retention", observedValue: "Sem expiração", period: "Tempo real" },
-        ],
-        estimatedRoi: {
-          hoursSavedPerMonth: 4,
-          financialSavingsMonthly: 480,
-          paybackMonths: 1.0,
-          currency: "BRL",
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setRecommendations((prev) => [mockRec, ...prev]);
-      setFeedbackMsg(`💡 Diagnóstico concluído: 1 recomendação gerada para ${activeTenant?.name}`);
+      setFeedbackMsg(`⚠️ Falha de comunicação com o provedor de IA: ${err.message || err}`);
     } finally {
       setAnalyzing(false);
-      setTimeout(() => setFeedbackMsg(null), 5000);
+      setTimeout(() => setFeedbackMsg(null), 8000);
     }
   };
 

@@ -90,6 +90,19 @@ export function AiConsoleView({ activeTenant, onOpenActionModal }) {
 
     setMessages((prev) => [...prev, userMsg]);
     setInputText("");
+
+    if (!hasActiveKey) {
+      const aiMsg = {
+        id: `a-${Date.now()}`,
+        sender: "ai",
+        text: `⚠️ **Chave de IA não configurada para ${activeProv.toUpperCase()}.**\n\nPara que o assistente operacional possa analisar a infraestrutura do tenant **${activeTenant?.name || "ativo"}** e responder suas perguntas com inteligência generativa em tempo real, é necessário configurar sua chave de API.\n\n👉 Clique no botão **\`⚙️ Configurar Modelo / Chave de API\`** no topo desta tela para inserir sua chave (OpenAI, Groq, DeepSeek, Anthropic, Gemini ou Ollama local).`,
+        toolCall: null,
+        timestamp: new Date().toLocaleTimeString("pt-BR"),
+      };
+      setMessages((prev) => [...prev, aiMsg]);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -114,50 +127,20 @@ export function AiConsoleView({ activeTenant, onOpenActionModal }) {
       const aiMsg = {
         id: `a-${Date.now()}`,
         sender: "ai",
-        text: data.response || "Compreendido. Analisei o estado atual da infraestrutura.",
+        text: data.response || `⚠️ Não foi possível obter resposta do provedor ${activeProv.toUpperCase()}.`,
         toolCall: data.toolCall || null,
         timestamp: new Date().toLocaleTimeString("pt-BR"),
       };
 
       setMessages((prev) => [...prev, aiMsg]);
-    } catch {
-      // Offline/Local Heuristic fallback with real Proxmox topology
-      let fallbackText = `Analisei os recursos do cliente ${activeTenant?.name || "Supermercados Calvi"}. Todos os serviços monitorados estão respondendo normalmente.`;
-      let toolCall = null;
-
-      const lower = userText.toLowerCase();
-      if (lower.includes("capacidade") || lower.includes("relat") || lower.includes("pve") || lower.includes("memoria") || lower.includes("disco")) {
-        fallbackText = `📊 **Relatório de Capacidade & Resiliência — Nó 'pve' (Proxmox VE 8.4.19)**\n\n` +
-          `• **Nó Físico:** \`pve\` (IP: 38.52.129.130) | Status: 🟢 ONLINE\n` +
-          `• **CPU:** 8.5% de uso médio (Operação estável)\n` +
-          `• **Memória RAM:** 24.1 GB alocados / 64 GB totais (37.6% de utilização)\n` +
-          `• **Storages Identificados:** \`HDD_backups\`, \`HDD_storage\`, \`nvme_storage\`, \`local\`, \`rpool\`\n` +
-          `• **Workloads Monitoradas (5 VMs QEMU Ativas):**\n` +
-          `  1. VM 100: \`SRV-CW\` (4 vCPUs • 8 GB RAM) — RUNNING\n` +
-          `  2. VM 102: \`CALVI IIS\` (4 vCPUs • 8 GB RAM) — RUNNING\n` +
-          `  3. VM 104: \`CALVI BANCO\` (8 vCPUs • 16 GB RAM) — RUNNING\n` +
-          `  4. VM 106: \`SRV-Concentrador\` (4 vCPUs • 8 GB RAM) — RUNNING\n` +
-          `  5. VM 110: \`SRV-AD-PortoNovo\` (4 vCPUs • 8 GB RAM) — RUNNING\n\n` +
-          `💡 **Diagnóstico de Inteligência (ADR-017):** O ambiente opera em nó solitário (SPOF estrutural). Recomenda-se assegurar que as rotinas de backup para o storage \`HDD_backups\` mantenham retenção externa periódica.`;
-      } else if (lower.includes("restart") || lower.includes("reiniciar")) {
-        fallbackText = `Mapeei sua solicitação para a Action oficial registrada 'service.restart'. Deseja prosseguir com a revisão e execução sob as políticas do Policy Engine?`;
-        toolCall = { actionKey: "service.restart", targetId: "CALVI BANCO" };
-      } else if (lower.includes("health") || lower.includes("saude") || lower.includes("status")) {
-        fallbackText = `Executando avaliação de saúde diagnóstica da infraestrutura. O nó 'pve' e todas as 5 VMs responderam positivamente aos heartbeats e verificações de integridade.`;
-        toolCall = { actionKey: "host.health_check", targetId: "pve" };
-      } else if (lower.includes("backup")) {
-        fallbackText = `Verifiquei os storages de backup ('HDD_backups'). As últimas rotinas de dump estão íntegras e aderentes à política de Safe Retention.`;
-        toolCall = { actionKey: "backup.verify", targetId: "HDD_backups" };
-      }
-
+    } catch (err) {
       const aiMsg = {
         id: `a-${Date.now()}`,
         sender: "ai",
-        text: fallbackText,
-        toolCall,
+        text: `⚠️ **Erro de Comunicação:** Não foi possível conectar ao serviço de IA (${err.message || err}). Verifique se sua chave de API é válida e se possui saldo/créditos ativos.`,
+        toolCall: null,
         timestamp: new Date().toLocaleTimeString("pt-BR"),
       };
-
       setMessages((prev) => [...prev, aiMsg]);
     }
 
