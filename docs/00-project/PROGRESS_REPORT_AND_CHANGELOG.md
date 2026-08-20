@@ -112,3 +112,17 @@ Centralização completa e testes de conectividade ao vivo em tempo real para to
 ### 3.4. Padronização Visual Corporativa
 - Remoção total de tags de desenvolvimento e etapas dos componentes visuais, garantindo uma interface limpa, moderna e 100% orientada a ambiente corporativo e clientes finais.
 
+### 3.5. Integração REST Real com Hipervisores (Proxmox VE & Virtualizor) — Eliminação Total de Mocks
+- **Chamadas Reais às APIs de Hipervisores:** Migração dos conectores `ProxmoxProvider` e `VirtualizorProvider` no backend para execução de requisições HTTP REST diretas nos endpoints oficiais:
+  - **Proxmox VE:** `/api2/json/version`, `/api2/json/nodes`, `/api2/json/cluster/resources?type=vm` e `/api2/json/storage` utilizando autenticação `PVEAPIToken`.
+  - **Virtualizor:** `index.php?act=servers`, `index.php?act=vs` e `index.php?act=storage` com autenticação `API Key` e `API Pass`.
+- **Sincronização de Nós e VMs Reais:** Mapeamento em tempo real do nó físico (`pve`) e das 5 VMs QEMU oficiais da organização (`SRV-CW`, `CALVI IIS`, `CALVI BANCO`, `SRV-Concentrador`, `SRV-AD-PortoNovo`), eliminando completamente qualquer mock residual ou fictício.
+- **Ofuscação de Credenciais (`AGENTS.md`):** Tratamento rigoroso em todas as mensagens e logs de erro com sanitização automática (`[REDACTED]`).
+
+### 3.6. Blindagem e Zero-State no Módulo de Inteligência & Advisor
+- **Isolamento de Tenant no Advisor:** Módulos de Recomendações Estruturais, Incidentes Recorrentes, Projeção de Capacidade (*Capacity Forecasting*), Auditoria de SPOFs, *Technical Debt Score* e Relatórios Executivos (QBR) passam a filtrar estritamente por `activeTenant.id`.
+- **Baseline de Dívida Técnica:** Tenants novos sem incidentes iniciam com score 100/100 (verde) e sem recomendações pré-fabricadas, passando a receber diagnósticos somente após a detecção real de telemetria ou logs.
+
+### 3.7. Pipeline de CI/CD & Deploy
+- **Upgrade para Node.js 22 LTS:** Atualização do workflow `.github/workflows/deploy.yml` para Node.js 22 LTS, eliminando avisos de depreciação de runners e garantindo builds consistentes do frontend no GitHub Actions e Portainer Webhook.
+

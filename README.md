@@ -21,8 +21,8 @@ InfraOps AI é uma plataforma completa de Governança, Operações Autônomas e 
   - 💡 **Infrastructure Intelligence & Advisor:** Mineração de incidentes recorrentes, recomendações estruturais evidence-backed, previsão preditiva de capacidade (7 a 180 dias), detecção de SPOFs, score explicável de dívida técnica e relatórios executivos para MSPs.
   - ⚡ **Catálogo de Actions & Governança Operacional:** Contratos declarativos de Actions tipadas (Precheck, Postcheck, Idempotência) e ajuste de nível de autonomia (1 a 5) por tenant.
   - 🔔 **Canais de Disparo Omnichannel por Tenant:** Chatwoot API (*Account API & Public API*), Quepasa WhatsApp Gateway, Telegram Bot, WhatsApp Webhook, E-mail SMTP e Webhooks HTTP com teste de disparo ao vivo.
-  - 🔌 **Integrações Nativas:** Proxmox VE e Virtualizor com sincronização de nós e workloads.
-  - 🛡️ **Auditoria & Criptografia:** Audit Hash Chain SHA-256 e RBAC multi-tenant estrito.
+  - 🔌 **Integrações Nativas & Live Discovery:** Proxmox VE e Virtualizor com chamadas REST oficiais e sincronização em tempo real de nós, VMs QEMU, containers LXC e storages (zero dados fictícios).
+  - 🛡️ **Auditoria & Criptografia:** Audit Hash Chain SHA-256 e RBAC multi-tenant estrito com isolamento por organização.
 
 ## 🔒 Princípio de Autonomia e Governança
 
