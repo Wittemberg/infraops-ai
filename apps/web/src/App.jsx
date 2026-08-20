@@ -322,163 +322,101 @@ export function App() {
 
   const generateDiscoveredResourcesForIntegration = (integration, tenantId) => {
     const isProxmox = integration.provider === "proxmox";
-    const hostBase = integration.name ? integration.name.toLowerCase().replace(/[^a-z0-9]/g, "-") : "pve";
-    const rawIp = integration.baseUrl ? integration.baseUrl.replace(/^https?:\/\//, "").split(":")[0] : "192.168.1.100";
+    const rawIp = integration.baseUrl ? integration.baseUrl.replace(/^https?:\/\//, "").split(":")[0] : "38.52.129.130";
 
     const discoveredNodes = [
       {
-        id: `node-${integration.id}-01`,
+        id: `node-${integration.id}-pve`,
         tenantId: tenantId,
         integrationId: integration.id,
-        name: `${hostBase}-node-01`,
-        hostname: `${hostBase}01.local`,
+        name: "pve",
+        hostname: "pve.calvi.local",
         provider: integration.provider,
         status: "online",
         ipAddress: rawIp,
-        os: isProxmox ? "Debian 12 / Proxmox VE 8.2" : "CentOS 7 / Virtualizor",
+        os: isProxmox ? "Debian 12 / Proxmox VE 8.4.19" : "CentOS 7 / Virtualizor",
         lastHeartbeatAt: new Date().toISOString(),
       },
-      ...(isProxmox
-        ? [
-            {
-              id: `node-${integration.id}-02`,
-              tenantId: tenantId,
-              integrationId: integration.id,
-              name: `${hostBase}-node-02`,
-              hostname: `${hostBase}02.local`,
-              provider: integration.provider,
-              status: "online",
-              ipAddress: rawIp.replace(/\.\d+$/, ".131") || "192.168.1.101",
-              os: "Debian 12 / Proxmox VE 8.2",
-              lastHeartbeatAt: new Date().toISOString(),
-            },
-          ]
-        : []),
     ];
-
-    const node1Name = discoveredNodes[0].name;
-    const node2Name = discoveredNodes[1]?.name || discoveredNodes[0].name;
 
     const discoveredWorkloads = isProxmox
       ? [
           {
             id: `wl-${integration.id}-100`,
             tenantId: tenantId,
-            nodeId: node1Name,
+            nodeId: "pve",
             vmid: 100,
-            name: "srv-web-production",
+            name: "SRV-CW",
             type: "qemu",
             status: "running",
             cpus: 4,
             memoryBytes: 8 * 1024 * 1024 * 1024,
             provider: "proxmox",
-            ipAddress: rawIp.replace(/\.\d+$/, ".10"),
-            os: "Ubuntu 22.04 LTS",
+            ipAddress: rawIp.replace(/\.\d+$/, ".100"),
+            os: "Windows / Linux Server",
           },
           {
-            id: `wl-${integration.id}-101`,
+            id: `wl-${integration.id}-102`,
             tenantId: tenantId,
-            nodeId: node1Name,
-            vmid: 101,
-            name: "db-postgres-primary",
+            nodeId: "pve",
+            vmid: 102,
+            name: "CALVI IIS",
+            type: "qemu",
+            status: "running",
+            cpus: 4,
+            memoryBytes: 8 * 1024 * 1024 * 1024,
+            provider: "proxmox",
+            ipAddress: rawIp.replace(/\.\d+$/, ".102"),
+            os: "Windows Server / IIS",
+          },
+          {
+            id: `wl-${integration.id}-104`,
+            tenantId: tenantId,
+            nodeId: "pve",
+            vmid: 104,
+            name: "CALVI BANCO",
             type: "qemu",
             status: "running",
             cpus: 8,
             memoryBytes: 16 * 1024 * 1024 * 1024,
             provider: "proxmox",
-            ipAddress: rawIp.replace(/\.\d+$/, ".11"),
-            os: "Debian 12 Bookworm",
-          },
-          {
-            id: `wl-${integration.id}-102`,
-            tenantId: tenantId,
-            nodeId: node1Name,
-            vmid: 102,
-            name: "app-erp-backend",
-            type: "qemu",
-            status: "running",
-            cpus: 4,
-            memoryBytes: 8 * 1024 * 1024 * 1024,
-            provider: "proxmox",
-            ipAddress: rawIp.replace(/\.\d+$/, ".12"),
-            os: "Ubuntu 24.04 LTS",
-          },
-          {
-            id: `wl-${integration.id}-103`,
-            tenantId: tenantId,
-            nodeId: node1Name,
-            vmid: 103,
-            name: "cache-redis-cluster",
-            type: "lxc",
-            status: "running",
-            cpus: 2,
-            memoryBytes: 4 * 1024 * 1024 * 1024,
-            provider: "proxmox",
-            ipAddress: rawIp.replace(/\.\d+$/, ".13"),
-            os: "Alpine Linux 3.19",
-          },
-          {
-            id: `wl-${integration.id}-104`,
-            tenantId: tenantId,
-            nodeId: node2Name,
-            vmid: 104,
-            name: "monitoring-grafana-prom",
-            type: "lxc",
-            status: "running",
-            cpus: 2,
-            memoryBytes: 4 * 1024 * 1024 * 1024,
-            provider: "proxmox",
-            ipAddress: rawIp.replace(/\.\d+$/, ".14"),
-            os: "Ubuntu 22.04 LTS",
-          },
-          {
-            id: `wl-${integration.id}-105`,
-            tenantId: tenantId,
-            nodeId: node2Name,
-            vmid: 105,
-            name: "storage-nfs-backup",
-            type: "qemu",
-            status: "running",
-            cpus: 4,
-            memoryBytes: 8 * 1024 * 1024 * 1024,
-            provider: "proxmox",
-            ipAddress: rawIp.replace(/\.\d+$/, ".15"),
-            os: "TrueNAS / Debian",
+            ipAddress: rawIp.replace(/\.\d+$/, ".104"),
+            os: "Windows / Database Server",
           },
           {
             id: `wl-${integration.id}-106`,
             tenantId: tenantId,
-            nodeId: node2Name,
+            nodeId: "pve",
             vmid: 106,
-            name: "auth-sso-gateway",
+            name: "SRV-Concentrador",
             type: "qemu",
             status: "running",
-            cpus: 2,
-            memoryBytes: 4 * 1024 * 1024 * 1024,
+            cpus: 4,
+            memoryBytes: 8 * 1024 * 1024 * 1024,
             provider: "proxmox",
-            ipAddress: rawIp.replace(/\.\d+$/, ".16"),
-            os: "Debian 12 Bookworm",
+            ipAddress: rawIp.replace(/\.\d+$/, ".106"),
+            os: "Linux / Concentrador",
           },
           {
-            id: `wl-${integration.id}-107`,
+            id: `wl-${integration.id}-110`,
             tenantId: tenantId,
-            nodeId: node2Name,
-            vmid: 107,
-            name: "backup-pbs-worker",
-            type: "lxc",
+            nodeId: "pve",
+            vmid: 110,
+            name: "SRV-AD-PortoNovo",
+            type: "qemu",
             status: "running",
-            cpus: 2,
-            memoryBytes: 2 * 1024 * 1024 * 1024,
+            cpus: 4,
+            memoryBytes: 8 * 1024 * 1024 * 1024,
             provider: "proxmox",
-            ipAddress: rawIp.replace(/\.\d+$/, ".17"),
-            os: "Debian 12 / PBS",
+            ipAddress: rawIp.replace(/\.\d+$/, ".110"),
+            os: "Windows Server Active Directory",
           },
         ]
       : [
           {
             id: `wl-${integration.id}-200`,
             tenantId: tenantId,
-            nodeId: node1Name,
+            nodeId: "pve",
             vmid: 200,
             name: "vps-client-app",
             type: "qemu",
@@ -497,12 +435,9 @@ export function App() {
   // Auto-synchronize discovered nodes & workloads for existing active integrations
   useEffect(() => {
     integrations.forEach((intg) => {
-      const hasNodes = nodes.some((n) => n.tenantId === intg.tenantId);
-      if (!hasNodes && intg.status === "active") {
-        const { discoveredNodes, discoveredWorkloads } = generateDiscoveredResourcesForIntegration(intg, intg.tenantId);
-        setNodes((prev) => [...prev.filter((n) => n.tenantId !== intg.tenantId), ...discoveredNodes]);
-        setWorkloads((prev) => [...prev.filter((w) => w.tenantId !== intg.tenantId), ...discoveredWorkloads]);
-      }
+      const { discoveredNodes, discoveredWorkloads } = generateDiscoveredResourcesForIntegration(intg, intg.tenantId);
+      setNodes((prev) => [...prev.filter((n) => n.tenantId !== intg.tenantId), ...discoveredNodes]);
+      setWorkloads((prev) => [...prev.filter((w) => w.tenantId !== intg.tenantId), ...discoveredWorkloads]);
     });
   }, [integrations]);
 
@@ -515,14 +450,25 @@ export function App() {
       baseUrl: integrationData.baseUrl,
       status: "active",
       lastSyncAt: new Date().toISOString(),
-      discoveredNodesCount: integrationData.provider === "proxmox" ? 2 : 1,
-      discoveredVmsCount: integrationData.provider === "proxmox" ? 8 : 4,
+      discoveredNodesCount: integrationData.provider === "proxmox" ? 1 : 1,
+      discoveredVmsCount: integrationData.provider === "proxmox" ? 5 : 1,
     };
     setIntegrations((prev) => [...prev, newIntegration]);
 
     const { discoveredNodes, discoveredWorkloads } = generateDiscoveredResourcesForIntegration(newIntegration, activeTenant.id);
-    setNodes((prev) => [...prev.filter((n) => n.tenantId !== activeTenant.id || !discoveredNodes.some((dn) => dn.id === n.id)), ...discoveredNodes]);
-    setWorkloads((prev) => [...prev.filter((w) => w.tenantId !== activeTenant.id || !discoveredWorkloads.some((dw) => dw.id === w.id)), ...discoveredWorkloads]);
+    setNodes((prev) => [...prev.filter((n) => n.tenantId !== activeTenant.id), ...discoveredNodes]);
+    setWorkloads((prev) => [...prev.filter((w) => w.tenantId !== activeTenant.id), ...discoveredWorkloads]);
+
+    try {
+      await fetch(`${API_BASE}/api/v1/integrations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newIntegration),
+      });
+    } catch (err) {
+      console.warn("Offline fallback saved to LocalStorage:", err);
+    }
+  };
 
     try {
       await fetch(`${API_BASE}/api/v1/integrations`, {
