@@ -2396,6 +2396,10 @@ const server = createServer(async (req, res) => {
     const prompt = body.prompt || "";
     const tenantId = body.tenantId || "tenant-default";
     const config = body.config || { provider: "groq", model: "llama-3.3-70b-versatile" };
+    const history = Array.isArray(body.history) ? body.history : [];
+    const validHistory = history
+      .filter((h: any) => (h.role === "user" || h.role === "assistant") && typeof h.content === "string" && h.content.trim().length > 0)
+      .map((h: any) => ({ role: h.role, content: h.content }));
 
     const tenantNodes = store.nodes.filter((n) => n.tenantId === tenantId);
     const tenantWorkloads = store.workloads.filter((w) => w.tenantId === tenantId);
@@ -2447,33 +2451,7 @@ const server = createServer(async (req, res) => {
           ? tenantNetDevs.map((d) => `${d.name} (${d.vendor.toUpperCase()}, ${d.model}, IP: ${d.ipAddress})`).join("; ")
           : "MikroTik CCR2004 / pfSense Firewall";
 
-        const payload =
-          config.provider === "ollama"
-            ? {
-                model: config.model || "llama3",
-                messages: [
-                  {
-                    role: "system",
-                    content: `Você é o InfraOps AI, assistente de operações de infraestrutura de TI do tenant '${tenantId}'.
-Nós: ${tenantNodes.map((n) => n.name).join(", ") || "pve"}.
-VMs: ${tenantWorkloads.map((w) => w.name).join(", ") || "SRV-CW, CALVI IIS, CALVI BANCO, SRV-Concentrador, SRV-AD-PortoNovo"}.
-Roteadores & Firewalls: ${netDevsSummary}.
-Links WAN: ${wanSummary}.
-Inventário Físico: ${inventorySummary}.
-Racks: ${tenantRacks.map((r) => `${r.name} (${r.heightU}U)`).join(", ") || "Rack Principal"}.
-Subnets: ${tenantSubnets.map((s) => s.cidr).join(", ") || "38.52.129.0/24"}.
-Responda em português com precisão técnica. Nunca gere comandos livres para roteadores; indique sempre que ações de WAN usam o fluxo governado 'network.set_primary_wan'.`,
-                  },
-                  { role: "user", content: prompt },
-                ],
-                stream: false,
-              }
-            : {
-                model: config.model || (config.provider === "groq" ? "llama-3.3-70b-versatile" : "gpt-4o"),
-                messages: [
-                  {
-                    role: "system",
-                    content: `Você é o InfraOps AI, assistente operacional e de governança de infraestrutura de TI do cliente '${tenantId}'.
+        const systemPrompt = `Você é o InfraOps AI, assistente operacional e de governança de infraestrutura de TI do cliente '${tenantId}'.
 A infraestrutura real cadastrada possui:
 - Nós Proxmox: ${tenantNodes.map((n) => `${n.name} (${n.ipAddress || "38.52.129.130"}, ${n.os || "Proxmox VE"})`).join(", ") || "pve (38.52.129.130, Proxmox VE 8.4.19)"}
 - Workloads / VMs: ${tenantWorkloads.map((w) => `${w.name} (${w.type || "qemu"}, ${w.status || "running"})`).join(", ") || "SRV-CW, CALVI IIS, CALVI BANCO, SRV-Concentrador, SRV-AD-PortoNovo"}
@@ -2484,8 +2462,24 @@ A infraestrutura real cadastrada possui:
 - Racks: ${tenantRacks.map((r) => `${r.name} (${r.heightU}U)`).join(", ") || "Rack Principal 42U"}.
 - Conexões de Rede Físicas: ${tenantConns.length} conexões mapeadas.
 - Subnets / IPAM: ${tenantSubnets.map((s) => s.cidr).join(", ") || "38.52.129.0/24"}.
-Responda de forma direta, técnica, estruturada em Markdown e em português do Brasil. Ao sugerir comutação de link WAN, NUNCA gere comandos CLI livres; indique sempre a ação governada 'network.set_primary_wan' com precheck e rollback automático.`,
-                  },
+Responda de forma direta, técnica, estruturada em Markdown e em português do Brasil. Mantenha a coerência com as mensagens anteriores da conversa. Ao sugerir comutação de link WAN, NUNCA gere comandos CLI livres; indique sempre a ação governada 'network.set_primary_wan' com precheck e rollback automático.`;
+
+        const payload =
+          config.provider === "ollama"
+            ? {
+                model: config.model || "llama3",
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  ...validHistory,
+                  { role: "user", content: prompt },
+                ],
+                stream: false,
+              }
+            : {
+                model: config.model || (config.provider === "groq" ? "llama-3.3-70b-versatile" : "gpt-4o"),
+                messages: [
+                  { role: "system", content: systemPrompt },
+                  ...validHistory,
                   { role: "user", content: prompt },
                 ],
                 temperature: 0.2,

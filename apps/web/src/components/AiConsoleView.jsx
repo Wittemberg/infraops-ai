@@ -1,19 +1,61 @@
 import React, { useState, useEffect, useRef } from "react";
 
+const getInitialMessages = (tenant) => [
+  {
+    id: "m1",
+    sender: "ai",
+    text: `Olá! Sou o assistente operacional do InfraOps AI. Estou conectado ao ambiente de ${tenant?.name || "produção"}. Como posso ajudar com diagnósticos de nós, servidores locais, análise de backups, links WAN ou execução de rotinas?`,
+    timestamp: new Date().toLocaleTimeString("pt-BR"),
+  },
+];
+
 export function AiConsoleView({ activeTenant, onOpenActionModal }) {
-  const [messages, setMessages] = useState([
-    {
-      id: "m1",
-      sender: "ai",
-      text: `Olá! Sou o assistente operacional do InfraOps AI. Estou conectado ao ambiente de ${activeTenant?.name || "produção"}. Como posso ajudar com diagnósticos de nós, servidores locais, análise de backups ou execução de rotinas?`,
-      timestamp: new Date().toLocaleTimeString("pt-BR"),
-    },
-  ]);
+  const [messages, setMessages] = useState(() => {
+    const storageKey = `infraops_ai_chat_${activeTenant?.id || "default"}`;
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch {}
+    }
+    return getInitialMessages(activeTenant);
+  });
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [configModalOpen, setConfigModalOpen] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [testFeedback, setTestFeedback] = useState(null);
+
+  // Sync / switch chat history when tenant changes
+  useEffect(() => {
+    const storageKey = `infraops_ai_chat_${activeTenant?.id || "default"}`;
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+          return;
+        }
+      } catch {}
+    }
+    setMessages(getInitialMessages(activeTenant));
+  }, [activeTenant?.id]);
+
+  // Persist messages whenever they change
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      const storageKey = `infraops_ai_chat_${activeTenant?.id || "default"}`;
+      localStorage.setItem(storageKey, JSON.stringify(messages));
+    }
+  }, [messages, activeTenant?.id]);
+
+  const handleClearChat = () => {
+    const storageKey = `infraops_ai_chat_${activeTenant?.id || "default"}`;
+    localStorage.removeItem(storageKey);
+    setMessages(getInitialMessages(activeTenant));
+  };
 
   // AI Configuration State (Persisted in localStorage with separate keys per provider)
   const [aiSettings, setAiSettings] = useState(() => {
@@ -106,6 +148,15 @@ export function AiConsoleView({ activeTenant, onOpenActionModal }) {
     setLoading(true);
 
     try {
+      // Build previous conversation history (up to last 10 messages)
+      const history = messages
+        .filter((m) => m.text && !m.text.startsWith("⚠️"))
+        .slice(-10)
+        .map((m) => ({
+          role: m.sender === "user" ? "user" : "assistant",
+          content: m.text,
+        }));
+
       // Call backend AI Chat endpoint with active provider and its own key
       const response = await fetch("https://infraopsai.awecloudsolution.com/api/v1/ai/chat", {
         method: "POST",
@@ -113,6 +164,7 @@ export function AiConsoleView({ activeTenant, onOpenActionModal }) {
         body: JSON.stringify({
           prompt: userText,
           tenantId: activeTenant?.id,
+          history,
           config: {
             provider: activeProv,
             model: activeModel,
@@ -258,16 +310,26 @@ export function AiConsoleView({ activeTenant, onOpenActionModal }) {
             )}
           </div>
 
-          <button
-            className="btn btn-secondary"
-            onClick={() => {
-              setTestFeedback(null);
-              setConfigModalOpen(true);
-            }}
-            style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "0.4rem" }}
-          >
-            ⚙️ Configurar Modelo / Chave de API
-          </button>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <button
+              className="btn btn-secondary"
+              onClick={handleClearChat}
+              title="Limpar mensagens e reiniciar a conversa para este tenant"
+              style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "0.4rem" }}
+            >
+              🗑️ Limpar Conversa
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                setTestFeedback(null);
+                setConfigModalOpen(true);
+              }}
+              style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "0.4rem" }}
+            >
+              ⚙️ Configurar Modelo / Chave de API
+            </button>
+          </div>
         </div>
 
         {/* Chat Messages List */}
