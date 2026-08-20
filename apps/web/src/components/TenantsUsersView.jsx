@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 
 export function TenantsUsersView({
-  tenants,
-  users,
+  tenants = [],
+  users = [],
   activeTenant,
+  isSuperAdmin = false,
   onSelectTenant,
   onAddTenant,
   onUpdateTenant,
