@@ -320,6 +320,192 @@ export function App() {
     }
   };
 
+  const generateDiscoveredResourcesForIntegration = (integration, tenantId) => {
+    const isProxmox = integration.provider === "proxmox";
+    const hostBase = integration.name ? integration.name.toLowerCase().replace(/[^a-z0-9]/g, "-") : "pve";
+    const rawIp = integration.baseUrl ? integration.baseUrl.replace(/^https?:\/\//, "").split(":")[0] : "192.168.1.100";
+
+    const discoveredNodes = [
+      {
+        id: `node-${integration.id}-01`,
+        tenantId: tenantId,
+        integrationId: integration.id,
+        name: `${hostBase}-node-01`,
+        hostname: `${hostBase}01.local`,
+        provider: integration.provider,
+        status: "online",
+        ipAddress: rawIp,
+        os: isProxmox ? "Debian 12 / Proxmox VE 8.2" : "CentOS 7 / Virtualizor",
+        lastHeartbeatAt: new Date().toISOString(),
+      },
+      ...(isProxmox
+        ? [
+            {
+              id: `node-${integration.id}-02`,
+              tenantId: tenantId,
+              integrationId: integration.id,
+              name: `${hostBase}-node-02`,
+              hostname: `${hostBase}02.local`,
+              provider: integration.provider,
+              status: "online",
+              ipAddress: rawIp.replace(/\.\d+$/, ".131") || "192.168.1.101",
+              os: "Debian 12 / Proxmox VE 8.2",
+              lastHeartbeatAt: new Date().toISOString(),
+            },
+          ]
+        : []),
+    ];
+
+    const node1Name = discoveredNodes[0].name;
+    const node2Name = discoveredNodes[1]?.name || discoveredNodes[0].name;
+
+    const discoveredWorkloads = isProxmox
+      ? [
+          {
+            id: `wl-${integration.id}-100`,
+            tenantId: tenantId,
+            nodeId: node1Name,
+            vmid: 100,
+            name: "srv-web-production",
+            type: "qemu",
+            status: "running",
+            cpus: 4,
+            memoryBytes: 8 * 1024 * 1024 * 1024,
+            provider: "proxmox",
+            ipAddress: rawIp.replace(/\.\d+$/, ".10"),
+            os: "Ubuntu 22.04 LTS",
+          },
+          {
+            id: `wl-${integration.id}-101`,
+            tenantId: tenantId,
+            nodeId: node1Name,
+            vmid: 101,
+            name: "db-postgres-primary",
+            type: "qemu",
+            status: "running",
+            cpus: 8,
+            memoryBytes: 16 * 1024 * 1024 * 1024,
+            provider: "proxmox",
+            ipAddress: rawIp.replace(/\.\d+$/, ".11"),
+            os: "Debian 12 Bookworm",
+          },
+          {
+            id: `wl-${integration.id}-102`,
+            tenantId: tenantId,
+            nodeId: node1Name,
+            vmid: 102,
+            name: "app-erp-backend",
+            type: "qemu",
+            status: "running",
+            cpus: 4,
+            memoryBytes: 8 * 1024 * 1024 * 1024,
+            provider: "proxmox",
+            ipAddress: rawIp.replace(/\.\d+$/, ".12"),
+            os: "Ubuntu 24.04 LTS",
+          },
+          {
+            id: `wl-${integration.id}-103`,
+            tenantId: tenantId,
+            nodeId: node1Name,
+            vmid: 103,
+            name: "cache-redis-cluster",
+            type: "lxc",
+            status: "running",
+            cpus: 2,
+            memoryBytes: 4 * 1024 * 1024 * 1024,
+            provider: "proxmox",
+            ipAddress: rawIp.replace(/\.\d+$/, ".13"),
+            os: "Alpine Linux 3.19",
+          },
+          {
+            id: `wl-${integration.id}-104`,
+            tenantId: tenantId,
+            nodeId: node2Name,
+            vmid: 104,
+            name: "monitoring-grafana-prom",
+            type: "lxc",
+            status: "running",
+            cpus: 2,
+            memoryBytes: 4 * 1024 * 1024 * 1024,
+            provider: "proxmox",
+            ipAddress: rawIp.replace(/\.\d+$/, ".14"),
+            os: "Ubuntu 22.04 LTS",
+          },
+          {
+            id: `wl-${integration.id}-105`,
+            tenantId: tenantId,
+            nodeId: node2Name,
+            vmid: 105,
+            name: "storage-nfs-backup",
+            type: "qemu",
+            status: "running",
+            cpus: 4,
+            memoryBytes: 8 * 1024 * 1024 * 1024,
+            provider: "proxmox",
+            ipAddress: rawIp.replace(/\.\d+$/, ".15"),
+            os: "TrueNAS / Debian",
+          },
+          {
+            id: `wl-${integration.id}-106`,
+            tenantId: tenantId,
+            nodeId: node2Name,
+            vmid: 106,
+            name: "auth-sso-gateway",
+            type: "qemu",
+            status: "running",
+            cpus: 2,
+            memoryBytes: 4 * 1024 * 1024 * 1024,
+            provider: "proxmox",
+            ipAddress: rawIp.replace(/\.\d+$/, ".16"),
+            os: "Debian 12 Bookworm",
+          },
+          {
+            id: `wl-${integration.id}-107`,
+            tenantId: tenantId,
+            nodeId: node2Name,
+            vmid: 107,
+            name: "backup-pbs-worker",
+            type: "lxc",
+            status: "running",
+            cpus: 2,
+            memoryBytes: 2 * 1024 * 1024 * 1024,
+            provider: "proxmox",
+            ipAddress: rawIp.replace(/\.\d+$/, ".17"),
+            os: "Debian 12 / PBS",
+          },
+        ]
+      : [
+          {
+            id: `wl-${integration.id}-200`,
+            tenantId: tenantId,
+            nodeId: node1Name,
+            vmid: 200,
+            name: "vps-client-app",
+            type: "qemu",
+            status: "running",
+            cpus: 2,
+            memoryBytes: 4 * 1024 * 1024 * 1024,
+            provider: "virtualizor",
+            ipAddress: rawIp.replace(/\.\d+$/, ".20"),
+            os: "Rocky Linux 9",
+          },
+        ];
+
+    return { discoveredNodes, discoveredWorkloads };
+  };
+
+  // Auto-synchronize discovered nodes & workloads for existing active integrations
+  useEffect(() => {
+    integrations.forEach((intg) => {
+      const hasNodes = nodes.some((n) => n.tenantId === intg.tenantId);
+      if (!hasNodes && intg.status === "active") {
+        const { discoveredNodes, discoveredWorkloads } = generateDiscoveredResourcesForIntegration(intg, intg.tenantId);
+        setNodes((prev) => [...prev.filter((n) => n.tenantId !== intg.tenantId), ...discoveredNodes]);
+        setWorkloads((prev) => [...prev.filter((w) => w.tenantId !== intg.tenantId), ...discoveredWorkloads]);
+      }
+    });
+  }, [integrations]);
+
   const handleAddIntegration = async (integrationData) => {
     const newIntegration = {
       id: `int-${Math.random().toString(36).substring(2, 8)}`,
@@ -333,6 +519,10 @@ export function App() {
       discoveredVmsCount: integrationData.provider === "proxmox" ? 8 : 4,
     };
     setIntegrations((prev) => [...prev, newIntegration]);
+
+    const { discoveredNodes, discoveredWorkloads } = generateDiscoveredResourcesForIntegration(newIntegration, activeTenant.id);
+    setNodes((prev) => [...prev.filter((n) => n.tenantId !== activeTenant.id || !discoveredNodes.some((dn) => dn.id === n.id)), ...discoveredNodes]);
+    setWorkloads((prev) => [...prev.filter((w) => w.tenantId !== activeTenant.id || !discoveredWorkloads.some((dw) => dw.id === w.id)), ...discoveredWorkloads]);
 
     try {
       await fetch(`${API_BASE}/api/v1/integrations`, {
@@ -372,21 +562,10 @@ export function App() {
         setWorkloads((prev) => [...prev.filter((w) => !data.discoveredWorkloads.some((dw) => dw.id === w.id)), ...data.discoveredWorkloads]);
       }
     } catch {
-      // Offline fallback simulation
-      const newDiscoveredNodes = [
-        {
-          id: `node-${found.provider}-01`,
-          tenantId: found.tenantId,
-          name: `${found.provider}-node-master`,
-          hostname: `${found.provider}-master.local`,
-          provider: found.provider,
-          status: "online",
-          ipAddress: "192.168.1.100",
-          os: "Linux / Proxmox VE",
-          lastHeartbeatAt: new Date().toISOString(),
-        },
-      ];
-      setNodes((prev) => [...prev, ...newDiscoveredNodes]);
+      // Offline fallback simulation with full nodes & workloads discovered
+      const { discoveredNodes, discoveredWorkloads } = generateDiscoveredResourcesForIntegration(found, found.tenantId);
+      setNodes((prev) => [...prev.filter((n) => n.tenantId !== found.tenantId || !discoveredNodes.some((dn) => dn.id === n.id)), ...discoveredNodes]);
+      setWorkloads((prev) => [...prev.filter((w) => w.tenantId !== found.tenantId || !discoveredWorkloads.some((dw) => dw.id === w.id)), ...discoveredWorkloads]);
     }
 
     setIntegrations((prev) =>
