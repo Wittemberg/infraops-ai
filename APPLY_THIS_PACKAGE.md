@@ -1,26 +1,30 @@
-# Aplicação do pacote Stage 25
+# Apply Package — Stage 27
 
-Extraia sobre a raiz de `infraops-ai`.
+## Context
+Latest repository history shows Stage 26 implementation commit:
+`44b49dbe — feat(stage26): implement native infrastructure source of truth, physical topology, IPAM, and operational tools`.
 
-## Atualizados
-- docs/00-project/ROADMAP.md
-- docs/00-project/PRODUCT_VISION.md
-- docs/06-product/FEATURES.md
-- docs/06-product/AUTONOMOUS_OPERATIONS.md
-- docs/08-marketing/MARKETING_CONCEPTS_SUMMARY.md
-- docs/08-marketing/sales/SALES_PITCH_AND_VALUE_PROPOSITION.md
+The current official ROADMAP file may still show Stage 26 as planned. Reconcile that status before/with this documentation update.
 
-## Novos
-- docs/06-product/INFRASTRUCTURE_INTELLIGENCE.md
-- docs/02-implementation/25_INFRASTRUCTURE_INTELLIGENCE_CONTINUOUS_IMPROVEMENT.md
-- docs/01-architecture/adr/ADR-017-infrastructure-intelligence-advisory-boundary.md
-- docs/08-marketing/INFRASTRUCTURE_INTELLIGENCE_MARKETING_IMPACT.md
-- docs/08-marketing/campaigns/STAGE_25_CAMPAIGN_CONCEPTS.md
+## Add
+- docs/06-product/STAGE_27_NETWORK_DEVICE_MONITORING_AND_WAN_CONTROL.md
+- docs/02-implementation/27_NETWORK_DEVICE_MONITORING_AND_GOVERNED_WAN_ACTIONS.md
+- docs/01-architecture/adr/ADR-020-network-device-driver-abstraction.md
+- docs/01-architecture/adr/ADR-021-wan-change-safety-and-rollback.md
+- docs/08-marketing/STAGE_27_MARKETING_IMPACT.md
+- docs/08-marketing/campaigns/STAGE_27_CAMPAIGN_CONCEPTS.md
+- docs/08-marketing/sales/STAGE_27_SALES_PITCH.md
 
-## Commit sugerido
+## Merge patches
+- docs/00-project/ROADMAP_STAGE27_PATCH.md → merge into official ROADMAP.md
+- docs/08-marketing/MARKETING_CONCEPTS_STAGE27_PATCH.md → merge into official marketing summary
+
+## Suggested commit
 ```bash
-git diff -- docs/
 git add docs/
-git commit -m "docs: add stage 25 infrastructure intelligence and marketing strategy"
+git commit -m "docs: plan stage 27 network monitoring and governed WAN actions"
 git push
 ```
+
+## Important implementation rule
+Do not implement WAN switching by allowing the LLM to generate arbitrary RouterOS/pfSense commands. Use normalized typed Actions and vendor drivers.
