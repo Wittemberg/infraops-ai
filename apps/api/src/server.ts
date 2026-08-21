@@ -2509,7 +2509,8 @@ Responda de forma direta, técnica, estruturada em Markdown e em português do B
         console.warn("[LLM_FETCH_ERROR]:", err);
         responseText = `⚠️ **Erro de Conexão com ${config.provider.toUpperCase()}:** Não foi possível conectar ao endpoint do provedor de IA (${err.message || err}). Verifique sua conexão e chave de API.`;
       }
-    } else {
+    }
+
     // Persist interaction to cloud history
     if (!store.aiChatHistories) store.aiChatHistories = {};
     if (!store.aiChatHistories[tenantId]) store.aiChatHistories[tenantId] = [];
