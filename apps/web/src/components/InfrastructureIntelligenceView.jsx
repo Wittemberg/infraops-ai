@@ -684,7 +684,7 @@ export function InfrastructureIntelligenceView({ activeTenant }) {
             onClick={() => setActiveTab("capacity")}
             style={{ fontSize: "0.85rem" }}
           >
-            📈 Capacity Forecasting
+            📈 Previsão de Capacidade
           </button>
           <button
             type="button"
@@ -692,7 +692,7 @@ export function InfrastructureIntelligenceView({ activeTenant }) {
             onClick={() => setActiveTab("spof")}
             style={{ fontSize: "0.85rem" }}
           >
-            🛡️ SPOFs & Resiliência ({tenantSpofFindings.length})
+            🛡️ Pontos Únicos de Falha ({tenantSpofFindings.length})
           </button>
           <button
             type="button"
@@ -700,7 +700,7 @@ export function InfrastructureIntelligenceView({ activeTenant }) {
             onClick={() => setActiveTab("debt")}
             style={{ fontSize: "0.85rem" }}
           >
-            📊 Technical Debt Score
+            📊 Dívida Técnica & Conformidade
           </button>
           <button
             type="button"
@@ -805,8 +805,39 @@ export function InfrastructureIntelligenceView({ activeTenant }) {
                           {getStatusBadge(rec.status)}
                         </div>
                         <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                          Categoria: <strong style={{ color: "var(--accent-cyan)" }}>{rec.category.toUpperCase()}</strong> | Nível de Confiança:{" "}
-                          <strong style={{ color: "var(--accent-emerald)" }}>{rec.confidencePercent}%</strong> | Risco: {rec.riskLevel.toUpperCase()} | Esforço: {rec.effortLevel.toUpperCase()}
+                          Categoria:{" "}
+                          <strong style={{ color: "var(--accent-cyan)" }}>
+                            {rec.category?.toLowerCase() === "resilience"
+                              ? "RESILIÊNCIA & HA"
+                              : rec.category?.toLowerCase() === "capacity"
+                              ? "CAPACIDADE & STORAGE"
+                              : rec.category?.toLowerCase() === "backup"
+                              ? "BACKUP & RPO"
+                              : rec.category?.toUpperCase() || "GERAL"}
+                          </strong>{" "}
+                          | Nível de Confiança:{" "}
+                          <strong style={{ color: "var(--accent-emerald)" }}>{rec.confidencePercent}%</strong> | Risco:{" "}
+                          <strong style={{ color: "var(--text-secondary)" }}>
+                            {rec.riskLevel?.toLowerCase() === "low"
+                              ? "Baixo"
+                              : rec.riskLevel?.toLowerCase() === "medium"
+                              ? "Médio"
+                              : rec.riskLevel?.toLowerCase() === "high"
+                              ? "Alto"
+                              : rec.riskLevel?.toLowerCase() === "critical"
+                              ? "Crítico"
+                              : rec.riskLevel}
+                          </strong>{" "}
+                          | Esforço:{" "}
+                          <strong style={{ color: "var(--text-secondary)" }}>
+                            {rec.effortLevel?.toLowerCase() === "low"
+                              ? "Baixo"
+                              : rec.effortLevel?.toLowerCase() === "medium"
+                              ? "Médio"
+                              : rec.effortLevel?.toLowerCase() === "high"
+                              ? "Alto"
+                              : rec.effortLevel}
+                          </strong>
                         </div>
                       </div>
                     </div>

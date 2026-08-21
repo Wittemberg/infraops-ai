@@ -3396,9 +3396,21 @@ Responda de forma direta, técnica, estruturada em Markdown e em português do B
   // --- STAGE 25: INFRASTRUCTURE INTELLIGENCE & ADVISOR (CONTINUOUS IMPROVEMENT) ---
   // =========================================================================
 
-  // 1. Recommendations
   if (url.startsWith("/api/v1/intelligence/recommendations") && method === "GET") {
     if (!store.recommendations) store.recommendations = defaultStore.recommendations;
+    // Auto-sanitize legacy mined recommendations that were generated in English
+    store.recommendations = store.recommendations.map((r) => {
+      if (r.title && r.title.includes("Optimize Storage Utilization")) {
+        return {
+          ...r,
+          title: "⚡ Otimização de Storage & I/O para Workloads de Banco de Dados",
+          problemStatement: "A alocação de storage dos volumes atuais pode não estar otimizada para alta taxa de I/O, impactando bancos de dados e serviços com escritas intensivas.",
+          rootCauseHypothesis: "Os pools 'HDD_storage' e 'nvme_storage' não possuem divisão estrita por tipo de carga, gerando concorrência em workloads como 'CALVI BANCO' e 'db-postgres-primary'.",
+          proposedChange: "Alocar o storage NVMe prioritariamente para bancos de dados de produção ('CALVI BANCO' / 'db-postgres-primary') e manter logs/backups nos pools mecânicos para balancear a carga.",
+        };
+      }
+      return r;
+    });
     sendJson(res, 200, { recommendations: store.recommendations });
     return;
   }
