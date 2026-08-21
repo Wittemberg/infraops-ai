@@ -1,25 +1,27 @@
 # Relatório de Progresso e Registro de Evolução (Changelog) — InfraOps AI
 
 > **Data de Atualização:** Agosto / 2026  
-> **Status de Produção:** 🟢 **25/25 Etapas Concluídas — Plataforma 100% Operacional, Autônoma & com Inteligência de Infraestrutura**  
+> **Status de Produção:** 🟢 **27/27 Etapas Concluídas — Plataforma 100% Operacional, Autônoma & com Inteligência de Infraestrutura**  
 > **Ambiente Oficial:** https://infraopsai.awecloudsolution.com
 
 ---
 
 ## 1. Resumo Executivo
 
-O InfraOps AI concluiu integralmente todas as **25 etapas de engenharia, arquitetura e produto**, tornando-se uma plataforma completa e de ponta a ponta de Governança, Operações Autônomas e Inteligência de Infraestrutura (AIOps).
+O InfraOps AI concluiu integralmente todas as **27 etapas de engenharia, arquitetura e produto**, tornando-se uma plataforma completa e de ponta a ponta de Governança, Operações Autônomas e Inteligência de Infraestrutura (AIOps).
 
 ```text
 [Fundação e Plataforma: Etapas 01–20] ======================================== 100% CONCLUÍDO
 [Autonomous Operations: Etapas 21–24] ======================================== 100% CONCLUÍDO
 [Infrastructure Intelligence: Etapa 25] ====================================== 100% CONCLUÍDO
+[Infrastructure Source of Truth: Etapa 26] =================================== 100% CONCLUÍDO
+[Network Devices & WAN Actions: Etapa 27] ==================================== 100% CONCLUÍDO
 [Módulos Extras: Catálogo de Actions, Chatwoot & Quepasa APIs] ================ 100% CONCLUÍDO
 ```
 
 ---
 
-## 2. Detalhamento de Todas as Etapas Concluídas (01–25)
+## 2. Detalhamento de Todas as Etapas Concluídas (01–27)
 
 ### Etapas 01–05 — Fundação, Arquitetura e Governança Multi-Tenant 🟢
 - Padrões rigorosos de segurança e arquitetura (`AGENTS.md`, ADRs e governança não-negociável).
