@@ -17,6 +17,12 @@
 | ADR-013 | Jobs idempotentes + locks | Accepted |
 | ADR-014 | IA como ator com permissões próprias | Accepted |
 | ADR-015 | IA não é dependência para monitoramento | Accepted |
-| ADR-016 | Autonomous Scheduler + Event Automation + Goal-Oriented Operations | Proposed / Planned |
+| ADR-016 | Autonomous Scheduler + Event Automation + Goal-Oriented Operations | Accepted |
+| ADR-017 | Infrastructure Intelligence Advisory Boundary (No Direct Mutation) | Accepted |
+| ADR-018 | Native Infrastructure Source of Truth (No Mandatory External CMDB) | Accepted |
+| ADR-019 | Inventory Trust Classification and Deterministic Reconciliation | Accepted |
+| ADR-020 | Network Device Driver Abstraction (Vendor-Neutral Model) | Accepted |
+| ADR-021 | Governed WAN Actions (Precheck, Snapshot, Postcheck and Rollback) | Accepted |
+| ADR-022 | Canonical AI Provider Registry & Documentation Governance | Accepted |
 
 Qualquer alteração deve ser feita via novo ADR, sem apagar o histórico.

@@ -18,7 +18,7 @@ Permitir que uma equipe de infraestrutura saiba rapidamente **o que precisa de a
 2. **Saúde e Governança de Backups:** Políticas de RPO/RTO, compliance de snapshots e retenção segura.
 3. **Prevenção de Incidentes e Anomalias:** Detecção proativa de esgotamento de disco e sobrecarga de CPU/RAM.
 4. **Disparo de Alertas Omnichannel por Tenant:** Chatwoot API (Account & Public), Quepasa WhatsApp Gateway, Telegram, E-mail SMTP e Webhooks com teste em tempo real.
-5. **IA Contextual Multi-Provedor com Memória em Nuvem:** Groq Cloud, OpenAI, DeepSeek, Claude, Gemini e Ollama local, com validação de chaves ao vivo (`🟢 CHAVE ATIVA`), histórico multi-turn sincronizado em nuvem e **exigência estrita de chave válida (zero respostas simuladas/mocks)**.
+5. **IA Contextual via Provider Registry Extensível (ADR-022):** Arquitetura agnóstica governada pelo backend (com suporte a Groq Cloud, OpenAI, DeepSeek, Claude, Gemini, Ollama Local e gateways REST), validação de chaves ao vivo (`🟢 CHAVE ATIVA`), histórico multi-turn sincronizado em nuvem e **exigência estrita de chave válida (zero respostas simuladas/mocks)**.
 6. **Catálogo de Actions Homologadas:** Ações tipadas com contratos declarativos (Precheck, Postcheck, Idempotência) e níveis de autonomia por tenant.
 7. **Autonomous Scheduler & Automation Engine (Etapa 21):** Agendamento recorrente (Cron/Intervalos/One-Shot), briefings matinais e sweep diagnóstico.
 8. **Conditional Triggers & Event Automation (Etapa 22):** Gatilhos reativos orientados a eventos com travas anti-flapping (Debounce, Cooldown, Circuit Breaker e Deduplicação SHA-256).
