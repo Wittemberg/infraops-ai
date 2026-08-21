@@ -2454,7 +2454,13 @@ const server = createServer(async (req, res) => {
           ? tenantNetDevs.map((d) => `${d.name} (${d.vendor.toUpperCase()}, ${d.model}, IP: ${d.ipAddress})`).join("; ")
           : "MikroTik CCR2004 / pfSense Firewall";
 
+        const tenantObj = store.tenants.find((t) => t.id === tenantId);
+        const targetLang = (tenantObj as any)?.language || "Português do Brasil (pt-BR)";
+
         const systemPrompt = `Você é o InfraOps AI, assistente operacional e de governança de infraestrutura de TI do cliente '${tenantId}'.
+DIRETRIZ MANDATÓRIA DE IDIOMA:
+- Responda SEMPRE E EXCLUSIVAMENTE em ${targetLang}. Todo o raciocínio, explicações e respostas devem ser redigidos em português claro para operadores e prestadores de TI.
+
 A infraestrutura real cadastrada possui:
 - Nós Proxmox: ${tenantNodes.map((n) => `${n.name} (${n.ipAddress || "38.52.129.130"}, ${n.os || "Proxmox VE"})`).join(", ") || "pve (38.52.129.130, Proxmox VE 8.4.19)"}
 - Workloads / VMs: ${tenantWorkloads.map((w) => `${w.name} (${w.type || "qemu"}, ${w.status || "running"})`).join(", ") || "SRV-CW, CALVI IIS, CALVI BANCO, SRV-Concentrador, SRV-AD-PortoNovo"}
@@ -3443,12 +3449,29 @@ Responda de forma direta, técnica, estruturada em Markdown e em português do B
         const headers: Record<string, string> = { "Content-Type": "application/json" };
         if (config.apiKey) headers["Authorization"] = `Bearer ${config.apiKey}`;
 
-        const promptText = `Analise a seguinte infraestrutura real e gere UMA recomendação técnica prioritária em formato JSON com os campos: title, problemStatement, rootCauseHypothesis, proposedChange.
+        const tenantObj = store.tenants.find((t) => t.id === tenantId);
+        const targetLang = (tenantObj as any)?.language || "Português do Brasil (pt-BR)";
+
+        const promptText = `Você é um engenheiro sênior de infraestrutura e consultor MSP.
+Analise a seguinte infraestrutura real e gere UMA recomendação técnica prioritária em formato JSON com os campos: title, problemStatement, rootCauseHypothesis, proposedChange.
+
+REGRAS OBRIGATÓRIAS DE IDIOMA E FORMATAÇÃO:
+1. Todos os campos gerados (title, problemStatement, rootCauseHypothesis, proposedChange) DEVEM estar OBRIGATÓRIAMENTE em ${targetLang}.
+2. Não gere textos em inglês, exceto nomes técnicos próprios de hardware/software (ex: ZFS, NVMe, Proxmox, QEMU).
+3. Seja claro, conciso e propositivo para um analista ou gestor de TI.
+
 Infraestrutura:
 - Nós: ${tenantNodes.map((n) => n.name).join(", ") || "pve (38.52.129.130, Proxmox VE 8.4.19)"}
 - Workloads: ${tenantWorkloads.map((w) => w.name).join(", ") || "SRV-CW, CALVI IIS, CALVI BANCO, SRV-Concentrador, SRV-AD-PortoNovo"}
 - Storages: HDD_backups (60% livre), HDD_storage, nvme_storage, local, rpool.
-Responda EXCLUSIVAMENTE um objeto JSON válido.`;
+
+Responda EXCLUSIVAMENTE um objeto JSON válido no seguinte formato:
+{
+  "title": "Título claro e objetivo em português",
+  "problemStatement": "Descrição detalhada do problema observado em português",
+  "rootCauseHypothesis": "Causa-raiz técnica provável em português",
+  "proposedChange": "Mudança estrutural recomendada em português"
+}`;
 
         const llmRes = await fetch(endpoint, {
           method: "POST",
