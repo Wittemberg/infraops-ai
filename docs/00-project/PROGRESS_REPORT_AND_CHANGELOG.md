@@ -40,7 +40,7 @@ O InfraOps AI concluiu integralmente todas as **25 etapas de engenharia, arquite
 - Integração nativa com **Proxmox VE** (API oficial para nós, VMs e LXCs).
 - Integração nativa com **Virtualizor** (API oficial).
 - **Backup Engine**: Políticas de RPO/RTO, auditoria de integridade e retenção segura.
-- **AI Orchestrator Multi-Provedor**: Suporte a Groq Cloud, OpenAI, DeepSeek, Claude e Ollama local, com fallback heurístico offline e validação de chaves ao vivo (`🟢 CHAVE ATIVA`).
+- **AI Orchestrator Multi-Provedor**: Suporte a Groq Cloud, OpenAI, DeepSeek, Claude, Gemini e Ollama local, com validação de chaves ao vivo (`🟢 CHAVE ATIVA`) e exigência estrita de chave válida (eliminação de respostas genéricas simuladas).
 
 ### Etapas 16–20 — Interface Web, Alertas, Deploy e Hardening 🟢
 - Interface Web moderna (React/Vite) responsiva, com Dark/Light Mode e layout glassmorphism.
