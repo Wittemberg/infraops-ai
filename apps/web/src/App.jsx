@@ -587,6 +587,8 @@ export function App() {
     }
   }, [currentUser, tenants, isSuperAdmin]);
 
+  const isSimple = displayMode === "simple";
+
   return (
     <div className="app-container">
       {/* Sidebar Navigation */}
@@ -596,59 +598,85 @@ export function App() {
         </div>
 
         <ul className="nav-list">
+          {/* 1. Início / Daily Operations */}
           <li className={`nav-item ${currentNav === "home" ? "active" : ""}`} onClick={() => setCurrentNav("home")}>
             🏠 Início
           </li>
+
+          {/* 2. Clientes / Organizações */}
           {isAdmin && (
             <li className={`nav-item ${currentNav === "tenants" ? "active" : ""}`} onClick={() => setCurrentNav("tenants")}>
-              {isSuperAdmin ? "🏢 Clientes & Usuários" : "👥 Usuários da Organização"}
+              {isSimple
+                ? (isSuperAdmin ? "🏢 Clientes" : "👥 Usuários da Equipe")
+                : (isSuperAdmin ? "🏢 Clientes & RBAC" : "👥 Usuários da Organização")}
             </li>
           )}
+
+          {/* 3. Servidores e Máquinas (Nodes & Workloads) */}
+          <li className={`nav-item ${currentNav === "nodes" ? "active" : ""}`} onClick={() => setCurrentNav("nodes")}>
+            {isSimple ? "🖥️ Servidores & Máquinas" : "🖥️ Nós & Workloads"}
+          </li>
+
+          {/* 4. Infraestrutura & Inventário Físico */}
           <li className={`nav-item ${currentNav === "infrastructure" ? "active" : ""}`} onClick={() => setCurrentNav("infrastructure")}>
-            🏢 Infra & Topologia
+            {isSimple ? "🏢 Inventário de Rede & Roteadores" : "🏢 Infraestrutura (Source of Truth)"}
           </li>
+
+          {/* 5. Relatórios */}
           <li className={`nav-item ${currentNav === "reports" ? "active" : ""}`} onClick={() => setCurrentNav("reports")}>
-            📊 Relatórios & QBR
+            {isSimple ? "📊 Relatórios do Cliente" : "📊 Relatórios & QBR Executivo"}
           </li>
+
+          {/* 6. Assistente de IA */}
           {isOperator && (
             <li className={`nav-item ${currentNav === "ai" ? "active" : ""}`} onClick={() => setCurrentNav("ai")}>
-              🤖 Assistente IA
+              {isSimple ? "🤖 Assistente IA" : "🤖 Console Operacional IA"}
             </li>
           )}
+
+          {/* 7. Alertas & WhatsApp */}
           {isAdmin && (
             <li className={`nav-item ${currentNav === "alerts" ? "active" : ""}`} onClick={() => setCurrentNav("alerts")}>
-              🔔 Canais de Alerta
+              {isSimple ? "🔔 Alertas & WhatsApp" : "🔔 Canais de Alerta (Omnichannel)"}
             </li>
           )}
-          <li className={`nav-item ${currentNav === "nodes" ? "active" : ""}`} onClick={() => setCurrentNav("nodes")}>
-            🖥️ Nós & Workloads
-          </li>
-          {isAdmin && (
-            <li className={`nav-item ${currentNav === "integrations" ? "active" : ""}`} onClick={() => setCurrentNav("integrations")}>
-              🔌 Hipervisores (PVE/Virt)
-            </li>
-          )}
-          <li className={`nav-item ${currentNav === "approvals" ? "active" : ""}`} onClick={() => setCurrentNav("approvals")}>
-            📜 Histórico & Auditoria
-          </li>
-          {isOperator && (
-            <li className={`nav-item ${currentNav === "actions" ? "active" : ""}`} onClick={() => setCurrentNav("actions")}>
-              ⚡ Catálogo de Ações
-            </li>
-          )}
-          {isOperator && (
-            <li className={`nav-item ${currentNav === "automations" ? "active" : ""}`} onClick={() => setCurrentNav("automations")}>
-              ⏰ Automações & Agendamentos
-            </li>
-          )}
+
+          {/* 8. Recomendações (Advisor sem termo técnico no modo simples) */}
           {isOperator && (
             <li className={`nav-item ${currentNav === "intelligence" ? "active" : ""}`} onClick={() => setCurrentNav("intelligence")}>
-              💡 Recomendações & Advisor
+              {isSimple ? "💡 Recomendações de Melhoria" : "💡 Inteligência & Advisor"}
             </li>
           )}
+
+          {/* 9. Automações & Agendamentos */}
+          {isOperator && (
+            <li className={`nav-item ${currentNav === "automations" ? "active" : ""}`} onClick={() => setCurrentNav("automations")}>
+              {isSimple ? "⏰ Ações Automáticas" : "⏰ Automações & Self-Healing"}
+            </li>
+          )}
+
+          {/* 10. Histórico de Execuções / Auditoria */}
+          <li className={`nav-item ${currentNav === "approvals" ? "active" : ""}`} onClick={() => setCurrentNav("approvals")}>
+            {isSimple ? "📜 Histórico de Ações" : "📜 Histórico & Auditoria SHA-256"}
+          </li>
+
+          {/* Technical Mode Specific Modules */}
+          {!isSimple && isAdmin && (
+            <li className={`nav-item ${currentNav === "integrations" ? "active" : ""}`} onClick={() => setCurrentNav("integrations")}>
+              🔌 Hipervisores (Proxmox/Virt)
+            </li>
+          )}
+
+          {!isSimple && isOperator && (
+            <li className={`nav-item ${currentNav === "actions" ? "active" : ""}`} onClick={() => setCurrentNav("actions")}>
+              ⚡ Catálogo de Actions & Contratos
+            </li>
+          )}
+
+          {/* 11. Configurações Gerais */}
           {isSuperAdmin && (
             <li className={`nav-item ${currentNav === "settings" ? "active" : ""}`} onClick={() => setCurrentNav("settings")}>
-              ⚙️ Configurações Gerais
+              {isSimple ? "⚙️ Configurações" : "⚙️ Configurações Gerais"}
             </li>
           )}
         </ul>
@@ -694,19 +722,19 @@ export function App() {
       <main className="main-content">
         <header className="top-bar">
           <h1 className="page-title">
-            {currentNav === "home" && "Central de Operações Diárias"}
-            {currentNav === "dashboard" && "Dashboard Operacional"}
-            {currentNav === "tenants" && (isSuperAdmin ? "Gestão de Clientes & Usuários (RBAC)" : `Gestão de Usuários — ${activeTenant?.name}`)}
-            {currentNav === "integrations" && "Integrações Proxmox & Virtualizor"}
-            {currentNav === "nodes" && "Inventário de Nós & Workloads"}
-            {currentNav === "infrastructure" && "Infraestrutura & Topologia Física (Source of Truth)"}
-            {currentNav === "reports" && "Central de Relatórios & QBR Executivo"}
-            {currentNav === "ai" && "Assistente Operacional de IA"}
-            {currentNav === "approvals" && "Central de Aprovações & Auditoria"}
-            {currentNav === "actions" && "Catálogo de Actions & Operações"}
-            {currentNav === "automations" && "Automações & Políticas de Auto-Recuperação"}
-            {currentNav === "intelligence" && "Inteligência & Advisor de Infraestrutura"}
-            {currentNav === "settings" && "Configurações Gerais da Plataforma"}
+            {currentNav === "home" && (isSimple ? "Central de Operações Diárias" : "Centro de Operações & Telemetria Diária")}
+            {currentNav === "tenants" && (isSimple ? (isSuperAdmin ? "Gestão de Clientes" : "Usuários da Equipe") : (isSuperAdmin ? "Gestão de Clientes & Usuários (RBAC)" : `Gestão de Usuários — ${activeTenant?.name}`))}
+            {currentNav === "nodes" && (isSimple ? "Servidores & Máquinas Virtuais" : "Inventário Técnico de Nós & Workloads (QEMU/LXC)")}
+            {currentNav === "infrastructure" && (isSimple ? "Inventário de Rede, Racks & Roteadores" : "Infraestrutura & Topologia Física (Source of Truth)")}
+            {currentNav === "reports" && (isSimple ? "Relatórios do Cliente" : "Central de Relatórios & QBR Executivo")}
+            {currentNav === "ai" && (isSimple ? "Assistente IA" : "Console Operacional de IA")}
+            {currentNav === "alerts" && (isSimple ? "Alertas & Notificações" : "Canais de Alerta (WhatsApp / Telegram / SMTP)")}
+            {currentNav === "approvals" && (isSimple ? "Histórico de Ações Executadas" : "Central de Aprovações & Auditoria SHA-256")}
+            {currentNav === "actions" && "Catálogo de Actions & Contratos Tipados"}
+            {currentNav === "automations" && (isSimple ? "Ações e Rotinas Automáticas" : "Automações & Políticas de Auto-Recuperação (Self-Healing)")}
+            {currentNav === "intelligence" && (isSimple ? "Recomendações de Melhoria" : "Inteligência & Advisor Estrutural de Infraestrutura")}
+            {currentNav === "integrations" && "Integrações Nativas (Proxmox VE & Virtualizor)"}
+            {currentNav === "settings" && (isSimple ? "Configurações da Plataforma" : "Configurações Gerais dos Subsistemas")}
           </h1>
 
           <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
@@ -733,13 +761,13 @@ export function App() {
               {theme === "dark" ? "☀️ Claro" : "🌙 Escuro"}
             </button>
 
-            {/* Action Triggers */}
-            {isOperator && (
+            {/* Action Triggers in Technical Mode */}
+            {!isSimple && isOperator && (
               <button className="btn btn-secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }} onClick={() => setEnrollModalOpen(true)}>
                 🐧 + Agente
               </button>
             )}
-            {isOperator && (
+            {!isSimple && isOperator && (
               <button className="btn btn-secondary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem" }} onClick={() => setWorkloadModalOpen(true)}>
                 🖥️ + VM
               </button>
