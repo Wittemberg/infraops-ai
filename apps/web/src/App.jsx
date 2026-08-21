@@ -15,6 +15,11 @@ import { AlertChannelsView } from "./components/AlertChannelsView.jsx";
 import { InfrastructureIntelligenceView } from "./components/InfrastructureIntelligenceView.jsx";
 import { SystemSettingsView } from "./components/SystemSettingsView.jsx";
 import InfrastructureSourceOfTruthView from "./components/InfrastructureSourceOfTruthView.jsx";
+import { DailyOperationsCenter } from "./features/home/DailyOperationsCenter.jsx";
+import { ReportsCenterView } from "./features/reports/ReportsCenterView.jsx";
+import { GuidedOnboardingModal } from "./features/onboarding/GuidedOnboardingModal.jsx";
+import { SimpleModeToggle } from "./components/common/SimpleModeToggle.jsx";
+import { UI_LANGUAGE } from "./app/uiLanguage.js";
 
 const API_BASE = "https://infraopsai.awecloudsolution.com";
 
@@ -78,7 +83,14 @@ export function App() {
     return cached ? JSON.parse(cached) : null;
   });
 
-  const [currentNav, setCurrentNav] = useState("dashboard");
+  const [currentNav, setCurrentNav] = useState("home");
+  const [displayMode, setDisplayMode] = useState(() => localStorage.getItem("infraops_display_mode") || "simple");
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+
+  const handleToggleDisplayMode = (mode) => {
+    setDisplayMode(mode);
+    localStorage.setItem("infraops_display_mode", mode);
+  };
 
   // Theme Management (Light / Dark)
   const [theme, setTheme] = useState(() => localStorage.getItem("infraops_theme") || "dark");
@@ -584,17 +596,23 @@ export function App() {
         </div>
 
         <ul className="nav-list">
-          <li className={`nav-item ${currentNav === "dashboard" ? "active" : ""}`} onClick={() => setCurrentNav("dashboard")}>
-            📊 Dashboard
+          <li className={`nav-item ${currentNav === "home" ? "active" : ""}`} onClick={() => setCurrentNav("home")}>
+            🏠 Início
           </li>
           {isAdmin && (
             <li className={`nav-item ${currentNav === "tenants" ? "active" : ""}`} onClick={() => setCurrentNav("tenants")}>
               {isSuperAdmin ? "🏢 Clientes & Usuários" : "👥 Usuários da Organização"}
             </li>
           )}
-          {isAdmin && (
-            <li className={`nav-item ${currentNav === "integrations" ? "active" : ""}`} onClick={() => setCurrentNav("integrations")}>
-              🔌 Hipervisores (PVE/Virt)
+          <li className={`nav-item ${currentNav === "infrastructure" ? "active" : ""}`} onClick={() => setCurrentNav("infrastructure")}>
+            🏢 Infra & Topologia
+          </li>
+          <li className={`nav-item ${currentNav === "reports" ? "active" : ""}`} onClick={() => setCurrentNav("reports")}>
+            📊 Relatórios & QBR
+          </li>
+          {isOperator && (
+            <li className={`nav-item ${currentNav === "ai" ? "active" : ""}`} onClick={() => setCurrentNav("ai")}>
+              🤖 Assistente IA
             </li>
           )}
           {isAdmin && (
@@ -605,30 +623,27 @@ export function App() {
           <li className={`nav-item ${currentNav === "nodes" ? "active" : ""}`} onClick={() => setCurrentNav("nodes")}>
             🖥️ Nós & Workloads
           </li>
-          <li className={`nav-item ${currentNav === "infrastructure" ? "active" : ""}`} onClick={() => setCurrentNav("infrastructure")}>
-            🏢 Infra & Topologia
-          </li>
-          {isOperator && (
-            <li className={`nav-item ${currentNav === "ai" ? "active" : ""}`} onClick={() => setCurrentNav("ai")}>
-              🤖 Console IA
+          {isAdmin && (
+            <li className={`nav-item ${currentNav === "integrations" ? "active" : ""}`} onClick={() => setCurrentNav("integrations")}>
+              🔌 Hipervisores (PVE/Virt)
             </li>
           )}
           <li className={`nav-item ${currentNav === "approvals" ? "active" : ""}`} onClick={() => setCurrentNav("approvals")}>
-            🛡️ Aprovações & Auditoria
+            📜 Histórico & Auditoria
           </li>
           {isOperator && (
             <li className={`nav-item ${currentNav === "actions" ? "active" : ""}`} onClick={() => setCurrentNav("actions")}>
-              ⚡ Catálogo de Actions
+              ⚡ Catálogo de Ações
             </li>
           )}
           {isOperator && (
             <li className={`nav-item ${currentNav === "automations" ? "active" : ""}`} onClick={() => setCurrentNav("automations")}>
-              ⏰ Automações & Schedules
+              ⏰ Automações & Agendamentos
             </li>
           )}
           {isOperator && (
             <li className={`nav-item ${currentNav === "intelligence" ? "active" : ""}`} onClick={() => setCurrentNav("intelligence")}>
-              💡 Inteligência & Advisor
+              💡 Recomendações & Advisor
             </li>
           )}
           {isSuperAdmin && (
@@ -679,12 +694,14 @@ export function App() {
       <main className="main-content">
         <header className="top-bar">
           <h1 className="page-title">
+            {currentNav === "home" && "Central de Operações Diárias"}
             {currentNav === "dashboard" && "Dashboard Operacional"}
             {currentNav === "tenants" && (isSuperAdmin ? "Gestão de Clientes & Usuários (RBAC)" : `Gestão de Usuários — ${activeTenant?.name}`)}
             {currentNav === "integrations" && "Integrações Proxmox & Virtualizor"}
             {currentNav === "nodes" && "Inventário de Nós & Workloads"}
             {currentNav === "infrastructure" && "Infraestrutura & Topologia Física (Source of Truth)"}
-            {currentNav === "ai" && "Console Operacional de IA"}
+            {currentNav === "reports" && "Central de Relatórios & QBR Executivo"}
+            {currentNav === "ai" && "Assistente Operacional de IA"}
             {currentNav === "approvals" && "Central de Aprovações & Auditoria"}
             {currentNav === "actions" && "Catálogo de Actions & Operações"}
             {currentNav === "automations" && "Automações & Políticas de Auto-Recuperação"}
@@ -693,6 +710,19 @@ export function App() {
           </h1>
 
           <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
+            {/* Progressive Disclosure Toggle (ADR-023) */}
+            <SimpleModeToggle displayMode={displayMode} onToggleMode={handleToggleDisplayMode} />
+
+            {/* Guided Onboarding Trigger */}
+            <button
+              className="btn btn-secondary"
+              onClick={() => setOnboardingOpen(true)}
+              style={{ padding: "0.4rem 0.8rem", fontSize: "0.8rem", display: "flex", alignItems: "center", gap: "0.4rem" }}
+              title="Abrir Guia de Configuração e Onboarding"
+            >
+              🧭 Guia
+            </button>
+
             {/* Theme Switcher */}
             <button
               className="btn btn-secondary"
@@ -717,7 +747,7 @@ export function App() {
 
             {/* Dynamic Tenant Switcher */}
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Tenant:</span>
+              <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>Cliente:</span>
               {isSuperAdmin ? (
                 <select
                   value={activeTenant.id}
@@ -762,6 +792,14 @@ export function App() {
         </header>
 
         {/* View Switcher */}
+        {currentNav === "home" && (
+          <DailyOperationsCenter
+            activeTenant={activeTenant}
+            displayMode={displayMode}
+            onNavigate={setCurrentNav}
+            onOpenOnboarding={() => setOnboardingOpen(true)}
+          />
+        )}
         {currentNav === "dashboard" && (
           <DashboardView
             activeTenant={activeTenant}
@@ -811,6 +849,12 @@ export function App() {
             currentUser={currentUser}
           />
         )}
+        {currentNav === "reports" && (
+          <ReportsCenterView
+            activeTenant={activeTenant}
+            onNavigate={setCurrentNav}
+          />
+        )}
         {currentNav === "ai" && isOperator && <AiConsoleView activeTenant={activeTenant} onOpenActionModal={handleOpenActionModal} />}
         {currentNav === "approvals" && <ApprovalsAuditView activeTenant={activeTenant} />}
         {currentNav === "actions" && isOperator && <ActionCatalogView activeTenant={activeTenant} onOpenActionModal={handleOpenActionModal} />}
@@ -819,7 +863,13 @@ export function App() {
         {currentNav === "settings" && isAdmin && <SystemSettingsView isSuperAdmin={isSuperAdmin} activeTenant={activeTenant} />}
       </main>
 
-      {/* Action Modals */}
+      {/* Action Modals & Onboarding */}
+      <GuidedOnboardingModal
+        isOpen={onboardingOpen}
+        onClose={() => setOnboardingOpen(false)}
+        onNavigate={setCurrentNav}
+        activeTenant={activeTenant}
+      />
       <ActionModal isOpen={actionModalOpen} targetId={modalTargetId} defaultActionKey={modalActionKey} onClose={() => setActionModalOpen(false)} />
       <EnrollAgentModal isOpen={enrollModalOpen} activeTenant={activeTenant} onClose={() => setEnrollModalOpen(false)} />
       <AddWorkloadModal isOpen={workloadModalOpen} nodes={nodes} activeTenant={activeTenant} onAddWorkload={handleAddWorkload} onClose={() => setWorkloadModalOpen(false)} />

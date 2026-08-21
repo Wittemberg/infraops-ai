@@ -100,5 +100,25 @@ Integrar **MikroTik RouterOS** e **pfSense** ao mesmo modelo operacional do Infr
 - **27G — Autonomous WAN Failover:** Auto-recuperação com proteção anti-flapping (debounce, histerese, cooldown, recovery window e circuit breaker).
 - **27H — Frontend Dashboard:** Sub-aba especializada `📡 Roteadores & Links WAN` no menu `🏢 Infra & Topologia`.
 
+---
+
+## 7. Etapa 28 — Simple Experience, Guided Operations & Frontend Refactor 🟢 (CONCLUÍDA)
+
+### Objetivo
+Reorganizar a experiência do InfraOps AI ao redor do fluxo diário de provedores de TI, MEIs e pequenos MSPs, simplificando a navegação e a linguagem sem reduzir a profundidade técnica subjacente (*"Technical depth underneath. Operational simplicity on top"*).
+
+### Sub-Releases:
+- **28A — Information Architecture & Language:** Dicionário canônico de UI (`uiLanguage.js`), terminologia em Português do Brasil e mapeamento humanizado de status e permissões.
+- **28B — Frontend Foundation Refactor:** Modularização por feature, separação de serviços (`apiClient.js`), contexto/estado (`authStore.js`, `tenantContext.js`, `uiPreferences.js`) e eliminação de dados de demonstração da UI de produção.
+- **28C — Home / Daily Operations Center:** Central de Operações Diárias focada em *"O que precisa de atenção hoje?"*.
+- **28D — Customer-Centered Experience:** Resumo por cliente com indicadores de saúde, alertas e ações rápidas.
+- **28E — Simple Mode / Technical Mode:** Alternador visual no topo (*Progressive Disclosure* — ADR-023).
+- **28F — Guided Onboarding:** Assistente de boas-vindas e checklist passo a passo para novos clientes/ambientes.
+- **28G — Humanized Alerts, Approvals & Actions:** Tradução amigável de ações, níveis de risco e pre/postchecks.
+- **28H — AI Assistant as Primary Entry Point:** Acesso direto e chips de perguntas rápidas contextuais.
+- **28I — Reports & Customer Value:** Área dedicada de Relatórios de Valor para o Cliente (QBRs, Visitas Técnicas, Conformidade).
+- **28J — Accessibility, Responsiveness & Usability Validation:** Testes de usabilidade, validação responsiva e build limpo.
+
+
 
 

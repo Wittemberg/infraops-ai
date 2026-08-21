@@ -1,14 +1,14 @@
 # Relatório de Progresso e Registro de Evolução (Changelog) — InfraOps AI
 
 > **Data de Atualização:** Agosto / 2026  
-> **Status de Produção:** 🟢 **27/27 Etapas Concluídas — Plataforma 100% Operacional, Autônoma & com Inteligência de Infraestrutura**  
+> **Status de Produção:** 🟢 **28/28 Etapas Concluídas — Plataforma 100% Operacional, Autônoma & com Inteligência de Infraestrutura**  
 > **Ambiente Oficial:** https://infraopsai.awecloudsolution.com
 
 ---
 
 ## 1. Resumo Executivo
 
-O InfraOps AI concluiu integralmente todas as **27 etapas de engenharia, arquitetura e produto**, tornando-se uma plataforma completa e de ponta a ponta de Governança, Operações Autônomas e Inteligência de Infraestrutura (AIOps).
+O InfraOps AI concluiu integralmente todas as **28 etapas de engenharia, arquitetura e produto**, tornando-se uma plataforma completa e de ponta a ponta de Governança, Operações Autônomas e Inteligência de Infraestrutura (AIOps).
 
 ```text
 [Fundação e Plataforma: Etapas 01–20] ======================================== 100% CONCLUÍDO
@@ -16,12 +16,13 @@ O InfraOps AI concluiu integralmente todas as **27 etapas de engenharia, arquite
 [Infrastructure Intelligence: Etapa 25] ====================================== 100% CONCLUÍDO
 [Infrastructure Source of Truth: Etapa 26] =================================== 100% CONCLUÍDO
 [Network Devices & WAN Actions: Etapa 27] ==================================== 100% CONCLUÍDO
+[Simple Experience & Frontend Refactor: Etapa 28] ============================= 100% CONCLUÍDO
 [Módulos Extras: Catálogo de Actions, Chatwoot & Quepasa APIs] ================ 100% CONCLUÍDO
 ```
 
 ---
 
-## 2. Detalhamento de Todas as Etapas Concluídas (01–27)
+## 2. Detalhamento de Todas as Etapas Concluídas (01–28)
 
 ### Etapas 01–05 — Fundação, Arquitetura e Governança Multi-Tenant 🟢
 - Padrões rigorosos de segurança e arquitetura (`AGENTS.md`, ADRs e governança não-negociável).
@@ -187,6 +188,29 @@ A Etapa 27 traz a governança de roteadores de borda (**MikroTik RouterOS** e **
 
 ### 5.3. Integração com o Assistente de IA
 - Injeção contextual da lista de roteadores e do estado/latência/perda de cada link WAN no system prompt do Console IA, proibindo geração de comandos CLI livres e direcionando consultas para a ação governada `network.set_primary_wan`.
+
+---
+
+## 6. Etapa 28 — Simple Experience, Guided Operations & Frontend Refactor 🟢 (CONCLUÍDA)
+
+A Etapa 28 implementa uma reestruturação profunda da experiência do usuário (*UX/UI*) do InfraOps AI, focando na simplificação operacional e na facilidade de adoção por prestadores de TI, MEIs e pequenos MSPs sem abrir mão da segurança e governança (*"Technical depth underneath. Operational simplicity on top"*):
+
+### 6.1. Dicionário Canônico & Português-First (`apps/web/src/app/uiLanguage.js`)
+- Mapeamento integral da terminologia de interface em Português do Brasil (*Início, Clientes, Infraestrutura, Backups, Roteadores & WAN, Alertas, Assistente IA, Relatórios, Auditoria, Configurações*).
+- Utilitário de apresentação humanizada de status e níveis de risco (`apps/web/src/utils/statusPresentation.js`).
+
+### 6.2. Progressive Disclosure: Modo Simples vs. Modo Técnico (ADR-023)
+- Componente `SimpleModeToggle.jsx` integrado ao topo da aplicação, permitindo alternar instantaneamente entre a visão operacional limpa do dia a dia e a visão técnica detalhada com métricas brutas e hashes de auditoria.
+
+### 6.3. Central de Operações Diárias (`apps/web/src/features/home/DailyOperationsCenter.jsx`)
+- Nova tela inicial respondendo com clareza à pergunta central: *"O que precisa da minha atenção hoje?"*, consolidando KPIs de computação, RPO de backups, latência de internet, score de saúde e atalhos operacionais rápidos.
+
+### 6.4. Central de Relatórios & Comprovação de Valor (`apps/web/src/features/reports/ReportsCenterView.jsx`)
+- Módulo nativo para geração de Relatórios Executivos Mensais de MSP (QBR), Fichas de Visita Técnica Presencial com assinatura e exportação do Livro da Infraestrutura (*Customer Book*).
+
+### 6.5. Guia de Configuração & Onboarding Passo a Passo (`apps/web/src/features/onboarding/GuidedOnboardingModal.jsx`)
+- Modal interativo de 4 passos orientando novos operadores e clientes na conexão de servidores, rotinas de backup, roteadores de borda e alertas via WhatsApp/Telegram.
+
 
 
 
