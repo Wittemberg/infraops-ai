@@ -47,14 +47,12 @@ export class PfSenseDriver implements INetworkDeviceDriver {
   }
 
   async getSystemHealth(device: NetworkDeviceProfile, credentials?: Record<string, any>): Promise<DeviceSystemHealth> {
-    const baseCpu = device.systemHealth?.cpuUsagePercent || 8.0;
-    const baseMem = device.systemHealth?.memoryUsagePercent || 28.0;
     return {
-      cpuUsagePercent: Math.min(100, Math.max(1, +(baseCpu + (Math.random() * 3 - 1.5)).toFixed(1))),
-      memoryUsagePercent: Math.min(100, Math.max(5, +(baseMem + (Math.random() * 2 - 1)).toFixed(1))),
-      temperatureCelsius: device.systemHealth?.temperatureCelsius || 48.0,
-      storageUsagePercent: device.systemHealth?.storageUsagePercent || 15.0,
-      voltageVolts: 12.0,
+      cpuUsagePercent: device.systemHealth?.cpuUsagePercent ?? 0,
+      memoryUsagePercent: device.systemHealth?.memoryUsagePercent ?? 0,
+      temperatureCelsius: device.systemHealth?.temperatureCelsius ?? 0,
+      storageUsagePercent: device.systemHealth?.storageUsagePercent ?? 0,
+      voltageVolts: device.systemHealth?.voltageVolts ?? 0,
     };
   }
 

@@ -81,14 +81,12 @@ export class MikroTikDriver implements INetworkDeviceDriver {
       }
     }
 
-    const baseCpu = device.systemHealth?.cpuUsagePercent || 12.5;
-    const baseMem = device.systemHealth?.memoryUsagePercent || 34.0;
     return {
-      cpuUsagePercent: Math.min(100, Math.max(1, +(baseCpu + (Math.random() * 4 - 2)).toFixed(1))),
-      memoryUsagePercent: Math.min(100, Math.max(10, +(baseMem + (Math.random() * 2 - 1)).toFixed(1))),
-      temperatureCelsius: device.systemHealth?.temperatureCelsius || 41.5,
-      storageUsagePercent: device.systemHealth?.storageUsagePercent || 28.0,
-      voltageVolts: 24.2,
+      cpuUsagePercent: device.systemHealth?.cpuUsagePercent ?? 0,
+      memoryUsagePercent: device.systemHealth?.memoryUsagePercent ?? 0,
+      temperatureCelsius: device.systemHealth?.temperatureCelsius ?? 0,
+      storageUsagePercent: device.systemHealth?.storageUsagePercent ?? 0,
+      voltageVolts: device.systemHealth?.voltageVolts ?? 0,
     };
   }
 

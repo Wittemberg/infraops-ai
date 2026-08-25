@@ -727,20 +727,20 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
                 <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: "1px solid var(--border-color)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
                     <span style={{ color: "var(--text-secondary)" }}>Uso de CPU:</span>
-                    <span style={{ fontWeight: "600", color: "#10b981" }}>{selectedDevice.systemHealth?.cpuUsagePercent || 12}%</span>
+                    <span style={{ fontWeight: "600", color: "#10b981" }}>{selectedDevice.systemHealth?.cpuUsagePercent ?? 0}%</span>
                   </div>
                   <div style={{ width: "100%", height: "6px", background: "rgba(255,255,255,0.1)", borderRadius: "3px", overflow: "hidden" }}>
-                    <div style={{ width: `${selectedDevice.systemHealth?.cpuUsagePercent || 12}%`, height: "100%", background: "#10b981" }} />
+                    <div style={{ width: `${selectedDevice.systemHealth?.cpuUsagePercent ?? 0}%`, height: "100%", background: "#10b981" }} />
                   </div>
                 </div>
 
                 <div style={{ marginTop: "4px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
                     <span style={{ color: "var(--text-secondary)" }}>Uso de Memória RAM:</span>
-                    <span style={{ fontWeight: "600", color: "#3b82f6" }}>{selectedDevice.systemHealth?.memoryUsagePercent || 32}%</span>
+                    <span style={{ fontWeight: "600", color: "#3b82f6" }}>{selectedDevice.systemHealth?.memoryUsagePercent ?? 0}%</span>
                   </div>
                   <div style={{ width: "100%", height: "6px", background: "rgba(255,255,255,0.1)", borderRadius: "3px", overflow: "hidden" }}>
-                    <div style={{ width: `${selectedDevice.systemHealth?.memoryUsagePercent || 32}%`, height: "100%", background: "#3b82f6" }} />
+                    <div style={{ width: `${selectedDevice.systemHealth?.memoryUsagePercent ?? 0}%`, height: "100%", background: "#3b82f6" }} />
                   </div>
                 </div>
               </div>
