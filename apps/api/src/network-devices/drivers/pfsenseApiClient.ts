@@ -189,28 +189,59 @@ export class PfSenseApiClient {
         }
       }
 
-      // Parse CPU / RAM from HTML WebGUI (supports PT-BR "utilização do CPU" and EN "CPU usage" across HTML tags and newlines)
-      const cpuMatch =
-        statsRes.data.match(/utiliza[cç][aã]o\s*do\s*cpu[\s\S]*?(\d+)%/i) ||
-        statsRes.data.match(/cpu\s*usage[\s\S]*?(\d+)%/i) ||
-        statsRes.data.match(/id=["']cpubars["'][\s\S]*?>\s*(\d+)%/i) ||
-        statsRes.data.match(/id=["']cpumeter["'][\s\S]*?width:\s*(\d+)%/i) ||
-        statsRes.data.match(/(\d+)%\s*<\/[^>]*>\s*CPU/i);
-
-      if (cpuMatch) {
-        resource.cpuLoad = Math.min(100, Math.max(0, Number(cpuMatch[1])));
-        cpuFound = true;
+      // 1. Precise pfSense HTML Table Row parsing (isolated to <tr id="cpu"> and <tr id="memory">)
+      const cpuRowMatch = statsRes.data.match(/<tr[^>]*id=["']cpu["'][\s\S]*?<\/tr>/i);
+      if (cpuRowMatch) {
+        const valMatch =
+          cpuRowMatch[0].match(/aria-valuenow=["'](\d+)["']/i) ||
+          cpuRowMatch[0].match(/style=["']width:\s*(\d+)%/i) ||
+          cpuRowMatch[0].match(/>\s*(\d+)%\s*</i) ||
+          cpuRowMatch[0].match(/(\d+)%/i);
+        if (valMatch) {
+          resource.cpuLoad = Math.min(100, Math.max(0, Number(valMatch[1])));
+          cpuFound = true;
+        }
       }
 
-      const memMatch =
-        statsRes.data.match(/utiliza[cç][aã]o\s*da\s*memoria[\s\S]*?(\d+)%/i) ||
-        statsRes.data.match(/memory\s*usage[\s\S]*?(\d+)%/i) ||
-        statsRes.data.match(/(\d+)%\s*of\s*\d+\s*Mi?B/i) ||
-        statsRes.data.match(/id=["']memusagemeter["'][\s\S]*?width:\s*(\d+)%/i);
+      const memRowMatch = statsRes.data.match(/<tr[^>]*id=["']memory["'][\s\S]*?<\/tr>/i);
+      if (memRowMatch) {
+        const valMatch =
+          memRowMatch[0].match(/aria-valuenow=["'](\d+)["']/i) ||
+          memRowMatch[0].match(/style=["']width:\s*(\d+)%/i) ||
+          memRowMatch[0].match(/(\d+)%\s*of/i) ||
+          memRowMatch[0].match(/>\s*(\d+)%\s*</i) ||
+          memRowMatch[0].match(/(\d+)%/i);
+        if (valMatch) {
+          resource.usedMemoryPercent = Math.min(100, Math.max(0, Number(valMatch[1])));
+          memFound = true;
+        }
+      }
 
-      if (memMatch) {
-        resource.usedMemoryPercent = Math.min(100, Math.max(0, Number(memMatch[1])));
-        memFound = true;
+      // 2. Fallback matching if tr id="cpu" is not present (e.g. custom pfSense themes)
+      if (!cpuFound) {
+        const cpuMatch =
+          statsRes.data.match(/utiliza[cç][aã]o\s*do\s*cpu[\s\S]*?aria-valuenow=["'](\d+)["']/i) ||
+          statsRes.data.match(/utiliza[cç][aã]o\s*do\s*cpu[\s\S]*?class=["']progress-bar[^"']*["'][\s\S]*?>\s*(\d+)%/i) ||
+          statsRes.data.match(/cpu\s*usage[\s\S]*?aria-valuenow=["'](\d+)["']/i) ||
+          statsRes.data.match(/id=["']cpubars["'][\s\S]*?>\s*(\d+)%/i) ||
+          statsRes.data.match(/id=["']cpumeter["'][\s\S]*?width:\s*(\d+)%/i);
+
+        if (cpuMatch) {
+          resource.cpuLoad = Math.min(100, Math.max(0, Number(cpuMatch[1])));
+          cpuFound = true;
+        }
+      }
+
+      if (!memFound) {
+        const memMatch =
+          statsRes.data.match(/utiliza[cç][aã]o\s*da\s*memoria[\s\S]*?(\d+)%\s*of/i) ||
+          statsRes.data.match(/memory\s*usage[\s\S]*?(\d+)%\s*of/i) ||
+          statsRes.data.match(/(\d+)%\s*of\s*\d+\s*Mi?B/i);
+
+        if (memMatch) {
+          resource.usedMemoryPercent = Math.min(100, Math.max(0, Number(memMatch[1])));
+          memFound = true;
+        }
       }
 
       // Version match (supports pfSense 2.7.2-RELEASE and pfSense Plus)
