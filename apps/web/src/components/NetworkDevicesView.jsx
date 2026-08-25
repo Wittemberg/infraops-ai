@@ -115,7 +115,13 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
 
   useEffect(() => {
     loadAllData();
-  }, [activeTenant?.id]);
+    const interval = setInterval(() => {
+      if (selectedDeviceId) {
+        loadDeviceDetails(selectedDeviceId);
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [activeTenant?.id, selectedDeviceId]);
 
   const handleSelectDevice = (id) => {
     setSelectedDeviceId(id);
