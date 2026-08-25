@@ -26,7 +26,8 @@ export class PfSenseApiClient {
     path: string,
     method: "GET" | "POST" = "GET",
     postData?: string,
-    cookie?: string
+    cookie?: string,
+    extraHeaders?: Record<string, string>
   ): Promise<{ statusCode: number; headers: http.IncomingHttpHeaders; cookies: string[]; data: string }> {
     return new Promise((resolve, reject) => {
       const isHttps = this.port !== 80;
@@ -45,6 +46,10 @@ export class PfSenseApiClient {
 
       if (cookie && options.headers) {
         options.headers["Cookie"] = cookie;
+      }
+
+      if (extraHeaders && options.headers) {
+        Object.assign(options.headers, extraHeaders);
       }
 
       if (postData && options.headers) {
@@ -131,11 +136,38 @@ export class PfSenseApiClient {
         };
       }
 
-      // 3. Fetch telemetry via /getstats.php or /index.php dashboard
-      let statsRes = await this.makeRequest("/index.php", "GET", undefined, authCookie);
-      if (statsRes.statusCode !== 200 || !statsRes.data || statsRes.data.includes("id=\"login\"")) {
-        statsRes = await this.makeRequest("/getstats.php", "GET", undefined, authCookie);
+      let cpuFound = false;
+      let memFound = false;
+
+      const resource: PfSenseResource = {
+        cpuLoad: 0,
+        usedMemoryPercent: 0,
+      };
+
+      // 3. Try fetching live AJAX stats directly via /getstats.php
+      const ajaxRes = await this.makeRequest("/getstats.php", "GET", undefined, authCookie, {
+        "X-Requested-With": "XMLHttpRequest",
+      });
+
+      if (ajaxRes.statusCode === 200 && ajaxRes.data && !ajaxRes.data.includes("SESSION_TIMEOUT") && !ajaxRes.data.includes("<html")) {
+        const trimmed = ajaxRes.data.trim();
+        const parts = trimmed.split("|");
+        if (parts.length >= 2) {
+          const rawCpu = parseFloat(parts[0]);
+          const rawMem = parseFloat(parts[1]);
+          if (!isNaN(rawCpu)) {
+            resource.cpuLoad = Math.min(100, Math.max(0, Math.round(rawCpu)));
+            cpuFound = true;
+          }
+          if (!isNaN(rawMem)) {
+            resource.usedMemoryPercent = Math.min(100, Math.max(0, Math.round(rawMem)));
+            memFound = true;
+          }
+        }
       }
+
+      // 4. Fallback: Fetch /index.php dashboard HTML
+      let statsRes = await this.makeRequest("/index.php", "GET", undefined, authCookie);
 
       // If statsRes still shows login page, auth session was rejected
       if (statsRes.data.includes("id=\"login\"") || statsRes.data.includes("name=\"passwordfld\"")) {
@@ -145,17 +177,9 @@ export class PfSenseApiClient {
         };
       }
 
-      let cpuFound = false;
-      let memFound = false;
-
-      const resource: PfSenseResource = {
-        cpuLoad: 0,
-        usedMemoryPercent: 0,
-      };
-
       // Parse pfSense getstats output if raw pipe format (non-HTML, e.g. "5|11|...")
       const trimmedData = statsRes.data.trim();
-      if (!trimmedData.startsWith("<") && /^[\d\.]+\|[\d\.]+/.test(trimmedData)) {
+      if (!cpuFound && !trimmedData.startsWith("<") && /^[\d\.]+\|[\d\.]+/.test(trimmedData)) {
         const parts = trimmedData.split("|");
         if (parts.length >= 2) {
           resource.cpuLoad = Math.min(100, Math.max(0, Number(parts[0]) || 0));
