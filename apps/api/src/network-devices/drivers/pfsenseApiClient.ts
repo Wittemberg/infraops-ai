@@ -137,31 +137,48 @@ export class PfSenseApiClient {
         usedMemoryPercent: 0,
       };
 
-      // Parse pfSense getstats output (pipe delimited or JSON/HTML string)
-      // Format 1: cpu|mem|...
-      if (statsRes.data.includes("|")) {
-        const parts = statsRes.data.split("|");
+      // Parse pfSense getstats output if raw pipe format (non-HTML, e.g. "5|11|...")
+      const trimmedData = statsRes.data.trim();
+      if (!trimmedData.startsWith("<") && /^[\d\.]+\|[\d\.]+/.test(trimmedData)) {
+        const parts = trimmedData.split("|");
         if (parts.length >= 2) {
           resource.cpuLoad = Math.min(100, Math.max(0, Number(parts[0]) || 0));
           resource.usedMemoryPercent = Math.min(100, Math.max(0, Number(parts[1]) || 0));
         }
       }
 
-      // Parse CPU / RAM from HTML widgets if getstats is formatted differently
-      const cpuMatch = statsRes.data.match(/(\d+)%\s*<\/[^>]*>\s*CPU/i) || statsRes.data.match(/CPU\s*load[^\d]*(\d+)%/i);
+      // Parse CPU / RAM from HTML WebGUI (supports PT-BR "Utilização do CPU" and EN "CPU usage")
+      const cpuMatch =
+        statsRes.data.match(/Utilização do CPU[^\d]*(\d+)%/i) ||
+        statsRes.data.match(/CPU usage[^\d]*(\d+)%/i) ||
+        statsRes.data.match(/utilização\s*do\s*cpu[^\d]*(\d+)%/i) ||
+        statsRes.data.match(/id=["']cpubars["'][^>]*>\s*(\d+)%/i) ||
+        statsRes.data.match(/id=["']cpumeter["'][^>]*width:\s*(\d+)%/i) ||
+        statsRes.data.match(/(\d+)%\s*<\/[^>]*>\s*CPU/i);
+
       if (cpuMatch) {
-        resource.cpuLoad = Number(cpuMatch[1]);
+        resource.cpuLoad = Math.min(100, Math.max(0, Number(cpuMatch[1])));
       }
 
-      const memMatch = statsRes.data.match(/(\d+)%\s*of\s*\d+\s*MB/i) || statsRes.data.match(/Memory\s*usage[^\d]*(\d+)%/i);
+      const memMatch =
+        statsRes.data.match(/Utilização da Memoria[^\d]*(\d+)%/i) ||
+        statsRes.data.match(/Memory usage[^\d]*(\d+)%/i) ||
+        statsRes.data.match(/utilização\s*da\s*memoria[^\d]*(\d+)%/i) ||
+        statsRes.data.match(/(\d+)%\s*of\s*\d+\s*Mi?B/i) ||
+        statsRes.data.match(/id=["']memusagemeter["'][^>]*width:\s*(\d+)%/i);
+
       if (memMatch) {
-        resource.usedMemoryPercent = Number(memMatch[1]);
+        resource.usedMemoryPercent = Math.min(100, Math.max(0, Number(memMatch[1])));
       }
 
-      // Version match
-      const verMatch = statsRes.data.match(/2\.[789]\.\d+-[A-Z]+/i) || statsRes.data.match(/pfSense\s*([0-9\.-]+[A-Z]*)/i);
+      // Version match (supports pfSense 2.7.2-RELEASE and pfSense Plus)
+      const verMatch =
+        statsRes.data.match(/2\.[0-9]+\.[0-9]+-RELEASE/i) ||
+        statsRes.data.match(/pfSense\s*Plus\s*[0-9\.-]+/i) ||
+        statsRes.data.match(/pfSense\s*([0-9\.-]+[A-Z]*)/i);
+
       if (verMatch) {
-        resource.version = `pfSense ${verMatch[0]}`;
+        resource.version = verMatch[0].startsWith("pfSense") ? verMatch[0] : `pfSense ${verMatch[0]}`;
       }
 
       return {
