@@ -116,8 +116,15 @@ export class PfSenseApiClient {
 
       const authCookie = loginRes.cookies.length > 0 ? loginRes.cookies[0] : cookie;
 
-      // Check if authentication failed (login form returned with error)
-      if (loginRes.data.includes("Username or Password incorrect") || loginRes.data.includes("id=\"login\"")) {
+      // Check if authentication failed
+      const isLoginPage =
+        loginRes.data.includes("Username or Password incorrect") ||
+        loginRes.data.includes("id=\"login\"") ||
+        loginRes.data.includes("name=\"passwordfld\"") ||
+        loginRes.data.includes("name='passwordfld'");
+
+      // If status is 200 and still shows login form without 302 redirect, login failed!
+      if (loginRes.statusCode === 200 && isLoginPage) {
         return {
           success: false,
           error: `Falha na autenticação do pfSense (usuário '${user}' ou senha incorretos na porta WebGUI ${this.port}).`,
@@ -125,12 +132,21 @@ export class PfSenseApiClient {
       }
 
       // 3. Fetch telemetry via /getstats.php or /index.php dashboard
-      let statsRes = await this.makeRequest("/getstats.php", "GET", undefined, authCookie);
-
+      let statsRes = await this.makeRequest("/index.php", "GET", undefined, authCookie);
       if (statsRes.statusCode !== 200 || !statsRes.data || statsRes.data.includes("id=\"login\"")) {
-        // Fallback to main page
-        statsRes = await this.makeRequest("/index.php", "GET", undefined, authCookie);
+        statsRes = await this.makeRequest("/getstats.php", "GET", undefined, authCookie);
       }
+
+      // If statsRes still shows login page, auth session was rejected
+      if (statsRes.data.includes("id=\"login\"") || statsRes.data.includes("name=\"passwordfld\"")) {
+        return {
+          success: false,
+          error: `Sessão não autenticada no pfSense (verifique se o usuário '${user}' tem permissão de acesso à WebGUI).`,
+        };
+      }
+
+      let cpuFound = false;
+      let memFound = false;
 
       const resource: PfSenseResource = {
         cpuLoad: 0,
@@ -144,6 +160,8 @@ export class PfSenseApiClient {
         if (parts.length >= 2) {
           resource.cpuLoad = Math.min(100, Math.max(0, Number(parts[0]) || 0));
           resource.usedMemoryPercent = Math.min(100, Math.max(0, Number(parts[1]) || 0));
+          cpuFound = true;
+          memFound = true;
         }
       }
 
@@ -158,6 +176,7 @@ export class PfSenseApiClient {
 
       if (cpuMatch) {
         resource.cpuLoad = Math.min(100, Math.max(0, Number(cpuMatch[1])));
+        cpuFound = true;
       }
 
       const memMatch =
@@ -169,6 +188,7 @@ export class PfSenseApiClient {
 
       if (memMatch) {
         resource.usedMemoryPercent = Math.min(100, Math.max(0, Number(memMatch[1])));
+        memFound = true;
       }
 
       // Version match (supports pfSense 2.7.2-RELEASE and pfSense Plus)
@@ -179,6 +199,13 @@ export class PfSenseApiClient {
 
       if (verMatch) {
         resource.version = verMatch[0].startsWith("pfSense") ? verMatch[0] : `pfSense ${verMatch[0]}`;
+      }
+
+      if (!cpuFound && !memFound) {
+        return {
+          success: false,
+          error: `Não foi possível extrair a telemetria do pfSense (verifique se a senha do usuário '${user}' no Vault está correta).`,
+        };
       }
 
       return {

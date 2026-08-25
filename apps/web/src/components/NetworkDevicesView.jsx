@@ -158,13 +158,13 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
     setDeviceForm({
       name: device.name || "",
       vendor: device.vendor || "mikrotik",
-      model: device.model || "CCR2004-16G-2S+",
-      firmwareVersion: device.firmwareVersion || "RouterOS v7.15.2",
+      model: device.model || "",
+      firmwareVersion: device.firmwareVersion || "",
       serialNumber: device.serialNumber || "",
       ipAddress: device.ipAddress || "",
-      managementPort: device.managementPort || 8728,
+      managementPort: device.managementPort || (device.vendor === "pfsense" ? 8181 : 58728),
       apiProtocol: device.apiProtocol || "rest_https",
-      apiUsername: "",
+      apiUsername: device.apiUsername || (device.vendor === "pfsense" ? "admin" : "tecnoteam"),
       apiPassword: "",
       notes: device.notes || "",
     });
