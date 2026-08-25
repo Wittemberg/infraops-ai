@@ -1,0 +1,178 @@
+import https from "https";
+import http from "http";
+import querystring from "querystring";
+
+export interface PfSenseResource {
+  cpuLoad?: number;
+  freeMemoryPercent?: number;
+  usedMemoryPercent?: number;
+  version?: string;
+  uptime?: string;
+  model?: string;
+}
+
+export class PfSenseApiClient {
+  private host: string;
+  private port: number;
+  private timeoutMs: number;
+
+  constructor(host: string, port: number = 443, timeoutMs: number = 8000) {
+    this.host = host;
+    this.port = port;
+    this.timeoutMs = timeoutMs;
+  }
+
+  private makeRequest(
+    path: string,
+    method: "GET" | "POST" = "GET",
+    postData?: string,
+    cookie?: string
+  ): Promise<{ statusCode: number; headers: http.IncomingHttpHeaders; cookies: string[]; data: string }> {
+    return new Promise((resolve, reject) => {
+      const isHttps = this.port !== 80;
+      const client = isHttps ? https : http;
+
+      const options: https.RequestOptions = {
+        hostname: this.host,
+        port: this.port,
+        path: path,
+        method: method,
+        rejectUnauthorized: false,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) InfraOpsAI-pfSenseDriver/1.0",
+        },
+      };
+
+      if (cookie && options.headers) {
+        options.headers["Cookie"] = cookie;
+      }
+
+      if (postData && options.headers) {
+        options.headers["Content-Type"] = "application/x-www-form-urlencoded";
+        options.headers["Content-Length"] = Buffer.byteLength(postData);
+      }
+
+      const timer = setTimeout(() => {
+        req.destroy();
+        reject(new Error(`Timeout de conexão (${this.timeoutMs}ms) ao acessar pfSense em https://${this.host}:${this.port}`));
+      }, this.timeoutMs);
+
+      const req = client.request(options, (res) => {
+        clearTimeout(timer);
+        let data = "";
+        const setCookie: string[] = [];
+        if (res.headers["set-cookie"]) {
+          for (const c of res.headers["set-cookie"]) {
+            setCookie.push(c.split(";")[0]);
+          }
+        }
+
+        res.on("data", (chunk) => (data += chunk));
+        res.on("end", () => {
+          resolve({
+            statusCode: res.statusCode || 0,
+            headers: res.headers,
+            cookies: setCookie,
+            data,
+          });
+        });
+      });
+
+      req.on("error", (err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+
+      if (postData) {
+        req.write(postData);
+      }
+      req.end();
+    });
+  }
+
+  public async execute(user: string, pass: string): Promise<{ success: boolean; error?: string; resource?: PfSenseResource }> {
+    try {
+      // 1. Fetch initial login page to get CSRF token and PHPSESSID cookie
+      const initRes = await this.makeRequest("/index.php", "GET");
+      const cookie = initRes.cookies.length > 0 ? initRes.cookies[0] : "";
+
+      const csrfMatch =
+        initRes.data.match(/var\s+csrfMagicToken\s*=\s*"([^"]+)";/) ||
+        initRes.data.match(/name='__csrf_magic'\s+value="([^"]+)"/);
+      const csrfToken = csrfMatch ? csrfMatch[1] : "";
+
+      // 2. Post login credentials
+      const postParams: Record<string, string> = {
+        usernamefld: user,
+        passwordfld: pass,
+        login: "Sign In",
+      };
+      if (csrfToken) {
+        postParams["__csrf_magic"] = csrfToken;
+      }
+
+      const postBody = querystring.stringify(postParams);
+      const loginRes = await this.makeRequest("/index.php", "POST", postBody, cookie);
+
+      const authCookie = loginRes.cookies.length > 0 ? loginRes.cookies[0] : cookie;
+
+      // Check if authentication failed (login form returned with error)
+      if (loginRes.data.includes("Username or Password incorrect") || loginRes.data.includes("id=\"login\"")) {
+        return {
+          success: false,
+          error: `Falha na autenticação do pfSense (usuário '${user}' ou senha incorretos na porta WebGUI ${this.port}).`,
+        };
+      }
+
+      // 3. Fetch telemetry via /getstats.php or /index.php dashboard
+      let statsRes = await this.makeRequest("/getstats.php", "GET", undefined, authCookie);
+
+      if (statsRes.statusCode !== 200 || !statsRes.data || statsRes.data.includes("id=\"login\"")) {
+        // Fallback to main page
+        statsRes = await this.makeRequest("/index.php", "GET", undefined, authCookie);
+      }
+
+      const resource: PfSenseResource = {
+        cpuLoad: 0,
+        usedMemoryPercent: 0,
+      };
+
+      // Parse pfSense getstats output (pipe delimited or JSON/HTML string)
+      // Format 1: cpu|mem|...
+      if (statsRes.data.includes("|")) {
+        const parts = statsRes.data.split("|");
+        if (parts.length >= 2) {
+          resource.cpuLoad = Math.min(100, Math.max(0, Number(parts[0]) || 0));
+          resource.usedMemoryPercent = Math.min(100, Math.max(0, Number(parts[1]) || 0));
+        }
+      }
+
+      // Parse CPU / RAM from HTML widgets if getstats is formatted differently
+      const cpuMatch = statsRes.data.match(/(\d+)%\s*<\/[^>]*>\s*CPU/i) || statsRes.data.match(/CPU\s*load[^\d]*(\d+)%/i);
+      if (cpuMatch) {
+        resource.cpuLoad = Number(cpuMatch[1]);
+      }
+
+      const memMatch = statsRes.data.match(/(\d+)%\s*of\s*\d+\s*MB/i) || statsRes.data.match(/Memory\s*usage[^\d]*(\d+)%/i);
+      if (memMatch) {
+        resource.usedMemoryPercent = Number(memMatch[1]);
+      }
+
+      // Version match
+      const verMatch = statsRes.data.match(/2\.[789]\.\d+-[A-Z]+/i) || statsRes.data.match(/pfSense\s*([0-9\.-]+[A-Z]*)/i);
+      if (verMatch) {
+        resource.version = `pfSense ${verMatch[0]}`;
+      }
+
+      return {
+        success: true,
+        resource,
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: `Erro de Conexão com pfSense (${this.host}:${this.port}): ${err.message}`,
+      };
+    }
+  }
+}

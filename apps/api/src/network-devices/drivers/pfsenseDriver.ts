@@ -15,11 +15,19 @@ import {
   NetworkChangeSnapshot,
 } from "../types";
 
+import { PfSenseApiClient } from "./pfsenseApiClient";
+
 export class PfSenseDriver implements INetworkDeviceDriver {
   vendor = "pfsense";
 
   async testConnection(device: NetworkDeviceProfile, credentials?: Record<string, any>): Promise<boolean> {
-    return !!device.ipAddress && device.ipAddress.length > 6;
+    if (!device.ipAddress || !credentials?.username || !credentials?.password) {
+      return false;
+    }
+    const port = device.managementPort || 8181;
+    const client = new PfSenseApiClient(device.ipAddress, port, 8000);
+    const res = await client.execute(credentials.username, credentials.password);
+    return res.success;
   }
 
   detectCapabilities(device: NetworkDeviceProfile): NetworkDeviceCapability[] {
@@ -40,13 +48,46 @@ export class PfSenseDriver implements INetworkDeviceDriver {
       name: device.name || "pfSense-Firewall",
       vendor: "Netgate / pfSense",
       model: device.model || "Netgate SG-3100",
-      firmwareVersion: device.firmwareVersion || "pfSense Plus 24.03-RELEASE",
+      firmwareVersion: device.firmwareVersion || "pfSense 2.7.2-RELEASE",
       serialNumber: device.serialNumber || "NETG-SG3100-9921",
       uptimeSeconds: device.uptimeSeconds || 2419200,
     };
   }
 
   async getSystemHealth(device: NetworkDeviceProfile, credentials?: Record<string, any>): Promise<DeviceSystemHealth> {
+    if (!credentials || credentials.username === undefined) {
+      return {
+        cpuUsagePercent: 0,
+        memoryUsagePercent: 0,
+        error: "Credenciais do pfSense não encontradas no Vault. Edite o roteador (✏️) e informe o Usuário e Senha.",
+      };
+    }
+
+    if (device.ipAddress) {
+      const port = device.managementPort || 8181;
+      const client = new PfSenseApiClient(device.ipAddress, port, 8000);
+      const res = await client.execute(credentials.username, credentials.password);
+
+      if (res.success && res.resource) {
+        return {
+          cpuUsagePercent: res.resource.cpuLoad ?? 0,
+          memoryUsagePercent: res.resource.usedMemoryPercent ?? 0,
+          temperatureCelsius: 0,
+          storageUsagePercent: 0,
+          voltageVolts: 0,
+          firmwareVersion: res.resource.version || undefined,
+        };
+      }
+
+      if (res.error) {
+        return {
+          cpuUsagePercent: 0,
+          memoryUsagePercent: 0,
+          error: res.error,
+        };
+      }
+    }
+
     return {
       cpuUsagePercent: device.systemHealth?.cpuUsagePercent ?? 0,
       memoryUsagePercent: device.systemHealth?.memoryUsagePercent ?? 0,
