@@ -209,6 +209,24 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
     }
   };
 
+  const handleTestConnection = async () => {
+    if (!selectedDeviceId) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/network-devices/${selectedDeviceId}/test-connection`, {
+        method: "POST",
+        headers,
+      });
+      const data = await res.json();
+      setFeedbackMsg(data.message || (data.success ? "🟢 Conexão OK!" : "🔴 Conexão falhou."));
+    } catch (err) {
+      setFeedbackMsg(`❌ Erro de Teste de Conexão: ${err.message}`);
+    } finally {
+      setLoading(false);
+      setTimeout(() => setFeedbackMsg(null), 7000);
+    }
+  };
+
   const handleSaveWanLink = async (e) => {
     e.preventDefault();
     if (!selectedDeviceId) return;
@@ -659,6 +677,23 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
                   ⚙️ Status do Equipamento
                 </h3>
                 <div style={{ display: "flex", gap: "6px" }}>
+                  <button
+                    onClick={handleTestConnection}
+                    disabled={loading}
+                    title="Testar conectividade API em tempo real com o roteador"
+                    style={{
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      border: "1px solid rgba(16, 185, 129, 0.4)",
+                      background: "rgba(16, 185, 129, 0.12)",
+                      color: "#10b981",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                    }}
+                  >
+                    ⚡ Testar Conexão
+                  </button>
                   <button
                     onClick={() => handleOpenEditDevice(selectedDevice)}
                     title="Editar dados e credenciais do roteador"

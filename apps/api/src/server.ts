@@ -4206,6 +4206,36 @@ Responda EXCLUSIVAMENTE um objeto JSON válido no seguinte formato:
     return;
   }
 
+  if (url.startsWith("/api/v1/network-devices/") && url.endsWith("/test-connection") && method === "POST") {
+    const id = url.replace("/api/v1/network-devices/", "").replace("/test-connection", "");
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const device = NetworkDeviceService.getDeviceById(store as any, tenantId, id);
+    if (!device) {
+      sendJson(res, 404, { error: "Dispositivo não encontrado." });
+      return;
+    }
+
+    let credentials: Record<string, any> | undefined;
+    if (device.credentialsSecretId) {
+      try {
+        const decryptedJson = secretVault.decryptSecretInternal(device.credentialsSecretId, tenantId);
+        credentials = JSON.parse(decryptedJson);
+      } catch (e) {
+        console.warn("Could not decrypt device credentials:", e);
+      }
+    }
+
+    const driver = NetworkDeviceService.getDriver(device.vendor);
+    const success = await driver.testConnection(device, credentials);
+    sendJson(res, 200, {
+      success,
+      message: success
+        ? `🟢 Conexão com ${device.name} (${device.ipAddress}:${device.managementPort}) estabelecida com sucesso!`
+        : `🔴 Falha ao conectar em ${device.name} (${device.ipAddress}:${device.managementPort}). Verifique as credenciais no Vault e a porta API.`,
+    });
+    return;
+  }
+
   if (url.startsWith("/api/v1/network-devices/") && url.endsWith("/interfaces") && method === "GET") {
     const id = url.replace("/api/v1/network-devices/", "").replace("/interfaces", "");
     const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
