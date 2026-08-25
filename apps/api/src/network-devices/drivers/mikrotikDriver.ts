@@ -73,6 +73,8 @@ export class MikroTikDriver implements INetworkDeviceDriver {
           temperatureCelsius: 0,
           storageUsagePercent: 0,
           voltageVolts: 0,
+          firmwareVersion: res.resource.version ? `RouterOS v${res.resource.version}` : undefined,
+          model: res.resource.boardName || undefined,
         };
       }
     }

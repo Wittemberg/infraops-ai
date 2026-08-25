@@ -4202,7 +4202,62 @@ Responda EXCLUSIVAMENTE um objeto JSON válido no seguinte formato:
 
     const driver = NetworkDeviceService.getDriver(device.vendor);
     const health = await driver.getSystemHealth(device, credentials);
-    sendJson(res, 200, { health });
+
+    if (health) {
+      device.systemHealth = {
+        cpuUsagePercent: health.cpuUsagePercent ?? 0,
+        memoryUsagePercent: health.memoryUsagePercent ?? 0,
+        temperatureCelsius: health.temperatureCelsius ?? 0,
+        storageUsagePercent: health.storageUsagePercent ?? 0,
+        voltageVolts: health.voltageVolts ?? 0,
+      };
+      if (health.firmwareVersion) device.firmwareVersion = health.firmwareVersion;
+      if (health.model) device.model = health.model;
+      device.lastSeenAt = new Date().toISOString();
+      device.status = "online";
+    }
+
+    sendJson(res, 200, { health, device });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/network-devices/") && url.endsWith("/sync-telemetry") && method === "POST") {
+    const id = url.replace("/api/v1/network-devices/", "").replace("/sync-telemetry", "");
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const device = NetworkDeviceService.getDeviceById(store as any, tenantId, id);
+    if (!device) {
+      sendJson(res, 404, { error: "Dispositivo não encontrado." });
+      return;
+    }
+
+    let credentials: Record<string, any> | undefined;
+    if (device.credentialsSecretId) {
+      try {
+        const decryptedJson = secretVault.decryptSecretInternal(device.credentialsSecretId, tenantId);
+        credentials = JSON.parse(decryptedJson);
+      } catch (e) {
+        console.warn("Could not decrypt device credentials:", e);
+      }
+    }
+
+    const driver = NetworkDeviceService.getDriver(device.vendor);
+    const health = await driver.getSystemHealth(device, credentials);
+
+    if (health) {
+      device.systemHealth = {
+        cpuUsagePercent: health.cpuUsagePercent ?? 0,
+        memoryUsagePercent: health.memoryUsagePercent ?? 0,
+        temperatureCelsius: health.temperatureCelsius ?? 0,
+        storageUsagePercent: health.storageUsagePercent ?? 0,
+        voltageVolts: health.voltageVolts ?? 0,
+      };
+      if (health.firmwareVersion) device.firmwareVersion = health.firmwareVersion;
+      if (health.model) device.model = health.model;
+      device.lastSeenAt = new Date().toISOString();
+      device.status = "online";
+    }
+
+    sendJson(res, 200, { success: true, health, device });
     return;
   }
 
@@ -4227,8 +4282,27 @@ Responda EXCLUSIVAMENTE um objeto JSON válido no seguinte formato:
 
     const driver = NetworkDeviceService.getDriver(device.vendor);
     const success = await driver.testConnection(device, credentials);
+
+    if (success) {
+      const health = await driver.getSystemHealth(device, credentials);
+      if (health) {
+        device.systemHealth = {
+          cpuUsagePercent: health.cpuUsagePercent ?? 0,
+          memoryUsagePercent: health.memoryUsagePercent ?? 0,
+          temperatureCelsius: health.temperatureCelsius ?? 0,
+          storageUsagePercent: health.storageUsagePercent ?? 0,
+          voltageVolts: health.voltageVolts ?? 0,
+        };
+        if (health.firmwareVersion) device.firmwareVersion = health.firmwareVersion;
+        if (health.model) device.model = health.model;
+        device.lastSeenAt = new Date().toISOString();
+        device.status = "online";
+      }
+    }
+
     sendJson(res, 200, {
       success,
+      device,
       message: success
         ? `🟢 Conexão com ${device.name} (${device.ipAddress}:${device.managementPort}) estabelecida com sucesso!`
         : `🔴 Falha ao conectar em ${device.name} (${device.ipAddress}:${device.managementPort}). Verifique as credenciais no Vault e a porta API.`,

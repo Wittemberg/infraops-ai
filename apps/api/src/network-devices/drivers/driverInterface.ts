@@ -22,6 +22,8 @@ export interface DeviceSystemHealth {
   temperatureCelsius?: number;
   storageUsagePercent?: number;
   voltageVolts?: number;
+  firmwareVersion?: string;
+  model?: string;
 }
 
 export interface ActionResult {

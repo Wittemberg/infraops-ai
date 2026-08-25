@@ -92,15 +92,22 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
 
   const loadDeviceDetails = async (deviceId) => {
     try {
-      const [wansRes, snapsRes, runsRes] = await Promise.all([
+      const [wansRes, snapsRes, runsRes, healthRes] = await Promise.all([
         fetch(`${API_BASE}/api/v1/network-devices/${deviceId}/wan-links`, { headers }).then((r) => r.json()),
         fetch(`${API_BASE}/api/v1/network-devices/${deviceId}/snapshots`, { headers }).then((r) => r.json()),
         fetch(`${API_BASE}/api/v1/network-devices/${deviceId}/action-runs`, { headers }).then((r) => r.json()),
+        fetch(`${API_BASE}/api/v1/network-devices/${deviceId}/health`, { headers }).then((r) => r.json()),
       ]);
 
       setWanLinks(wansRes.wanLinks || []);
       setSnapshots(snapsRes.snapshots || []);
       setActionRuns(runsRes.actionRuns || []);
+
+      if (healthRes.device) {
+        setDevices((prev) =>
+          prev.map((d) => (d.id === deviceId ? healthRes.device : d))
+        );
+      }
     } catch (err) {
       console.warn("Failed to load device details:", err);
     }
@@ -218,12 +225,42 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
         headers,
       });
       const data = await res.json();
+      if (data.device) {
+        setDevices((prev) =>
+          prev.map((d) => (d.id === selectedDeviceId ? data.device : d))
+        );
+      }
       setFeedbackMsg(data.message || (data.success ? "🟢 Conexão OK!" : "🔴 Conexão falhou."));
     } catch (err) {
       setFeedbackMsg(`❌ Erro de Teste de Conexão: ${err.message}`);
     } finally {
       setLoading(false);
       setTimeout(() => setFeedbackMsg(null), 7000);
+    }
+  };
+
+  const handleSyncTelemetry = async () => {
+    setLoading(true);
+    try {
+      await loadAllData();
+      if (selectedDeviceId) {
+        const res = await fetch(`${API_BASE}/api/v1/network-devices/${selectedDeviceId}/sync-telemetry`, {
+          method: "POST",
+          headers,
+        });
+        const data = await res.json();
+        if (data.device) {
+          setDevices((prev) =>
+            prev.map((d) => (d.id === selectedDeviceId ? data.device : d))
+          );
+          setFeedbackMsg(`🟢 Telemetria de '${data.device.name}' sincronizada! CPU: ${data.device.systemHealth?.cpuUsagePercent}%, RAM: ${data.device.systemHealth?.memoryUsagePercent}%`);
+        }
+      }
+    } catch (err) {
+      setFeedbackMsg(`❌ Erro ao sincronizar: ${err.message}`);
+    } finally {
+      setLoading(false);
+      setTimeout(() => setFeedbackMsg(null), 6000);
     }
   };
 
@@ -329,7 +366,7 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
 
         <div style={{ display: "flex", gap: "10px" }}>
           <button
-            onClick={() => loadAllData()}
+            onClick={handleSyncTelemetry}
             disabled={loading}
             style={{
               display: "flex",
