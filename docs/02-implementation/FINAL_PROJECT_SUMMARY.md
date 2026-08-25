@@ -10,15 +10,15 @@
 
 | Métrica | Valor | Status |
 | :--- | :--- | :--- |
-| **Etapas do Roadmap Concluídas** | **20 / 20** | 🟢 **100% Concluído** |
+| **Etapas do Roadmap Concluídas** | **29 / 29** | 🟢 **100% Concluído** |
 | **Monorepo Packages & Apps** | **10 Módulos** | 🟢 **Compilando & Operacional** |
 | **Regras Não Negociáveis (`AGENTS.md`)** | **18 / 18** | 🟢 **100% Conformidade** |
-| **Suíte de Testes & QA** | **100% Passando** | 🟢 **Verificado** |
+| **Suíte de Testes & QA** | **100% Passando** | 🟢 **Verificado (Vitest + Vite)** |
 | **Deploy em Produção (Docker Swarm)** | **Stack Ativa** | 🟢 **Online com HTTPS** |
 
 ---
 
-## 2. Matriz de Conclusão das 20 Etapas
+## 2. Matriz de Conclusão das 29 Etapas
 
 | Etapa | Nome da Etapa | Entregáveis Principais | Status |
 | :---: | :--- | :--- | :---: |
@@ -42,6 +42,12 @@
 | **18** | Deploy Portainer e CI/CD | Docker Swarm stack, volume persistente, Traefik HTTPS e webhooks | 🟢 Concluído |
 | **19** | Testes, Segurança e QA | Suíte Mestre E2E, imunidade a shell injection e Threat Model | 🟢 Concluído |
 | **20** | Roadmap, Milestones e Gates | Sign-off final do projeto e relatório de conclusão | 🟢 Concluído |
+| **21–24** | Autonomous Ops Engine | Scheduler, Event Automation, Self-Healing e Desired State/SLOs | 🟢 Concluído |
+| **25** | Infrastructure Intelligence | Single Point of Failure, Dívida Técnica, ROI/Capacidade e Recommendations | 🟢 Concluído |
+| **26** | Source of Truth & Topology | Rack/Patch Panel, VLANs/IPAM, Descoberta SNMP/LLDP, Visitas Técnicas | 🟢 Concluído |
+| **27** | Network Device Monitoring & WAN Actions | Drivers MikroTik/pfSense, Comutações WAN Governovadas, Anti-Flapping | 🟢 Concluído |
+| **28** | Simple Experience & UI Refactor | Dicionário PT-BR, Simple/Technical Mode, Guided Onboarding | 🟢 Concluído |
+| **29** | Production Hardening & pfSense Telemetry | Diagnóstico Sanitizado, FreeBSD CPU Ticks, Hybrid Merge (CPU, RAM, SWAP, Disco) | 🟢 Concluído |
 
 ---
 
@@ -74,5 +80,6 @@
 2. **Instalador 1-Clique Windows e Linux:** Scripts PowerShell e Bash com geração de token de uso único (TTL 15 min).
 3. **Canais de Alertas Multicanal:** WhatsApp, Telegram, E-mail e Webhooks com teste de disparo em tempo real.
 4. **Console de IA Multiprovedor com GroqCloud:** Inferência LPU ultra-rápida (Llama 3.1 8B Instant, Llama 3.3 70B, DeepSeek R1, Mixtral) com isolamento estrito de chaves e endpoint `/api/v1/ai/test`.
-5. **Volume Persistente no Docker Swarm:** Retenção garantida de configurações via `infraops-app-data:/app/data`.
-6. **Materiais de Marketing e Vendas:** Documentação completa de vendas, matriz de diferenciação contra Zabbix/Grafana e propostas de valor comercial em `docs/08-marketing/`.
+5. **Telemetria de Alta Precisão pfSense (Stage 29):** Cálculo de CPU por FreeBSD Ticks, extração híbrida (CPU, RAM, SWAP e Disco `/`) e Diagnóstico Sanitizado sem vazamento de segredos.
+6. **Volume Persistente no Docker Swarm:** Retenção garantida de configurações via `infraops-app-data:/app/data` e auto-migração de chaves do Vault (`data/vault-master.key`).
+7. **Materiais de Marketing e Vendas:** Documentação completa de vendas, matriz de diferenciação contra Zabbix/Grafana e propostas de valor comercial em `docs/08-marketing/`.

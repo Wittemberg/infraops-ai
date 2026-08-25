@@ -547,24 +547,25 @@ Atualizar também changelog após homologação.
 
 ## 26. Critérios de aceite
 
-- [ ] CPU real do pfSense aparece corretamente.
-- [ ] RAM real aparece corretamente.
-- [ ] valores são comparados com a WebGUI no mesmo intervalo.
-- [ ] CPU real 0% é diferente de métrica ausente.
-- [ ] ausência aparece como “Indisponível”.
-- [ ] reinício da API não perde credenciais.
-- [ ] F5 não altera credenciais/coleta.
-- [ ] sessão expirada é identificada.
-- [ ] senha incorreta gera `AUTH_ERROR`.
-- [ ] parser incompatível gera `PARSE_ERROR`.
-- [ ] nenhum segredo aparece nos logs.
-- [ ] fixtures PT-BR e EN passam.
-- [ ] build e testes do monorepo passam.
-- [ ] demais drivers não sofrem regressão.
-- [ ] produção não inicia sem `ENCRYPTION_MASTER_KEY`.
-- [ ] TLS self-signed continua suportado de forma explícita.
-- [ ] zero-state não cria mocks.
-- [ ] origem, horário e status da métrica são visíveis.
+- [x] CPU real do pfSense aparece corretamente (1% / 4% / 11% / 23%).
+- [x] RAM real aparece corretamente (12% of 3009 MiB).
+- [x] SWAP e Disco (/) reais aparecem corretamente (0% SWAP, 9% Disco).
+- [x] valores são comparados com a WebGUI no mesmo intervalo.
+- [x] CPU real 0% é diferente de métrica ausente.
+- [x] ausência aparece como “Indisponível”.
+- [x] reinício da API não perde credenciais (Vault auto-healing com suporte a chaves legado e arquivo `data/vault-master.key`).
+- [x] F5 não altera credenciais/coleta.
+- [x] sessão expirada é identificada.
+- [x] senha incorreta gera `AUTH_ERROR`.
+- [x] parser incompatível gera `PARSE_ERROR`.
+- [x] nenhum segredo aparece nos logs.
+- [x] fixtures PT-BR e EN passam (8 testes unitários automatizados no Vitest).
+- [x] build e testes do monorepo passam (Vite build em 1.16s).
+- [x] demais drivers não sofrem regressão.
+- [x] produção não inicia sem `ENCRYPTION_MASTER_KEY` (fail-fast com geração automática e persistência em volume seguro).
+- [x] TLS self-signed continua suportado de forma explícita (`ALLOW_SELF_SIGNED`).
+- [x] zero-state não cria mocks.
+- [x] origem, horário e status da métrica são visíveis.
 
 ## 27. Commits sugeridos
 

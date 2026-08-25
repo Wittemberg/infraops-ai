@@ -1,6 +1,6 @@
 # Roadmap — InfraOps AI
 
-> **Estado atual:** 🟢 **Todas as 27 Etapas Concluídas e Ativas em Produção (100%)** (+ Módulos Especiais Homologados).  
+> **Estado atual:** 🟢 **Todas as 29 Etapas Concluídas e Ativas em Produção (100%)** (+ Production Hardening & Telemetria pfSense Real Homologados).  
 > **Ambiente Oficial:** https://infraopsai.awecloudsolution.com
 
 ---
@@ -118,6 +118,23 @@ Reorganizar a experiência do InfraOps AI ao redor do fluxo diário de provedore
 - **28H — AI Assistant as Primary Entry Point:** Acesso direto e chips de perguntas rápidas contextuais.
 - **28I — Reports & Customer Value:** Área dedicada de Relatórios de Valor para o Cliente (QBRs, Visitas Técnicas, Conformidade).
 - **28J — Accessibility, Responsiveness & Usability Validation:** Testes de usabilidade, validação responsiva e build limpo.
+
+---
+
+## 8. Etapa 29 — Production Hardening & Real-World pfSense Telemetry 🟢 (CONCLUÍDA)
+
+### Objetivo
+Fase de validação em hardware/ambiente real (*Production Hardening*) para o driver do pfSense, garantindo resiliência, diagnóstico sanitizado, zero dados fictícios, compatibilidade multi-versão/multi-idioma (PT-BR/EN) e leitura exata de CPU, RAM, SWAP e Disco.
+
+### Realizações Concluídas:
+- **29A — Telemetry Diagnostic Engine:** Endpoint autorizado `POST /api/v1/network-devices/:id/diagnostics/pfsense` e modal visual de diagnóstico sanitizado com mascaramento de segredos (cookies, CSRF, senhas).
+- **29B — FreeBSD Cumulative CPU Ticks Parser:** Algoritmo determinístico no `GetStatsPipeParser.ts` para calcular percentual exato de CPU a partir de ticks cumulativos do kernel FreeBSD (`(total_ticks - idle_ticks) / total_ticks * 100`).
+- **29C — Hybrid Telemetry Merge Engine:** Fusão automática de fontes de dados no `PfSenseTelemetryParser.ts` (combinando `/getstats.php` AJAX e `/index.php` Dashboard HTML) para extrair CPU, Memória RAM, SWAP e Disco (`/`) com 100% de precisão.
+- **29D — Universal Semantic Parsers (PT-BR / EN):** Padrões de expressão regular tolerantes a entidades HTML (`Utilização`, `Utiliza&ccedil;&atilde;o`, `SWAP`, `Disks`, `9% of 30G (ufs)`).
+- **29E — Vault Self-Healing Auto-Migration:** Descriptografia resiliente com tentativa em chaves legadas e re-criptografia transparente na chave ativa. Persistência automática de chave em `data/vault-master.key` com proteção contra perda de ambiente Docker.
+- **29F — Responsive UI Hardening:** Ajustes de layout flex-wrap para botões de ação e 4 indicadores visuais de progresso (CPU, Memória RAM, SWAP e Disco) no card de Status do Equipamento.
+- **29G — Regression & Monorepo QA:** 8 testes unitários automatizados cobrindo todas as variantes de payload e build limpo do frontend em 1.16s.
+
 
 
 
