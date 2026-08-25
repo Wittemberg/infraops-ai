@@ -22,6 +22,16 @@ describe("PfSense Telemetry Parsers Unit Tests", () => {
     expect(result.parserId).toBe("getstats-pipe-v1");
   });
 
+  it("should calculate CPU percentage and Memory percentage from FreeBSD cumulative CPU ticks", () => {
+    const ticksPayload = "394945926|390192739|12|17 Days 23 Hours 55 Minutes 06 Seconds|5076/300000||Tue Aug 25 13:17:34 -03 2";
+    const result = GetStatsPipeParser.parse(ticksPayload);
+
+    expect(result.matched).toBe(true);
+    expect(result.cpuValue).toBe(1); // (394945926 - 390192739) / 394945926 * 100 = 1.20% -> 1%
+    expect(result.memoryValue).toBe(12); // 12%
+    expect(result.parserId).toBe("getstats-pipe-v1");
+  });
+
   it("should parse PT-BR WebGUI HTML dashboard semantically", () => {
     const html = readFixture("pfsense-ptbr-dashboard.html");
     const result = DashboardSemanticParser.parse(html);

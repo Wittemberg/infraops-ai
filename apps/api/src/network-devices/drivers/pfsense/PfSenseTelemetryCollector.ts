@@ -133,6 +133,7 @@ export class PfSenseTelemetryCollector {
       }
 
       // Test getstats
+      let fullGetStatsPayload = "";
       try {
         const ajaxRes = await client.makeRequest("/getstats.php", "GET", undefined, authRes.cookie, {
           "X-Requested-With": "XMLHttpRequest",
@@ -142,6 +143,7 @@ export class PfSenseTelemetryCollector {
         report.getStats.contentType = ajaxRes.headers["content-type"] as string;
 
         if (ajaxRes.data) {
+          fullGetStatsPayload = ajaxRes.data;
           const sample = ajaxRes.data.substring(0, 100).replace(/[\r\n]+/g, " ");
           report.getStats.samplePayload = sample;
 
@@ -185,7 +187,7 @@ export class PfSenseTelemetryCollector {
       }
 
       // Run Parser
-      const parseResult = PfSenseTelemetryParser.parsePayload(report.getStats.samplePayload, dashboardHtml);
+      const parseResult = PfSenseTelemetryParser.parsePayload(fullGetStatsPayload, dashboardHtml);
       const norm = PfSenseTelemetryNormalizer.normalize(parseResult, "PFSENSE_DIAGNOSTIC", report.firmwareVersion);
 
       report.telemetry.cpuFound = norm.cpu.value !== null;
