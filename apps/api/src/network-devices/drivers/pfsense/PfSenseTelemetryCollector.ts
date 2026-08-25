@@ -192,10 +192,16 @@ export class PfSenseTelemetryCollector {
 
       report.telemetry.cpuFound = norm.cpu.value !== null;
       report.telemetry.memoryFound = norm.memory.value !== null;
+      report.telemetry.swapFound = norm.swap?.value !== null && norm.swap?.value !== undefined;
+      report.telemetry.storageFound = norm.storage?.value !== null && norm.storage?.value !== undefined;
       report.telemetry.cpuValue = norm.cpu.value;
       report.telemetry.memoryValue = norm.memory.value;
+      report.telemetry.swapValue = norm.swap?.value ?? null;
+      report.telemetry.storageValue = norm.storage?.value ?? null;
       report.telemetry.cpuSource = norm.cpu.source;
       report.telemetry.memorySource = norm.memory.source;
+      report.telemetry.swapSource = norm.swap?.source;
+      report.telemetry.storageSource = norm.storage?.source;
       report.telemetry.status = norm.overallStatus;
     } catch (e: any) {
       report.errorCode = `DIAGNOSTIC_ERROR: ${e.message}`;

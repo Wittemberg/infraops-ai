@@ -1530,24 +1530,44 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
               <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--text-secondary)", marginBottom: "6px" }}>
                 RESULTADO DO PARSER DE TELEMETRIA:
               </div>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <div style={{ flex: 1, padding: "10px", borderRadius: "6px", background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div style={{ padding: "10px", borderRadius: "6px", background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
                   <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>CPU Encontrada</div>
                   <div style={{ fontSize: "16px", fontWeight: "700", color: diagnosticReport.telemetry?.cpuFound ? "#10b981" : "#ef4444" }}>
-                    {diagnosticReport.telemetry?.cpuValue !== null ? `${diagnosticReport.telemetry.cpuValue}%` : "Indisponível"}
+                    {diagnosticReport.telemetry?.cpuValue !== null && diagnosticReport.telemetry?.cpuValue !== undefined ? `${diagnosticReport.telemetry.cpuValue}%` : "Indisponível"}
                   </div>
                   <div style={{ fontSize: "10px", color: "var(--text-secondary)", marginTop: "2px" }}>
                     Fonte: {diagnosticReport.telemetry?.cpuSource || "N/A"}
                   </div>
                 </div>
 
-                <div style={{ flex: 1, padding: "10px", borderRadius: "6px", background: "rgba(59, 130, 246, 0.08)", border: "1px solid rgba(59, 130, 246, 0.3)" }}>
+                <div style={{ padding: "10px", borderRadius: "6px", background: "rgba(59, 130, 246, 0.08)", border: "1px solid rgba(59, 130, 246, 0.3)" }}>
                   <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>Memória RAM Encontrada</div>
                   <div style={{ fontSize: "16px", fontWeight: "700", color: diagnosticReport.telemetry?.memoryFound ? "#3b82f6" : "#ef4444" }}>
-                    {diagnosticReport.telemetry?.memoryValue !== null ? `${diagnosticReport.telemetry.memoryValue}%` : "Indisponível"}
+                    {diagnosticReport.telemetry?.memoryValue !== null && diagnosticReport.telemetry?.memoryValue !== undefined ? `${diagnosticReport.telemetry.memoryValue}%` : "Indisponível"}
                   </div>
                   <div style={{ fontSize: "10px", color: "var(--text-secondary)", marginTop: "2px" }}>
                     Fonte: {diagnosticReport.telemetry?.memorySource || "N/A"}
+                  </div>
+                </div>
+
+                <div style={{ padding: "10px", borderRadius: "6px", background: "rgba(139, 92, 246, 0.08)", border: "1px solid rgba(139, 92, 246, 0.3)" }}>
+                  <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>SWAP Encontrada</div>
+                  <div style={{ fontSize: "16px", fontWeight: "700", color: diagnosticReport.telemetry?.swapValue !== null && diagnosticReport.telemetry?.swapValue !== undefined ? "#8b5cf6" : "#ef4444" }}>
+                    {diagnosticReport.telemetry?.swapValue !== null && diagnosticReport.telemetry?.swapValue !== undefined ? `${diagnosticReport.telemetry.swapValue}%` : "Indisponível"}
+                  </div>
+                  <div style={{ fontSize: "10px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                    Fonte: {diagnosticReport.telemetry?.swapSource || "PFSENSE_DIAGNOSTIC"}
+                  </div>
+                </div>
+
+                <div style={{ padding: "10px", borderRadius: "6px", background: "rgba(245, 158, 11, 0.08)", border: "1px solid rgba(245, 158, 11, 0.3)" }}>
+                  <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>Disco (/) Encontrado</div>
+                  <div style={{ fontSize: "16px", fontWeight: "700", color: diagnosticReport.telemetry?.storageValue !== null && diagnosticReport.telemetry?.storageValue !== undefined ? "#f59e0b" : "#ef4444" }}>
+                    {diagnosticReport.telemetry?.storageValue !== null && diagnosticReport.telemetry?.storageValue !== undefined ? `${diagnosticReport.telemetry.storageValue}%` : "Indisponível"}
+                  </div>
+                  <div style={{ fontSize: "10px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                    Fonte: {diagnosticReport.telemetry?.storageSource || "PFSENSE_DIAGNOSTIC"}
                   </div>
                 </div>
               </div>

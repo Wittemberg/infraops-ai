@@ -29,10 +29,16 @@ export interface PfSenseTelemetryDiagnosticReport {
   telemetry: {
     cpuFound: boolean;
     memoryFound: boolean;
+    swapFound?: boolean;
+    storageFound?: boolean;
     cpuValue: number | null;
     memoryValue: number | null;
+    swapValue?: number | null;
+    storageValue?: number | null;
     cpuSource?: string;
     memorySource?: string;
+    swapSource?: string;
+    storageSource?: string;
     status: string;
   };
   errorCode?: string;
