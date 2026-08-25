@@ -1,4 +1,6 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { dirname } from "path";
 import { AppError } from "@infraops/shared";
 
 export interface StoredSecret {
@@ -26,8 +28,9 @@ export interface SecretMetadataResponse {
 export class SecretVaultService {
   private masterKey: Buffer;
   private secretsStore: Map<string, StoredSecret> = new Map();
+  private storageFilePath?: string;
 
-  constructor(masterKeyHex: string) {
+  constructor(masterKeyHex: string, storageFilePath?: string) {
     if (!masterKeyHex || masterKeyHex.length < 32) {
       throw new Error("[SECURITY_FATAL] Encryption Master Key must be at least 32 characters long");
     }
@@ -35,6 +38,40 @@ export class SecretVaultService {
     const keyBuf = Buffer.from(masterKeyHex, "utf8");
     this.masterKey = Buffer.alloc(32);
     keyBuf.copy(this.masterKey, 0, 0, Math.min(keyBuf.length, 32));
+
+    this.storageFilePath = storageFilePath;
+    this.loadFromDisk();
+  }
+
+  private loadFromDisk() {
+    if (!this.storageFilePath) return;
+    try {
+      if (existsSync(this.storageFilePath)) {
+        const raw = readFileSync(this.storageFilePath, "utf-8");
+        const list: StoredSecret[] = JSON.parse(raw);
+        if (Array.isArray(list)) {
+          for (const item of list) {
+            this.secretsStore.set(item.id, item);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[Vault] Error loading persistent secrets from disk:", e);
+    }
+  }
+
+  private saveToDisk() {
+    if (!this.storageFilePath) return;
+    try {
+      const dir = dirname(this.storageFilePath);
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+      const list = Array.from(this.secretsStore.values());
+      writeFileSync(this.storageFilePath, JSON.stringify(list, null, 2), "utf-8");
+    } catch (e) {
+      console.error("[Vault] Error saving persistent secrets to disk:", e);
+    }
   }
 
   public storeSecret(tenantId: string, name: string, type: "api_key" | "password" | "token" | "ssh_key", plaintext: string): SecretMetadataResponse {
@@ -60,6 +97,7 @@ export class SecretVaultService {
     };
 
     this.secretsStore.set(secretId, stored);
+    this.saveToDisk();
 
     return {
       id: stored.id,

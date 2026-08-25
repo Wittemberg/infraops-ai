@@ -22,11 +22,16 @@ import { WanActionManager } from "./network-devices/actions/wanActions.js";
 import { WanSelfHealingEngine } from "./network-devices/automation/wanSelfHealing.js";
 
 const port = Number(process.env.PORT) || 3000;
-const secretVault = new SecretVaultService(process.env.ENCRYPTION_MASTER_KEY || "master_key_1234567890_32bytes_sec!");
 
 // Persistent Data File
 const DATA_DIR = process.env.DATA_DIR || "./data";
 const DB_FILE = join(DATA_DIR, "infraops-store.json");
+const VAULT_FILE = join(DATA_DIR, "vault-secrets.json");
+
+const secretVault = new SecretVaultService(
+  process.env.ENCRYPTION_MASTER_KEY || "master_key_1234567890_32bytes_sec!",
+  VAULT_FILE
+);
 
 interface DataStore {
   tenants: Array<{ id: string; name: string; domain: string; createdAt: string }>;
