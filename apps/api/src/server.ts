@@ -4268,6 +4268,20 @@ Responda EXCLUSIVAMENTE um objeto JSON válido no seguinte formato:
       return;
     }
 
+    if (health) {
+      device.systemHealth = {
+        cpuUsagePercent: health.cpuUsagePercent,
+        memoryUsagePercent: health.memoryUsagePercent,
+        temperatureCelsius: health.temperatureCelsius ?? 0,
+        storageUsagePercent: health.storageUsagePercent ?? 0,
+        voltageVolts: health.voltageVolts ?? 0,
+      };
+      if (health.firmwareVersion) device.firmwareVersion = health.firmwareVersion;
+      if (health.model) device.model = health.model;
+      device.lastSeenAt = new Date().toISOString();
+      device.status = "online";
+    }
+
     sendJson(res, 200, { success: true, health, device });
     return;
   }
@@ -4304,24 +4318,6 @@ Responda EXCLUSIVAMENTE um objeto JSON válido no seguinte formato:
     const report = await collector.runSanitizedDiagnostic(device.id, credentials.username, credentials.password);
 
     sendJson(res, 200, { success: true, report });
-    return;
-  }
-
-    if (health) {
-      device.systemHealth = {
-        cpuUsagePercent: health.cpuUsagePercent ?? 0,
-        memoryUsagePercent: health.memoryUsagePercent ?? 0,
-        temperatureCelsius: health.temperatureCelsius ?? 0,
-        storageUsagePercent: health.storageUsagePercent ?? 0,
-        voltageVolts: health.voltageVolts ?? 0,
-      };
-      if (health.firmwareVersion) device.firmwareVersion = health.firmwareVersion;
-      if (health.model) device.model = health.model;
-      device.lastSeenAt = new Date().toISOString();
-      device.status = "online";
-    }
-
-    sendJson(res, 200, { success: true, health, device });
     return;
   }
 
