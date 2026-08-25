@@ -189,58 +189,60 @@ export class PfSenseApiClient {
         }
       }
 
-      // 1. Precise pfSense HTML Table Row parsing (isolated to <tr id="cpu"> and <tr id="memory">)
-      const cpuRowMatch = statsRes.data.match(/<tr[^>]*id=["']cpu["'][\s\S]*?<\/tr>/i);
-      if (cpuRowMatch) {
-        const valMatch =
-          cpuRowMatch[0].match(/aria-valuenow=["'](\d+)["']/i) ||
-          cpuRowMatch[0].match(/style=["']width:\s*(\d+)%/i) ||
-          cpuRowMatch[0].match(/>\s*(\d+)%\s*</i) ||
-          cpuRowMatch[0].match(/(\d+)%/i);
-        if (valMatch) {
-          resource.cpuLoad = Math.min(100, Math.max(0, Number(valMatch[1])));
-          cpuFound = true;
+      // 1. Precise Split Parsing for CPU and Memory from pfSense WebGUI HTML
+      if (!cpuFound && statsRes.data) {
+        const cpuPart = statsRes.data.split(/utiliza[cç][aã]o\s*do\s*cpu|cpu\s*usage/i)[1];
+        if (cpuPart) {
+          const next300 = cpuPart.substring(0, 300);
+          const numMatch = next300.match(/(\d+)%/);
+          if (numMatch) {
+            resource.cpuLoad = Math.min(100, Math.max(0, Number(numMatch[1])));
+            cpuFound = true;
+          }
         }
       }
 
-      const memRowMatch = statsRes.data.match(/<tr[^>]*id=["']memory["'][\s\S]*?<\/tr>/i);
-      if (memRowMatch) {
-        const valMatch =
-          memRowMatch[0].match(/aria-valuenow=["'](\d+)["']/i) ||
-          memRowMatch[0].match(/style=["']width:\s*(\d+)%/i) ||
-          memRowMatch[0].match(/(\d+)%\s*of/i) ||
-          memRowMatch[0].match(/>\s*(\d+)%\s*</i) ||
-          memRowMatch[0].match(/(\d+)%/i);
-        if (valMatch) {
-          resource.usedMemoryPercent = Math.min(100, Math.max(0, Number(valMatch[1])));
-          memFound = true;
+      if (!memFound && statsRes.data) {
+        const memPart = statsRes.data.split(/utiliza[cç][aã]o\s*da\s*memoria|memory\s*usage/i)[1];
+        if (memPart) {
+          const next300 = memPart.substring(0, 300);
+          const numMatch = next300.match(/(\d+)%/);
+          if (numMatch) {
+            resource.usedMemoryPercent = Math.min(100, Math.max(0, Number(numMatch[1])));
+            memFound = true;
+          }
         }
       }
 
-      // 2. Fallback matching if tr id="cpu" is not present (e.g. custom pfSense themes)
-      if (!cpuFound) {
-        const cpuMatch =
-          statsRes.data.match(/utiliza[cç][aã]o\s*do\s*cpu[\s\S]*?aria-valuenow=["'](\d+)["']/i) ||
-          statsRes.data.match(/utiliza[cç][aã]o\s*do\s*cpu[\s\S]*?class=["']progress-bar[^"']*["'][\s\S]*?>\s*(\d+)%/i) ||
-          statsRes.data.match(/cpu\s*usage[\s\S]*?aria-valuenow=["'](\d+)["']/i) ||
-          statsRes.data.match(/id=["']cpubars["'][\s\S]*?>\s*(\d+)%/i) ||
-          statsRes.data.match(/id=["']cpumeter["'][\s\S]*?width:\s*(\d+)%/i);
-
-        if (cpuMatch) {
-          resource.cpuLoad = Math.min(100, Math.max(0, Number(cpuMatch[1])));
-          cpuFound = true;
+      // 2. Table Row <tr id="cpu"> / <tr id="memory"> fallback
+      if (!cpuFound && statsRes.data) {
+        const cpuRowMatch = statsRes.data.match(/<tr[^>]*id=["']cpu["'][\s\S]*?<\/tr>/i);
+        if (cpuRowMatch) {
+          const valMatch =
+            cpuRowMatch[0].match(/aria-valuenow=["'](\d+)["']/i) ||
+            cpuRowMatch[0].match(/style=["']width:\s*(\d+)%/i) ||
+            cpuRowMatch[0].match(/>\s*(\d+)%\s*</i) ||
+            cpuRowMatch[0].match(/(\d+)%/i);
+          if (valMatch) {
+            resource.cpuLoad = Math.min(100, Math.max(0, Number(valMatch[1])));
+            cpuFound = true;
+          }
         }
       }
 
-      if (!memFound) {
-        const memMatch =
-          statsRes.data.match(/utiliza[cç][aã]o\s*da\s*memoria[\s\S]*?(\d+)%\s*of/i) ||
-          statsRes.data.match(/memory\s*usage[\s\S]*?(\d+)%\s*of/i) ||
-          statsRes.data.match(/(\d+)%\s*of\s*\d+\s*Mi?B/i);
-
-        if (memMatch) {
-          resource.usedMemoryPercent = Math.min(100, Math.max(0, Number(memMatch[1])));
-          memFound = true;
+      if (!memFound && statsRes.data) {
+        const memRowMatch = statsRes.data.match(/<tr[^>]*id=["']memory["'][\s\S]*?<\/tr>/i);
+        if (memRowMatch) {
+          const valMatch =
+            memRowMatch[0].match(/aria-valuenow=["'](\d+)["']/i) ||
+            memRowMatch[0].match(/style=["']width:\s*(\d+)%/i) ||
+            memRowMatch[0].match(/(\d+)%\s*of/i) ||
+            memRowMatch[0].match(/>\s*(\d+)%\s*</i) ||
+            memRowMatch[0].match(/(\d+)%/i);
+          if (valMatch) {
+            resource.usedMemoryPercent = Math.min(100, Math.max(0, Number(valMatch[1])));
+            memFound = true;
+          }
         }
       }
 
