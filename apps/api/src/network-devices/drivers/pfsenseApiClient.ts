@@ -165,13 +165,12 @@ export class PfSenseApiClient {
         }
       }
 
-      // Parse CPU / RAM from HTML WebGUI (supports PT-BR "Utilização do CPU" and EN "CPU usage")
+      // Parse CPU / RAM from HTML WebGUI (supports PT-BR "utilização do CPU" and EN "CPU usage" across HTML tags and newlines)
       const cpuMatch =
-        statsRes.data.match(/Utilização do CPU[^\d]*(\d+)%/i) ||
-        statsRes.data.match(/CPU usage[^\d]*(\d+)%/i) ||
-        statsRes.data.match(/utilização\s*do\s*cpu[^\d]*(\d+)%/i) ||
-        statsRes.data.match(/id=["']cpubars["'][^>]*>\s*(\d+)%/i) ||
-        statsRes.data.match(/id=["']cpumeter["'][^>]*width:\s*(\d+)%/i) ||
+        statsRes.data.match(/utiliza[cç][aã]o\s*do\s*cpu[\s\S]*?(\d+)%/i) ||
+        statsRes.data.match(/cpu\s*usage[\s\S]*?(\d+)%/i) ||
+        statsRes.data.match(/id=["']cpubars["'][\s\S]*?>\s*(\d+)%/i) ||
+        statsRes.data.match(/id=["']cpumeter["'][\s\S]*?width:\s*(\d+)%/i) ||
         statsRes.data.match(/(\d+)%\s*<\/[^>]*>\s*CPU/i);
 
       if (cpuMatch) {
@@ -180,11 +179,10 @@ export class PfSenseApiClient {
       }
 
       const memMatch =
-        statsRes.data.match(/Utilização da Memoria[^\d]*(\d+)%/i) ||
-        statsRes.data.match(/Memory usage[^\d]*(\d+)%/i) ||
-        statsRes.data.match(/utilização\s*da\s*memoria[^\d]*(\d+)%/i) ||
+        statsRes.data.match(/utiliza[cç][aã]o\s*da\s*memoria[\s\S]*?(\d+)%/i) ||
+        statsRes.data.match(/memory\s*usage[\s\S]*?(\d+)%/i) ||
         statsRes.data.match(/(\d+)%\s*of\s*\d+\s*Mi?B/i) ||
-        statsRes.data.match(/id=["']memusagemeter["'][^>]*width:\s*(\d+)%/i);
+        statsRes.data.match(/id=["']memusagemeter["'][\s\S]*?width:\s*(\d+)%/i);
 
       if (memMatch) {
         resource.usedMemoryPercent = Math.min(100, Math.max(0, Number(memMatch[1])));
