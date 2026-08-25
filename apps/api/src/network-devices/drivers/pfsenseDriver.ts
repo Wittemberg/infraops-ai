@@ -17,6 +17,8 @@ import {
 
 import { PfSenseApiClient } from "./pfsenseApiClient";
 
+import { PfSenseTelemetryCollector } from "./pfsense/PfSenseTelemetryCollector";
+
 export class PfSenseDriver implements INetworkDeviceDriver {
   vendor = "pfsense";
 
@@ -25,8 +27,8 @@ export class PfSenseDriver implements INetworkDeviceDriver {
       return false;
     }
     const port = device.managementPort || 8181;
-    const client = new PfSenseApiClient(device.ipAddress, port, 8000);
-    const res = await client.execute(credentials.username, credentials.password);
+    const collector = new PfSenseTelemetryCollector(device.ipAddress, port);
+    const res = await collector.collect(credentials.username, credentials.password);
     return res.success;
   }
 
@@ -57,43 +59,42 @@ export class PfSenseDriver implements INetworkDeviceDriver {
   async getSystemHealth(device: NetworkDeviceProfile, credentials?: Record<string, any>): Promise<DeviceSystemHealth> {
     if (!credentials || credentials.username === undefined) {
       return {
-        cpuUsagePercent: 0,
-        memoryUsagePercent: 0,
+        cpuUsagePercent: null,
+        memoryUsagePercent: null,
+        status: "AUTH_ERROR",
         error: "Credenciais do pfSense não encontradas no Vault. Edite o roteador (✏️) e informe o Usuário e Senha.",
       };
     }
 
     if (device.ipAddress) {
       const port = device.managementPort || 8181;
-      const client = new PfSenseApiClient(device.ipAddress, port, 8000);
-      const res = await client.execute(credentials.username, credentials.password);
+      const collector = new PfSenseTelemetryCollector(device.ipAddress, port);
+      const res = await collector.collect(credentials.username, credentials.password);
 
-      if (res.success && res.resource) {
+      if (res.success && res.telemetry) {
         return {
-          cpuUsagePercent: res.resource.cpuLoad ?? 0,
-          memoryUsagePercent: res.resource.usedMemoryPercent ?? 0,
-          temperatureCelsius: 0,
-          storageUsagePercent: 0,
-          voltageVolts: 0,
-          firmwareVersion: res.resource.version || undefined,
+          cpuUsagePercent: res.telemetry.cpu.value,
+          memoryUsagePercent: res.telemetry.memory.value,
+          status: res.telemetry.overallStatus,
+          source: res.telemetry.source,
+          firmwareVersion: res.telemetry.firmwareVersion,
         };
       }
 
       if (res.error) {
         return {
-          cpuUsagePercent: 0,
-          memoryUsagePercent: 0,
+          cpuUsagePercent: null,
+          memoryUsagePercent: null,
+          status: "UNAVAILABLE",
           error: res.error,
         };
       }
     }
 
     return {
-      cpuUsagePercent: device.systemHealth?.cpuUsagePercent ?? 0,
-      memoryUsagePercent: device.systemHealth?.memoryUsagePercent ?? 0,
-      temperatureCelsius: device.systemHealth?.temperatureCelsius ?? 0,
-      storageUsagePercent: device.systemHealth?.storageUsagePercent ?? 0,
-      voltageVolts: device.systemHealth?.voltageVolts ?? 0,
+      cpuUsagePercent: device.systemHealth?.cpuUsagePercent ?? null,
+      memoryUsagePercent: device.systemHealth?.memoryUsagePercent ?? null,
+      status: "UNAVAILABLE",
     };
   }
 

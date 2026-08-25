@@ -4268,6 +4268,45 @@ Responda EXCLUSIVAMENTE um objeto JSON válido no seguinte formato:
       return;
     }
 
+    sendJson(res, 200, { success: true, health, device });
+    return;
+  }
+
+  if (url.startsWith("/api/v1/network-devices/") && url.endsWith("/diagnostics/pfsense") && method === "POST") {
+    const id = url.replace("/api/v1/network-devices/", "").replace("/diagnostics/pfsense", "");
+    const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    const device = NetworkDeviceService.getDeviceById(store as any, tenantId, id);
+    if (!device) {
+      sendJson(res, 404, { error: "Dispositivo não encontrado." });
+      return;
+    }
+
+    let credentials: Record<string, any> | undefined;
+    if (device.credentialsSecretId) {
+      try {
+        const decryptedJson = secretVault.decryptSecretInternal(device.credentialsSecretId, tenantId);
+        credentials = JSON.parse(decryptedJson);
+      } catch (e) {
+        console.warn("Could not decrypt device credentials for diagnostic:", e);
+      }
+    }
+
+    if (!credentials || !credentials.username || !credentials.password) {
+      sendJson(res, 400, {
+        error: "Credenciais do pfSense não encontradas no Vault. Informe usuário e senha no modal do dispositivo.",
+      });
+      return;
+    }
+
+    const { PfSenseTelemetryCollector } = await import("./network-devices/drivers/pfsense/PfSenseTelemetryCollector.js");
+    const port = device.managementPort || 8181;
+    const collector = new PfSenseTelemetryCollector(device.ipAddress, port);
+    const report = await collector.runSanitizedDiagnostic(device.id, credentials.username, credentials.password);
+
+    sendJson(res, 200, { success: true, report });
+    return;
+  }
+
     if (health) {
       device.systemHealth = {
         cpuUsagePercent: health.cpuUsagePercent ?? 0,

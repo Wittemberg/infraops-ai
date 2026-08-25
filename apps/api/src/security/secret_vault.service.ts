@@ -1,5 +1,5 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from "fs";
 import { dirname } from "path";
 import { AppError } from "@infraops/shared";
 
@@ -31,6 +31,11 @@ export class SecretVaultService {
   private storageFilePath?: string;
 
   constructor(masterKeyHex: string, storageFilePath?: string) {
+    const isProd = process.env.NODE_ENV === "production";
+    if (isProd && (!masterKeyHex || masterKeyHex.includes("master_key_1234567890"))) {
+      throw new Error("[SECURITY_FATAL] ENCRYPTION_MASTER_KEY environment variable is required in production environment!");
+    }
+
     if (!masterKeyHex || masterKeyHex.length < 32) {
       throw new Error("[SECURITY_FATAL] Encryption Master Key must be at least 32 characters long");
     }
@@ -68,7 +73,9 @@ export class SecretVaultService {
         mkdirSync(dir, { recursive: true });
       }
       const list = Array.from(this.secretsStore.values());
-      writeFileSync(this.storageFilePath, JSON.stringify(list, null, 2), "utf-8");
+      const tmpFile = `${this.storageFilePath}.tmp`;
+      writeFileSync(tmpFile, JSON.stringify(list, null, 2), "utf-8");
+      renameSync(tmpFile, this.storageFilePath);
     } catch (e) {
       console.error("[Vault] Error saving persistent secrets to disk:", e);
     }

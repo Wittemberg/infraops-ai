@@ -16,15 +16,38 @@ export interface DeviceIdentity {
   uptimeSeconds: number;
 }
 
+export type MetricStatus =
+  | "OK"
+  | "STALE"
+  | "UNAVAILABLE"
+  | "UNSUPPORTED"
+  | "AUTH_ERROR"
+  | "PARSE_ERROR"
+  | "CONNECTION_ERROR";
+
+export interface TelemetryMetric {
+  value: number | null;
+  unit: "%" | "C" | "bytes" | "bps" | "ms";
+  status: MetricStatus;
+  collectedAt: string | null;
+  source?: string;
+  parserId?: string;
+  confidence?: "HIGH" | "MEDIUM" | "LOW";
+  errorCode?: string;
+}
+
 export interface DeviceSystemHealth {
-  cpuUsagePercent: number;
-  memoryUsagePercent: number;
-  temperatureCelsius?: number;
-  storageUsagePercent?: number;
-  voltageVolts?: number;
+  cpuUsagePercent: number | null;
+  memoryUsagePercent: number | null;
+  temperatureCelsius?: number | null;
+  storageUsagePercent?: number | null;
+  voltageVolts?: number | null;
   firmwareVersion?: string;
   model?: string;
+  status?: MetricStatus;
+  source?: string;
   error?: string;
+  diagnostics?: any;
 }
 
 export interface ActionResult {

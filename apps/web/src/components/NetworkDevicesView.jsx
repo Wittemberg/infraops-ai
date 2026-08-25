@@ -20,6 +20,9 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
   const [showAddWanModal, setShowAddWanModal] = useState(false);
   const [actionModalWan, setActionModalWan] = useState(null); // WAN target for primary switch
   const [executingAction, setExecutingAction] = useState(false);
+  const [showDiagnosticModal, setShowDiagnosticModal] = useState(false);
+  const [diagnosticReport, setDiagnosticReport] = useState(null);
+  const [loadingDiagnostic, setLoadingDiagnostic] = useState(false);
 
   const [deviceForm, setDeviceForm] = useState({
     name: "",
@@ -259,7 +262,9 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
           setDevices((prev) =>
             prev.map((d) => (d.id === selectedDeviceId ? data.device : d))
           );
-          setFeedbackMsg(`🟢 Telemetria de '${data.device.name}' sincronizada! CPU: ${data.device.systemHealth?.cpuUsagePercent}%, RAM: ${data.device.systemHealth?.memoryUsagePercent}%`);
+          const cpuTxt = data.device.systemHealth?.cpuUsagePercent !== null && data.device.systemHealth?.cpuUsagePercent !== undefined ? `${data.device.systemHealth.cpuUsagePercent}%` : "Indisponível";
+          const ramTxt = data.device.systemHealth?.memoryUsagePercent !== null && data.device.systemHealth?.memoryUsagePercent !== undefined ? `${data.device.systemHealth.memoryUsagePercent}%` : "Indisponível";
+          setFeedbackMsg(`🟢 Telemetria de '${data.device.name}' sincronizada! CPU: ${cpuTxt}, RAM: ${ramTxt}`);
         } else {
           setFeedbackMsg(`❌ ${data.error || "Falha ao sincronizar telemetria."}`);
         }
@@ -269,6 +274,29 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
     } finally {
       setLoading(false);
       setTimeout(() => setFeedbackMsg(null), 6000);
+    }
+  };
+
+  const handleRunDiagnostic = async () => {
+    if (!selectedDeviceId) return;
+    setLoadingDiagnostic(true);
+    setDiagnosticReport(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/network-devices/${selectedDeviceId}/diagnostics/pfsense`, {
+        method: "POST",
+        headers,
+      });
+      const data = await res.json();
+      if (res.ok && data.report) {
+        setDiagnosticReport(data.report);
+        setShowDiagnosticModal(true);
+      } else {
+        setFeedbackMsg(`❌ Erro no Diagnóstico: ${data.error || "Falha ao executar diagnóstico."}`);
+      }
+    } catch (err) {
+      setFeedbackMsg(`❌ Erro de Conexão: ${err.message}`);
+    } finally {
+      setLoadingDiagnostic(false);
     }
   };
 
@@ -723,9 +751,9 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
                 </h3>
                 <div style={{ display: "flex", gap: "6px" }}>
                   <button
-                    onClick={handleTestConnection}
+                    onClick={() => handleTestConnection(selectedDevice.id)}
                     disabled={loading}
-                    title="Testar conectividade API em tempo real com o roteador"
+                    title="Testar comunicação com a API do equipamento"
                     style={{
                       padding: "4px 8px",
                       borderRadius: "6px",
@@ -739,6 +767,25 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
                   >
                     ⚡ Testar Conexão
                   </button>
+                  {selectedDevice.vendor === "pfsense" && (
+                    <button
+                      onClick={handleRunDiagnostic}
+                      disabled={loadingDiagnostic}
+                      title="Executar diagnóstico de telemetria do pfSense"
+                      style={{
+                        padding: "4px 8px",
+                        borderRadius: "6px",
+                        border: "1px solid rgba(245, 158, 11, 0.4)",
+                        background: "rgba(245, 158, 11, 0.12)",
+                        color: "#f59e0b",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                        fontWeight: "600",
+                      }}
+                    >
+                      {loadingDiagnostic ? "⏳ Testando..." : "🔍 Diagnóstico"}
+                    </button>
+                  )}
                   <button
                     onClick={() => handleOpenEditDevice(selectedDevice)}
                     title="Editar dados e credenciais do roteador"
@@ -807,7 +854,11 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
                 <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: "1px solid var(--border-color)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
                     <span style={{ color: "var(--text-secondary)" }}>Uso de CPU:</span>
-                    <span style={{ fontWeight: "600", color: "#10b981" }}>{selectedDevice.systemHealth?.cpuUsagePercent ?? 0}%</span>
+                    <span style={{ fontWeight: "600", color: selectedDevice.systemHealth?.cpuUsagePercent !== null && selectedDevice.systemHealth?.cpuUsagePercent !== undefined ? "#10b981" : "#ef4444" }}>
+                      {selectedDevice.systemHealth?.cpuUsagePercent !== null && selectedDevice.systemHealth?.cpuUsagePercent !== undefined
+                        ? `${selectedDevice.systemHealth.cpuUsagePercent}%`
+                        : "Indisponível"}
+                    </span>
                   </div>
                   <div style={{ width: "100%", height: "6px", background: "rgba(255,255,255,0.1)", borderRadius: "3px", overflow: "hidden" }}>
                     <div style={{ width: `${selectedDevice.systemHealth?.cpuUsagePercent ?? 0}%`, height: "100%", background: "#10b981" }} />
@@ -817,7 +868,11 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
                 <div style={{ marginTop: "4px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
                     <span style={{ color: "var(--text-secondary)" }}>Uso de Memória RAM:</span>
-                    <span style={{ fontWeight: "600", color: "#3b82f6" }}>{selectedDevice.systemHealth?.memoryUsagePercent ?? 0}%</span>
+                    <span style={{ fontWeight: "600", color: selectedDevice.systemHealth?.memoryUsagePercent !== null && selectedDevice.systemHealth?.memoryUsagePercent !== undefined ? "#3b82f6" : "#ef4444" }}>
+                      {selectedDevice.systemHealth?.memoryUsagePercent !== null && selectedDevice.systemHealth?.memoryUsagePercent !== undefined
+                        ? `${selectedDevice.systemHealth.memoryUsagePercent}%`
+                        : "Indisponível"}
+                    </span>
                   </div>
                   <div style={{ width: "100%", height: "6px", background: "rgba(255,255,255,0.1)", borderRadius: "3px", overflow: "hidden" }}>
                     <div style={{ width: `${selectedDevice.systemHealth?.memoryUsagePercent ?? 0}%`, height: "100%", background: "#3b82f6" }} />
@@ -1380,6 +1435,129 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
                 style={{ padding: "8px 20px", borderRadius: "6px", border: "none", background: "#3b82f6", color: "#fff", fontWeight: "600", cursor: "pointer" }}
               >
                 {executingAction ? "Comutando Link..." : "Confirmar e Comutar Link"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sanitized pfSense Telemetry Diagnostic Modal */}
+      {showDiagnosticModal && diagnosticReport && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.75)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10000,
+          }}
+        >
+          <div style={{ background: "var(--bg-card)", padding: "24px", borderRadius: "12px", maxWidth: "680px", width: "100%", maxHeight: "85vh", overflowY: "auto", border: "1px solid var(--border-color)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ fontSize: "22px" }}>🔍</span>
+                <h3 style={{ margin: 0, color: "var(--text-primary)", fontSize: "16px", fontWeight: "700" }}>
+                  Relatório de Diagnóstico Sanitizado (pfSense)
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowDiagnosticModal(false)}
+                style={{ background: "none", border: "none", color: "var(--text-secondary)", fontSize: "18px", cursor: "pointer" }}
+              >
+                ✖
+              </button>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "14px", fontSize: "12px" }}>
+              <div style={{ padding: "10px", borderRadius: "6px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--border-color)" }}>
+                <span style={{ color: "var(--text-secondary)" }}>Autenticação WebGUI: </span>
+                <strong style={{ color: diagnosticReport.login?.authenticated ? "#10b981" : "#ef4444" }}>
+                  {diagnosticReport.login?.authenticated ? "✅ Sucesso" : "❌ Falhou"}
+                </strong>
+              </div>
+              <div style={{ padding: "10px", borderRadius: "6px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--border-color)" }}>
+                <span style={{ color: "var(--text-secondary)" }}>Token CSRF / Cookie: </span>
+                <strong style={{ color: diagnosticReport.login?.csrfDetected ? "#10b981" : "#f59e0b" }}>
+                  {diagnosticReport.login?.csrfDetected ? "Detectados" : "Ausentes"}
+                </strong>
+              </div>
+              <div style={{ padding: "10px", borderRadius: "6px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--border-color)" }}>
+                <span style={{ color: "var(--text-secondary)" }}>Formato /getstats.php: </span>
+                <strong style={{ color: "#3b82f6" }}>{diagnosticReport.getStats?.responseFormat || "UNKNOWN"}</strong>
+              </div>
+              <div style={{ padding: "10px", borderRadius: "6px", background: "rgba(0,0,0,0.2)", border: "1px solid var(--border-color)" }}>
+                <span style={{ color: "var(--text-secondary)" }}>Versão Detectada: </span>
+                <strong style={{ color: "var(--text-primary)" }}>{diagnosticReport.firmwareVersion || "pfSense"}</strong>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: "14px" }}>
+              <div style={{ fontSize: "12px", fontWeight: "700", color: "var(--text-secondary)", marginBottom: "6px" }}>
+                RESULTADO DO PARSER DE TELEMETRIA:
+              </div>
+              <div style={{ display: "flex", gap: "10px" }}>
+                <div style={{ flex: 1, padding: "10px", borderRadius: "6px", background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.3)" }}>
+                  <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>CPU Encontrada</div>
+                  <div style={{ fontSize: "16px", fontWeight: "700", color: diagnosticReport.telemetry?.cpuFound ? "#10b981" : "#ef4444" }}>
+                    {diagnosticReport.telemetry?.cpuValue !== null ? `${diagnosticReport.telemetry.cpuValue}%` : "Indisponível"}
+                  </div>
+                  <div style={{ fontSize: "10px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                    Fonte: {diagnosticReport.telemetry?.cpuSource || "N/A"}
+                  </div>
+                </div>
+
+                <div style={{ flex: 1, padding: "10px", borderRadius: "6px", background: "rgba(59, 130, 246, 0.08)", border: "1px solid rgba(59, 130, 246, 0.3)" }}>
+                  <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>Memória RAM Encontrada</div>
+                  <div style={{ fontSize: "16px", fontWeight: "700", color: diagnosticReport.telemetry?.memoryFound ? "#3b82f6" : "#ef4444" }}>
+                    {diagnosticReport.telemetry?.memoryValue !== null ? `${diagnosticReport.telemetry.memoryValue}%` : "Indisponível"}
+                  </div>
+                  <div style={{ fontSize: "10px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                    Fonte: {diagnosticReport.telemetry?.memorySource || "N/A"}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: "11px", fontWeight: "700", color: "var(--text-secondary)", marginBottom: "4px" }}>
+              PAYLOAD DE DIAGNÓSTICO SANITIZADO (SEM SEGREDO):
+            </div>
+            <pre
+              style={{
+                background: "rgba(0,0,0,0.5)",
+                padding: "12px",
+                borderRadius: "6px",
+                color: "#10b981",
+                fontSize: "11px",
+                overflowX: "auto",
+                maxHeight: "180px",
+                border: "1px solid var(--border-color)",
+                marginBottom: "16px",
+              }}
+            >
+              {JSON.stringify(diagnosticReport, null, 2)}
+            </pre>
+
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(JSON.stringify(diagnosticReport, null, 2));
+                  setFeedbackMsg("📋 Relatório de diagnóstico copiado!");
+                  setTimeout(() => setFeedbackMsg(null), 3000);
+                }}
+                style={{ padding: "8px 14px", borderRadius: "6px", border: "1px solid var(--border-color)", background: "none", color: "var(--text-primary)", cursor: "pointer", fontSize: "12px", fontWeight: "600" }}
+              >
+                📋 Copiar Relatório Sanitizado
+              </button>
+              <button
+                onClick={() => setShowDiagnosticModal(false)}
+                style={{ padding: "8px 18px", borderRadius: "6px", border: "none", background: "#3b82f6", color: "#fff", fontWeight: "600", cursor: "pointer", fontSize: "12px" }}
+              >
+                Fechar
               </button>
             </div>
           </div>
