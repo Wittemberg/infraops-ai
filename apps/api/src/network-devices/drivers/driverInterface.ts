@@ -56,7 +56,7 @@ export interface INetworkDeviceDriver {
 
   getIdentity(device: NetworkDeviceProfile): Promise<DeviceIdentity>;
 
-  getSystemHealth(device: NetworkDeviceProfile): Promise<DeviceSystemHealth>;
+  getSystemHealth(device: NetworkDeviceProfile, credentials?: Record<string, any>): Promise<DeviceSystemHealth>;
 
   listInterfaces(device: NetworkDeviceProfile): Promise<DeviceInterface[]>;
 

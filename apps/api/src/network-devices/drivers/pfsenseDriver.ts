@@ -46,7 +46,7 @@ export class PfSenseDriver implements INetworkDeviceDriver {
     };
   }
 
-  async getSystemHealth(device: NetworkDeviceProfile): Promise<DeviceSystemHealth> {
+  async getSystemHealth(device: NetworkDeviceProfile, credentials?: Record<string, any>): Promise<DeviceSystemHealth> {
     const baseCpu = device.systemHealth?.cpuUsagePercent || 8.0;
     const baseMem = device.systemHealth?.memoryUsagePercent || 28.0;
     return {

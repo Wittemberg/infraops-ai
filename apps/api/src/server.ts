@@ -4189,8 +4189,19 @@ Responda EXCLUSIVAMENTE um objeto JSON válido no seguinte formato:
       sendJson(res, 404, { error: "Dispositivo não encontrado." });
       return;
     }
+
+    let credentials: Record<string, any> | undefined;
+    if (device.credentialsSecretId) {
+      try {
+        const decryptedJson = secretVault.decryptSecretInternal(device.credentialsSecretId, tenantId);
+        credentials = JSON.parse(decryptedJson);
+      } catch (e) {
+        console.warn("Could not decrypt device credentials:", e);
+      }
+    }
+
     const driver = NetworkDeviceService.getDriver(device.vendor);
-    const health = await driver.getSystemHealth(device);
+    const health = await driver.getSystemHealth(device, credentials);
     sendJson(res, 200, { health });
     return;
   }
