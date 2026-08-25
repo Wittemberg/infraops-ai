@@ -745,17 +745,19 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             {/* Device Profile Card */}
             <div style={{ padding: "20px", borderRadius: "10px", background: "var(--bg-card)", border: "1px solid var(--border-color)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-                <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "700", color: "var(--text-primary)" }}>
-                  ⚙️ Status do Equipamento
-                </h3>
-                <div style={{ display: "flex", gap: "6px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "14px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "700", color: "var(--text-primary)" }}>
+                    ⚙️ Status do Equipamento
+                  </h3>
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                   <button
                     onClick={() => handleTestConnection(selectedDevice.id)}
                     disabled={loading}
                     title="Testar comunicação com a API do equipamento"
                     style={{
-                      padding: "4px 8px",
+                      padding: "5px 10px",
                       borderRadius: "6px",
                       border: "1px solid rgba(16, 185, 129, 0.4)",
                       background: "rgba(16, 185, 129, 0.12)",
@@ -773,7 +775,7 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
                       disabled={loadingDiagnostic}
                       title="Executar diagnóstico de telemetria do pfSense"
                       style={{
-                        padding: "4px 8px",
+                        padding: "5px 10px",
                         borderRadius: "6px",
                         border: "1px solid rgba(245, 158, 11, 0.4)",
                         background: "rgba(245, 158, 11, 0.12)",
@@ -790,7 +792,7 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
                     onClick={() => handleOpenEditDevice(selectedDevice)}
                     title="Editar dados e credenciais do roteador"
                     style={{
-                      padding: "4px 8px",
+                      padding: "5px 10px",
                       borderRadius: "6px",
                       border: "1px solid var(--border-color)",
                       background: "rgba(59, 130, 246, 0.1)",
@@ -806,7 +808,7 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
                     onClick={() => setShowDeleteDeviceModal(true)}
                     title="Remover este equipamento de rede"
                     style={{
-                      padding: "4px 8px",
+                      padding: "5px 10px",
                       borderRadius: "6px",
                       border: "1px solid rgba(239, 68, 68, 0.3)",
                       background: "rgba(239, 68, 68, 0.1)",

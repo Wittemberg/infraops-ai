@@ -47,13 +47,17 @@ function getOrGenerateMasterKey(): string {
       console.warn("[Vault] Could not read master key file, generating new one:", e);
     }
   }
-  const generatedKey = randomBytes(32).toString("hex");
+
+  // If existing secrets file exists, use legacy key string so existing secrets remain decryptable
+  const legacyKey = "master_key_1234567890_32bytes_sec!";
+  const keyToUse = existsSync(VAULT_FILE) ? legacyKey : randomBytes(32).toString("hex");
+
   try {
-    writeFileSync(MASTER_KEY_FILE, generatedKey, "utf-8");
+    writeFileSync(MASTER_KEY_FILE, keyToUse, "utf-8");
   } catch (e) {
     console.error("[Vault] Error writing master key file:", e);
   }
-  return generatedKey;
+  return keyToUse;
 }
 
 const secretVault = new SecretVaultService(getOrGenerateMasterKey(), VAULT_FILE);

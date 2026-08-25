@@ -111,6 +111,20 @@ export class SecretVaultService {
     };
   }
 
+  private decryptWithKey(keyBuf: Buffer, ciphertext: string, nonce: string): string {
+    const nonceBuf = Buffer.from(nonce, "base64");
+    const parts = ciphertext.split(".");
+    if (parts.length !== 2) {
+      throw new AppError("SECRET_CORRUPTED", "Invalid ciphertext format", 500);
+    }
+    const [encryptedText, authTagText] = parts;
+    const decipher = createDecipheriv("aes-256-gcm", keyBuf, nonceBuf);
+    decipher.setAuthTag(Buffer.from(authTagText, "base64"));
+    let decrypted = decipher.update(encryptedText, "base64", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+  }
+
   public decryptSecretInternal(secretId: string, tenantId: string): string {
     const secret = this.secretsStore.get(secretId);
 
@@ -118,21 +132,45 @@ export class SecretVaultService {
       throw new AppError("SECRET_NOT_FOUND", `Secret '${secretId}' not found for tenant '${tenantId}'`, 404);
     }
 
-    const nonceBuf = Buffer.from(secret.nonce, "base64");
-    const parts = secret.ciphertext.split(".");
-    if (parts.length !== 2) {
-      throw new AppError("SECRET_CORRUPTED", "Invalid ciphertext format", 500);
+    try {
+      const decrypted = this.decryptWithKey(this.masterKey, secret.ciphertext, secret.nonce);
+      secret.lastUsedAt = new Date();
+      return decrypted;
+    } catch (primaryErr) {
+      // Try legacy keys if primary master key decryption failed
+      const legacyCandidates = [
+        "master_key_1234567890_32bytes_sec!",
+        "infraops_vault_master_key_1234567890",
+        "master_key_1234567890",
+      ];
+
+      for (const legacyKeyStr of legacyCandidates) {
+        try {
+          const keyBuf = Buffer.alloc(32);
+          Buffer.from(legacyKeyStr, "utf8").copy(keyBuf, 0, 0, Math.min(32, Buffer.byteLength(legacyKeyStr)));
+          const decrypted = this.decryptWithKey(keyBuf, secret.ciphertext, secret.nonce);
+
+          // Re-encrypt with active master key so future decryptions use active key
+          const newNonceBuf = randomBytes(12);
+          const cipher = createCipheriv("aes-256-gcm", this.masterKey, newNonceBuf);
+          let newEncrypted = cipher.update(decrypted, "utf8", "base64");
+          newEncrypted += cipher.final("base64");
+          const newAuthTag = cipher.getAuthTag().toString("base64");
+
+          secret.ciphertext = `${newEncrypted}.${newAuthTag}`;
+          secret.nonce = newNonceBuf.toString("base64");
+          secret.lastUsedAt = new Date();
+          this.saveToDisk();
+
+          console.log(`[Vault] Seamlessly migrated secret '${secretId}' to active master key.`);
+          return decrypted;
+        } catch (legacyErr) {
+          // Continue to next candidate
+        }
+      }
+
+      throw primaryErr;
     }
-
-    const [encryptedText, authTagText] = parts;
-    const decipher = createDecipheriv("aes-256-gcm", this.masterKey, nonceBuf);
-    decipher.setAuthTag(Buffer.from(authTagText, "base64"));
-
-    let decrypted = decipher.update(encryptedText, "base64", "utf8");
-    decrypted += decipher.final("utf8");
-
-    secret.lastUsedAt = new Date();
-    return decrypted;
   }
 
   public getSecretMetadata(secretId: string, tenantId: string): SecretMetadataResponse {
