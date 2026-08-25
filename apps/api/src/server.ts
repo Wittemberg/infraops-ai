@@ -4144,12 +4144,27 @@ Responda EXCLUSIVAMENTE um objeto JSON válido no seguinte formato:
       const body = await parseJsonBody(req);
       const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
 
-      if (body.apiUsername || body.apiPassword) {
+      const existingDevice = NetworkDeviceService.getDeviceById(store as any, tenantId, id);
+      let existingPass = "";
+      let existingUser = "tecnoteam";
+
+      if (existingDevice?.credentialsSecretId) {
+        try {
+          const oldCreds = JSON.parse(secretVault.decryptSecretInternal(existingDevice.credentialsSecretId, tenantId));
+          existingUser = oldCreds.username || "tecnoteam";
+          existingPass = oldCreds.password || "";
+        } catch (e) {}
+      }
+
+      const finalUser = body.apiUsername || existingUser;
+      const finalPass = body.apiPassword !== undefined && body.apiPassword !== "" ? body.apiPassword : existingPass;
+
+      if (finalUser || finalPass || existingDevice?.credentialsSecretId) {
         const secret = secretVault.storeSecret(
           tenantId,
-          `Credencial API Roteador (${body.name || "MikroTik"})`,
+          `Credencial API Roteador (${body.name || existingDevice?.name || "MikroTik"})`,
           "password",
-          JSON.stringify({ username: body.apiUsername || "admin", password: body.apiPassword || "" })
+          JSON.stringify({ username: finalUser, password: finalPass })
         );
         body.credentialsSecretId = secret.id;
       }

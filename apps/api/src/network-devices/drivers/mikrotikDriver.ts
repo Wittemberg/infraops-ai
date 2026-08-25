@@ -56,7 +56,7 @@ export class MikroTikDriver implements INetworkDeviceDriver {
   }
 
   async getSystemHealth(device: NetworkDeviceProfile, credentials?: Record<string, any>): Promise<DeviceSystemHealth> {
-    if (!credentials?.username || !credentials?.password) {
+    if (!credentials || credentials.username === undefined) {
       return {
         cpuUsagePercent: 0,
         memoryUsagePercent: 0,
