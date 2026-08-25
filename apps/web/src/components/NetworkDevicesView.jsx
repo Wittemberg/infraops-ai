@@ -948,6 +948,8 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
             </form>
           </div>
         </div>
+      )}
+
       {/* Modal: Edit Device */}
       {showEditDeviceModal && (
         <div
