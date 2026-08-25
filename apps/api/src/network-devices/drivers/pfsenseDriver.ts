@@ -75,6 +75,8 @@ export class PfSenseDriver implements INetworkDeviceDriver {
         return {
           cpuUsagePercent: res.telemetry.cpu.value,
           memoryUsagePercent: res.telemetry.memory.value,
+          swapUsagePercent: res.telemetry.swap?.value,
+          storageUsagePercent: res.telemetry.storage?.value,
           status: res.telemetry.overallStatus,
           source: res.telemetry.source,
           firmwareVersion: res.telemetry.firmwareVersion,

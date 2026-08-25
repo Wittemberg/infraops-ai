@@ -39,8 +39,9 @@ export interface TelemetryMetric {
 export interface DeviceSystemHealth {
   cpuUsagePercent: number | null;
   memoryUsagePercent: number | null;
-  temperatureCelsius?: number | null;
   storageUsagePercent?: number | null;
+  swapUsagePercent?: number | null;
+  temperatureCelsius?: number | null;
   voltageVolts?: number | null;
   firmwareVersion?: string;
   model?: string;

@@ -42,6 +42,24 @@ describe("PfSense Telemetry Parsers Unit Tests", () => {
     expect(result.parserId).toBe("dashboard-semantic-v1");
   });
 
+  it("should parse SWAP and Disk (Storage) usage from dashboard HTML", () => {
+    const mockHtml = `
+      <table>
+        <tr><td>Utilização SWAP</td><td>0% of 1024 MiB</td></tr>
+      </table>
+      <div id="disks">
+        <table>
+          <tr><td>> /</td><td>2,5G</td><td>30G</td><td>9% of 30G (ufs)</td></tr>
+        </table>
+      </div>
+    `;
+    const result = DashboardSemanticParser.parse(mockHtml);
+
+    expect(result.matched).toBe(true);
+    expect(result.swapValue).toBe(0);
+    expect(result.storageValue).toBe(9);
+  });
+
   it("should parse EN WebGUI HTML dashboard semantically", () => {
     const html = readFixture("pfsense-en-dashboard.html");
     const result = DashboardSemanticParser.parse(html);

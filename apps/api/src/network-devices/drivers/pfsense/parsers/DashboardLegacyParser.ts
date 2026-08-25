@@ -57,12 +57,37 @@ export class DashboardLegacyParser {
       }
     }
 
-    const matched = cpuValue !== null || memoryValue !== null;
+    let swapValue: number | null = null;
+    let storageValue: number | null = null;
+
+    // Row ID <tr id="swap">
+    const swapRow = html.match(/<tr[^>]*id=["']swap["'][\s\S]*?<\/tr>/i);
+    if (swapRow) {
+      const valMatch = swapRow[0].match(/(\d+)%/i);
+      if (valMatch) {
+        const v = Number(valMatch[1]);
+        if (v >= 0 && v <= 100) swapValue = v;
+      }
+    }
+
+    // Row ID <tr id="disk"> or diskusagemeter
+    const diskRow = html.match(/<tr[^>]*id=["']disk["'][\s\S]*?<\/tr>/i) || html.match(/id=["']diskusagemeter["'][\s\S]*?width:\s*(\d+)%/i);
+    if (diskRow) {
+      const valMatch = diskRow[0].match(/(\d+)%/i);
+      if (valMatch) {
+        const v = Number(valMatch[1]);
+        if (v >= 0 && v <= 100) storageValue = v;
+      }
+    }
+
+    const matched = cpuValue !== null || memoryValue !== null || swapValue !== null || storageValue !== null;
 
     return {
       matched,
       cpuValue,
       memoryValue,
+      swapValue,
+      storageValue,
       parserId: "dashboard-legacy-v1",
       confidence: matched ? "MEDIUM" : "LOW",
     };

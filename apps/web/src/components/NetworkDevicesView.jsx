@@ -880,6 +880,34 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
                     <div style={{ width: `${selectedDevice.systemHealth?.memoryUsagePercent ?? 0}%`, height: "100%", background: "#3b82f6" }} />
                   </div>
                 </div>
+
+                <div style={{ marginTop: "4px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                    <span style={{ color: "var(--text-secondary)" }}>Uso de SWAP:</span>
+                    <span style={{ fontWeight: "600", color: selectedDevice.systemHealth?.swapUsagePercent !== null && selectedDevice.systemHealth?.swapUsagePercent !== undefined ? "#8b5cf6" : "#ef4444" }}>
+                      {selectedDevice.systemHealth?.swapUsagePercent !== null && selectedDevice.systemHealth?.swapUsagePercent !== undefined
+                        ? `${selectedDevice.systemHealth.swapUsagePercent}%`
+                        : "Indisponível"}
+                    </span>
+                  </div>
+                  <div style={{ width: "100%", height: "6px", background: "rgba(255,255,255,0.1)", borderRadius: "3px", overflow: "hidden" }}>
+                    <div style={{ width: `${selectedDevice.systemHealth?.swapUsagePercent ?? 0}%`, height: "100%", background: "#8b5cf6" }} />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: "4px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+                    <span style={{ color: "var(--text-secondary)" }}>Uso de Disco (/):</span>
+                    <span style={{ fontWeight: "600", color: selectedDevice.systemHealth?.storageUsagePercent !== null && selectedDevice.systemHealth?.storageUsagePercent !== undefined ? "#f59e0b" : "#ef4444" }}>
+                      {selectedDevice.systemHealth?.storageUsagePercent !== null && selectedDevice.systemHealth?.storageUsagePercent !== undefined
+                        ? `${selectedDevice.systemHealth.storageUsagePercent}%`
+                        : "Indisponível"}
+                    </span>
+                  </div>
+                  <div style={{ width: "100%", height: "6px", background: "rgba(255,255,255,0.1)", borderRadius: "3px", overflow: "hidden" }}>
+                    <div style={{ width: `${selectedDevice.systemHealth?.storageUsagePercent ?? 0}%`, height: "100%", background: "#f59e0b" }} />
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -4,6 +4,8 @@ import { ParseResult } from "./parsers/GetStatsPipeParser";
 export interface NormalizedPfSenseTelemetry {
   cpu: TelemetryMetric;
   memory: TelemetryMetric;
+  swap?: TelemetryMetric;
+  storage?: TelemetryMetric;
   overallStatus: MetricStatus;
   source: string;
   parserId: string;
@@ -19,7 +21,7 @@ export class PfSenseTelemetryNormalizer {
   ): NormalizedPfSenseTelemetry {
     const collectedAt = new Date().toISOString();
 
-    const validate = (val: number | null): { value: number | null; status: MetricStatus } => {
+    const validate = (val: number | null | undefined): { value: number | null; status: MetricStatus } => {
       if (val === null || val === undefined || isNaN(val)) {
         return { value: null, status: "UNAVAILABLE" };
       }
@@ -31,6 +33,8 @@ export class PfSenseTelemetryNormalizer {
 
     const cpuNorm = validate(parseResult.cpuValue);
     const memNorm = validate(parseResult.memoryValue);
+    const swapNorm = validate(parseResult.swapValue);
+    const storageNorm = validate(parseResult.storageValue);
 
     const cpu: TelemetryMetric = {
       value: cpuNorm.value,
@@ -52,6 +56,26 @@ export class PfSenseTelemetryNormalizer {
       confidence: parseResult.confidence,
     };
 
+    const swap: TelemetryMetric = {
+      value: swapNorm.value,
+      unit: "%",
+      status: swapNorm.status,
+      collectedAt,
+      source,
+      parserId: parseResult.parserId,
+      confidence: parseResult.confidence,
+    };
+
+    const storage: TelemetryMetric = {
+      value: storageNorm.value,
+      unit: "%",
+      status: storageNorm.status,
+      collectedAt,
+      source,
+      parserId: parseResult.parserId,
+      confidence: parseResult.confidence,
+    };
+
     let overallStatus: MetricStatus = "OK";
     if (cpuNorm.status !== "OK" && memNorm.status !== "OK") {
       overallStatus = "UNAVAILABLE";
@@ -62,6 +86,8 @@ export class PfSenseTelemetryNormalizer {
     return {
       cpu,
       memory,
+      swap,
+      storage,
       overallStatus,
       source,
       parserId: parseResult.parserId,

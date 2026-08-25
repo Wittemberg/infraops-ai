@@ -2,6 +2,8 @@ export interface ParseResult {
   matched: boolean;
   cpuValue: number | null;
   memoryValue: number | null;
+  swapValue?: number | null;
+  storageValue?: number | null;
   parserId: string;
   confidence: "HIGH" | "MEDIUM" | "LOW";
 }
@@ -10,12 +12,12 @@ export class GetStatsPipeParser {
   public static parse(payload: string): ParseResult {
     const trimmed = payload.trim();
     if (trimmed.startsWith("<") || trimmed.includes("SESSION_TIMEOUT") || !trimmed.includes("|")) {
-      return { matched: false, cpuValue: null, memoryValue: null, parserId: "getstats-pipe-v1", confidence: "LOW" };
+      return { matched: false, cpuValue: null, memoryValue: null, swapValue: null, storageValue: null, parserId: "getstats-pipe-v1", confidence: "LOW" };
     }
 
     const parts = trimmed.split("|");
     if (parts.length < 2) {
-      return { matched: false, cpuValue: null, memoryValue: null, parserId: "getstats-pipe-v1", confidence: "LOW" };
+      return { matched: false, cpuValue: null, memoryValue: null, swapValue: null, storageValue: null, parserId: "getstats-pipe-v1", confidence: "LOW" };
     }
 
     const p0 = parseFloat(parts[0]);
@@ -50,11 +52,13 @@ export class GetStatsPipeParser {
         matched: true,
         cpuValue: validCpu ? Math.round(rawCpu as number) : null,
         memoryValue: validMem ? Math.round(rawMem as number) : null,
+        swapValue: null,
+        storageValue: null,
         parserId: "getstats-pipe-v1",
         confidence: "HIGH",
       };
     }
 
-    return { matched: false, cpuValue: null, memoryValue: null, parserId: "getstats-pipe-v1", confidence: "LOW" };
+    return { matched: false, cpuValue: null, memoryValue: null, swapValue: null, storageValue: null, parserId: "getstats-pipe-v1", confidence: "LOW" };
   }
 }

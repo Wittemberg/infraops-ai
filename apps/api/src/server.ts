@@ -4301,9 +4301,10 @@ Responda EXCLUSIVAMENTE um objeto JSON válido no seguinte formato:
       device.systemHealth = {
         cpuUsagePercent: health.cpuUsagePercent,
         memoryUsagePercent: health.memoryUsagePercent,
-        temperatureCelsius: health.temperatureCelsius ?? 0,
-        storageUsagePercent: health.storageUsagePercent ?? 0,
-        voltageVolts: health.voltageVolts ?? 0,
+        swapUsagePercent: health.swapUsagePercent ?? null,
+        storageUsagePercent: health.storageUsagePercent ?? null,
+        temperatureCelsius: health.temperatureCelsius ?? null,
+        voltageVolts: health.voltageVolts ?? null,
       };
       if (health.firmwareVersion) device.firmwareVersion = health.firmwareVersion;
       if (health.model) device.model = health.model;
