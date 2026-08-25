@@ -1,6 +1,7 @@
 import { createServer, IncomingMessage, ServerResponse } from "http";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { join } from "path";
+import { randomBytes } from "crypto";
 import { handleReadiness, handleMetricsScrape } from "./health/health.controller.js";
 import { SecretVaultService } from "./security/secret_vault.service.js";
 import { ProxmoxProvider } from "./integrations/proxmox/proxmox_provider.js";
@@ -27,11 +28,35 @@ const port = Number(process.env.PORT) || 3000;
 const DATA_DIR = process.env.DATA_DIR || "./data";
 const DB_FILE = join(DATA_DIR, "infraops-store.json");
 const VAULT_FILE = join(DATA_DIR, "vault-secrets.json");
+const MASTER_KEY_FILE = join(DATA_DIR, "vault-master.key");
 
-const secretVault = new SecretVaultService(
-  process.env.ENCRYPTION_MASTER_KEY || "master_key_1234567890_32bytes_sec!",
-  VAULT_FILE
-);
+function getOrGenerateMasterKey(): string {
+  if (process.env.ENCRYPTION_MASTER_KEY && process.env.ENCRYPTION_MASTER_KEY.length >= 32) {
+    return process.env.ENCRYPTION_MASTER_KEY;
+  }
+  if (!existsSync(DATA_DIR)) {
+    mkdirSync(DATA_DIR, { recursive: true });
+  }
+  if (existsSync(MASTER_KEY_FILE)) {
+    try {
+      const savedKey = readFileSync(MASTER_KEY_FILE, "utf-8").trim();
+      if (savedKey.length >= 32) {
+        return savedKey;
+      }
+    } catch (e) {
+      console.warn("[Vault] Could not read master key file, generating new one:", e);
+    }
+  }
+  const generatedKey = randomBytes(32).toString("hex");
+  try {
+    writeFileSync(MASTER_KEY_FILE, generatedKey, "utf-8");
+  } catch (e) {
+    console.error("[Vault] Error writing master key file:", e);
+  }
+  return generatedKey;
+}
+
+const secretVault = new SecretVaultService(getOrGenerateMasterKey(), VAULT_FILE);
 
 interface DataStore {
   tenants: Array<{ id: string; name: string; domain: string; createdAt: string }>;

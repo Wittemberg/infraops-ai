@@ -31,11 +31,6 @@ export class SecretVaultService {
   private storageFilePath?: string;
 
   constructor(masterKeyHex: string, storageFilePath?: string) {
-    const isProd = process.env.NODE_ENV === "production";
-    if (isProd && (!masterKeyHex || masterKeyHex.includes("master_key_1234567890"))) {
-      throw new Error("[SECURITY_FATAL] ENCRYPTION_MASTER_KEY environment variable is required in production environment!");
-    }
-
     if (!masterKeyHex || masterKeyHex.length < 32) {
       throw new Error("[SECURITY_FATAL] Encryption Master Key must be at least 32 characters long");
     }
