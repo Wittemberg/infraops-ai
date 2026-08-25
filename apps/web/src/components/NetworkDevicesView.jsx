@@ -249,11 +249,13 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
           headers,
         });
         const data = await res.json();
-        if (data.device) {
+        if (res.ok && data.device) {
           setDevices((prev) =>
             prev.map((d) => (d.id === selectedDeviceId ? data.device : d))
           );
           setFeedbackMsg(`🟢 Telemetria de '${data.device.name}' sincronizada! CPU: ${data.device.systemHealth?.cpuUsagePercent}%, RAM: ${data.device.systemHealth?.memoryUsagePercent}%`);
+        } else {
+          setFeedbackMsg(`❌ ${data.error || "Falha ao sincronizar telemetria."}`);
         }
       }
     } catch (err) {

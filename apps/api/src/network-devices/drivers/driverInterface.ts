@@ -24,6 +24,7 @@ export interface DeviceSystemHealth {
   voltageVolts?: number;
   firmwareVersion?: string;
   model?: string;
+  error?: string;
 }
 
 export interface ActionResult {

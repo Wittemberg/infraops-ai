@@ -56,7 +56,15 @@ export class MikroTikDriver implements INetworkDeviceDriver {
   }
 
   async getSystemHealth(device: NetworkDeviceProfile, credentials?: Record<string, any>): Promise<DeviceSystemHealth> {
-    if (credentials?.username && credentials?.password && device.ipAddress) {
+    if (!credentials?.username || !credentials?.password) {
+      return {
+        cpuUsagePercent: 0,
+        memoryUsagePercent: 0,
+        error: "Credenciais da API não encontradas no Vault. Edite o roteador (✏️) e informe o Usuário API e a Senha API.",
+      };
+    }
+
+    if (device.ipAddress) {
       const port = device.managementPort || 58728;
       const client = new MikroTikApiClient(device.ipAddress, port, 6000);
       const res = await client.execute(credentials.username, credentials.password);
@@ -75,6 +83,14 @@ export class MikroTikDriver implements INetworkDeviceDriver {
           voltageVolts: 0,
           firmwareVersion: res.resource.version ? `RouterOS v${res.resource.version}` : undefined,
           model: res.resource.boardName || undefined,
+        };
+      }
+
+      if (res.error) {
+        return {
+          cpuUsagePercent: 0,
+          memoryUsagePercent: 0,
+          error: res.error,
         };
       }
     }

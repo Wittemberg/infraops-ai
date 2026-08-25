@@ -4243,6 +4243,11 @@ Responda EXCLUSIVAMENTE um objeto JSON válido no seguinte formato:
     const driver = NetworkDeviceService.getDriver(device.vendor);
     const health = await driver.getSystemHealth(device, credentials);
 
+    if (health.error) {
+      sendJson(res, 400, { success: false, error: health.error, device });
+      return;
+    }
+
     if (health) {
       device.systemHealth = {
         cpuUsagePercent: health.cpuUsagePercent ?? 0,
