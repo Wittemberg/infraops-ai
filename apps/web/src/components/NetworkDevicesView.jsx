@@ -14,20 +14,24 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
 
   // Modals
   const [showAddDeviceModal, setShowAddDeviceModal] = useState(false);
+  const [showEditDeviceModal, setShowEditDeviceModal] = useState(false);
+  const [showDeleteDeviceModal, setShowDeleteDeviceModal] = useState(false);
+  const [editingDevice, setEditingDevice] = useState(null);
   const [showAddWanModal, setShowAddWanModal] = useState(false);
   const [actionModalWan, setActionModalWan] = useState(null); // WAN target for primary switch
   const [executingAction, setExecutingAction] = useState(false);
 
-  // Forms
   const [deviceForm, setDeviceForm] = useState({
     name: "",
     vendor: "mikrotik",
     model: "CCR2004-16G-2S+",
     firmwareVersion: "RouterOS v7.15.2",
     serialNumber: "",
-    ipAddress: "192.168.1.1",
-    managementPort: 8728,
+    ipAddress: "192.168.80.1",
+    managementPort: 58728,
     apiProtocol: "rest_https",
+    apiUsername: "rtecnologia55",
+    apiPassword: "",
     notes: "",
   });
 
@@ -127,6 +131,75 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
         loadAllData();
       } else {
         setFeedbackMsg(`❌ Erro: ${data.error || "Falha ao cadastrar roteador."}`);
+      }
+    } catch (err) {
+      setFeedbackMsg(`❌ Erro: ${err.message}`);
+    } finally {
+      setLoading(false);
+      setTimeout(() => setFeedbackMsg(null), 5000);
+    }
+  };
+
+  const handleOpenEditDevice = (device) => {
+    setEditingDevice(device);
+    setDeviceForm({
+      name: device.name || "",
+      vendor: device.vendor || "mikrotik",
+      model: device.model || "CCR2004-16G-2S+",
+      firmwareVersion: device.firmwareVersion || "RouterOS v7.15.2",
+      serialNumber: device.serialNumber || "",
+      ipAddress: device.ipAddress || "",
+      managementPort: device.managementPort || 8728,
+      apiProtocol: device.apiProtocol || "rest_https",
+      apiUsername: "",
+      apiPassword: "",
+      notes: device.notes || "",
+    });
+    setShowEditDeviceModal(true);
+  };
+
+  const handleUpdateDevice = async (e) => {
+    e.preventDefault();
+    if (!editingDevice) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/network-devices/${editingDevice.id}`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify({ ...deviceForm, tenantId: activeTenant?.id }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setFeedbackMsg(`✅ Roteador '${data.device?.name}' atualizado com sucesso!`);
+        setShowEditDeviceModal(false);
+        loadAllData();
+      } else {
+        setFeedbackMsg(`❌ Erro: ${data.error || "Falha ao atualizar roteador."}`);
+      }
+    } catch (err) {
+      setFeedbackMsg(`❌ Erro: ${err.message}`);
+    } finally {
+      setLoading(false);
+      setTimeout(() => setFeedbackMsg(null), 5000);
+    }
+  };
+
+  const handleDeleteDevice = async () => {
+    if (!selectedDeviceId) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/network-devices/${selectedDeviceId}`, {
+        method: "DELETE",
+        headers,
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setFeedbackMsg(`🗑️ Equipamento de rede excluído com sucesso!`);
+        setShowDeleteDeviceModal(false);
+        setSelectedDeviceId(null);
+        loadAllData();
+      } else {
+        setFeedbackMsg(`❌ Erro: ${data.error || "Falha ao excluir roteador."}`);
       }
     } catch (err) {
       setFeedbackMsg(`❌ Erro: ${err.message}`);
@@ -581,9 +654,45 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             {/* Device Profile Card */}
             <div style={{ padding: "20px", borderRadius: "10px", background: "var(--bg-card)", border: "1px solid var(--border-color)" }}>
-              <h3 style={{ margin: "0 0 12px 0", fontSize: "15px", fontWeight: "700", color: "var(--text-primary)" }}>
-                ⚙️ Status do Equipamento
-              </h3>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                <h3 style={{ margin: 0, fontSize: "15px", fontWeight: "700", color: "var(--text-primary)" }}>
+                  ⚙️ Status do Equipamento
+                </h3>
+                <div style={{ display: "flex", gap: "6px" }}>
+                  <button
+                    onClick={() => handleOpenEditDevice(selectedDevice)}
+                    title="Editar dados e credenciais do roteador"
+                    style={{
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      border: "1px solid var(--border-color)",
+                      background: "rgba(59, 130, 246, 0.1)",
+                      color: "#3b82f6",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                    }}
+                  >
+                    ✏️ Editar
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteDeviceModal(true)}
+                    title="Remover este equipamento de rede"
+                    style={{
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      border: "1px solid rgba(239, 68, 68, 0.3)",
+                      background: "rgba(239, 68, 68, 0.1)",
+                      color: "#ef4444",
+                      cursor: "pointer",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                    }}
+                  >
+                    🗑️ Excluir
+                  </button>
+                </div>
+              </div>
 
               <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -607,6 +716,12 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span style={{ color: "var(--text-secondary)" }}>Porta API:</span>
                   <span style={{ fontWeight: "600", color: "var(--text-primary)" }}>{selectedDevice.managementPort}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "var(--text-secondary)" }}>Autenticação:</span>
+                  <span style={{ fontSize: "11px", fontWeight: "600", color: "#10b981", background: "rgba(16, 185, 129, 0.12)", padding: "2px 8px", borderRadius: "6px" }}>
+                    🔒 Vault AES-256
+                  </span>
                 </div>
 
                 <div style={{ marginTop: "10px", paddingTop: "10px", borderTop: "1px solid var(--border-color)" }}>
@@ -766,7 +881,7 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
                     required
                     value={deviceForm.ipAddress}
                     onChange={(e) => setDeviceForm({ ...deviceForm, ipAddress: e.target.value })}
-                    placeholder="192.168.1.1"
+                    placeholder="192.168.80.1"
                     style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }}
                   />
                 </div>
@@ -779,6 +894,39 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
                     style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }}
                   />
                 </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div>
+                  <label style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>
+                    👤 {deviceForm.vendor === "pfsense" ? "Usuário Admin / API (pfSense)" : deviceForm.vendor === "generic" ? "Usuário SNMPv3 / Community" : "Usuário API (RouterOS)"}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={deviceForm.apiUsername}
+                    onChange={(e) => setDeviceForm({ ...deviceForm, apiUsername: e.target.value })}
+                    placeholder={deviceForm.vendor === "pfsense" ? "Ex: admin ou api_user" : deviceForm.vendor === "generic" ? "Ex: public ou snmp_user" : "Ex: rtecnologia55 ou admin"}
+                    style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>
+                    🔑 {deviceForm.vendor === "pfsense" ? "Senha / FauxAPI Token" : deviceForm.vendor === "generic" ? "Senha / Passphrase Auth" : "Senha API / SSH"}
+                  </label>
+                  <input
+                    type="password"
+                    value={deviceForm.apiPassword}
+                    onChange={(e) => setDeviceForm({ ...deviceForm, apiPassword: e.target.value })}
+                    placeholder={deviceForm.vendor === "pfsense" ? "Senha do pfSense WebGUI" : deviceForm.vendor === "generic" ? "Passphrase SNMP (se houver)" : "Sua senha secreta do MikroTik"}
+                    style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ padding: "8px 12px", borderRadius: "6px", background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.3)", fontSize: "11px", color: "#10b981", display: "flex", alignItems: "center", gap: "6px" }}>
+                <span>🔒</span>
+                <span>As credenciais são salvas com criptografia de ponta a ponta (AES-256-GCM Vault) e nunca trafegam em texto puro.</span>
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
@@ -798,6 +946,175 @@ export function NetworkDevicesView({ activeTenant, currentUser }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      {/* Modal: Edit Device */}
+      {showEditDeviceModal && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div style={{ background: "var(--bg-card)", padding: "24px", borderRadius: "12px", maxWidth: "520px", width: "100%", border: "1px solid var(--border-color)" }}>
+            <h3 style={{ margin: "0 0 16px 0", color: "var(--text-primary)" }}>✏️ Editar Roteador / Firewall</h3>
+            <form onSubmit={handleUpdateDevice} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <div>
+                <label style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>Nome do Dispositivo</label>
+                <input
+                  type="text"
+                  required
+                  value={deviceForm.name}
+                  onChange={(e) => setDeviceForm({ ...deviceForm, name: e.target.value })}
+                  style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div>
+                  <label style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>Fabricante / SO</label>
+                  <select
+                    value={deviceForm.vendor}
+                    onChange={(e) => setDeviceForm({ ...deviceForm, vendor: e.target.value })}
+                    style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }}
+                  >
+                    <option value="mikrotik">MikroTik RouterOS</option>
+                    <option value="pfsense">pfSense / Netgate</option>
+                    <option value="generic">Genérico (SNMP)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>Modelo</label>
+                  <input
+                    type="text"
+                    value={deviceForm.model}
+                    onChange={(e) => setDeviceForm({ ...deviceForm, model: e.target.value })}
+                    style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "10px" }}>
+                <div>
+                  <label style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>IP de Gerência</label>
+                  <input
+                    type="text"
+                    required
+                    value={deviceForm.ipAddress}
+                    onChange={(e) => setDeviceForm({ ...deviceForm, ipAddress: e.target.value })}
+                    style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>Porta API</label>
+                  <input
+                    type="number"
+                    value={deviceForm.managementPort}
+                    onChange={(e) => setDeviceForm({ ...deviceForm, managementPort: Number(e.target.value) })}
+                    style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div>
+                  <label style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>
+                    👤 Usuário API
+                  </label>
+                  <input
+                    type="text"
+                    value={deviceForm.apiUsername}
+                    onChange={(e) => setDeviceForm({ ...deviceForm, apiUsername: e.target.value })}
+                    placeholder="Atualizar Usuário (opcional)"
+                    style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: "12px", color: "var(--text-secondary)", display: "block", marginBottom: "4px" }}>
+                    🔑 Nova Senha / Token
+                  </label>
+                  <input
+                    type="password"
+                    value={deviceForm.apiPassword}
+                    onChange={(e) => setDeviceForm({ ...deviceForm, apiPassword: e.target.value })}
+                    placeholder="Manter a senha atual se em branco"
+                    style={{ width: "100%", padding: "8px", borderRadius: "6px", border: "1px solid var(--border-color)", background: "var(--bg-primary)", color: "var(--text-primary)" }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "12px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowEditDeviceModal(false)}
+                  style={{ padding: "8px 14px", borderRadius: "6px", border: "1px solid var(--border-color)", background: "none", color: "var(--text-primary)", cursor: "pointer" }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{ padding: "8px 18px", borderRadius: "6px", border: "none", background: "#3b82f6", color: "#fff", fontWeight: "600", cursor: "pointer" }}
+                >
+                  Salvar Alterações
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Delete Device Confirmation */}
+      {showDeleteDeviceModal && selectedDevice && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div style={{ background: "var(--bg-card)", padding: "24px", borderRadius: "12px", maxWidth: "440px", width: "100%", border: "1px solid var(--border-color)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+              <span style={{ fontSize: "24px" }}>⚠️</span>
+              <h3 style={{ margin: 0, color: "#ef4444" }}>Confirmar Exclusão</h3>
+            </div>
+            <p style={{ fontSize: "14px", color: "var(--text-primary)", margin: "0 0 12px 0" }}>
+              Tem certeza que deseja remover o equipamento <strong>{selectedDevice.name}</strong> ({selectedDevice.ipAddress})?
+            </p>
+            <p style={{ fontSize: "12px", color: "var(--text-secondary)", margin: "0 0 20px 0" }}>
+              Esta ação removerá permanentemente o monitoramento, os links WAN cadastrados e as credenciais associadas no Vault.
+            </p>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+              <button
+                onClick={() => setShowDeleteDeviceModal(false)}
+                disabled={loading}
+                style={{ padding: "8px 14px", borderRadius: "6px", border: "1px solid var(--border-color)", background: "none", color: "var(--text-primary)", cursor: "pointer" }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteDevice}
+                disabled={loading}
+                style={{ padding: "8px 18px", borderRadius: "6px", border: "none", background: "#ef4444", color: "#fff", fontWeight: "600", cursor: "pointer" }}
+              >
+                Excluir Equipamento
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -4121,10 +4121,63 @@ Responda EXCLUSIVAMENTE um objeto JSON válido no seguinte formato:
   if (url === "/api/v1/network-devices" && method === "POST") {
     const body = await parseJsonBody(req);
     const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+    
+    if (body.apiUsername || body.apiPassword) {
+      const secret = secretVault.storeSecret(
+        tenantId,
+        `Credencial API Roteador (${body.name || "MikroTik"})`,
+        "password",
+        JSON.stringify({ username: body.apiUsername || "admin", password: body.apiPassword || "" })
+      );
+      body.credentialsSecretId = secret.id;
+    }
+
     const device = NetworkDeviceService.createDevice(store as any, tenantId, body);
     saveStore(store);
     sendJson(res, 201, { success: true, device });
     return;
+  }
+
+  if (url.startsWith("/api/v1/network-devices/") && method === "PUT") {
+    const id = url.replace("/api/v1/network-devices/", "");
+    if (!id.includes("/")) {
+      const body = await parseJsonBody(req);
+      const tenantId = body.tenantId || req.headers["x-tenant-id"]?.toString() || "tenant-default";
+
+      if (body.apiUsername || body.apiPassword) {
+        const secret = secretVault.storeSecret(
+          tenantId,
+          `Credencial API Roteador (${body.name || "MikroTik"})`,
+          "password",
+          JSON.stringify({ username: body.apiUsername || "admin", password: body.apiPassword || "" })
+        );
+        body.credentialsSecretId = secret.id;
+      }
+
+      const resUpd = NetworkDeviceService.updateDevice(store as any, tenantId, id, body);
+      if (resUpd.error) {
+        sendJson(res, 400, { error: resUpd.error });
+        return;
+      }
+      saveStore(store);
+      sendJson(res, 200, { success: true, device: resUpd.device });
+      return;
+    }
+  }
+
+  if (url.startsWith("/api/v1/network-devices/") && method === "DELETE") {
+    const id = url.replace("/api/v1/network-devices/", "");
+    if (!id.includes("/")) {
+      const tenantId = req.headers["x-tenant-id"]?.toString() || "tenant-default";
+      const resDel = NetworkDeviceService.deleteDevice(store as any, tenantId, id);
+      if (!resDel.success) {
+        sendJson(res, 400, { error: resDel.error });
+        return;
+      }
+      saveStore(store);
+      sendJson(res, 200, { success: true });
+      return;
+    }
   }
 
   // 2. Device Health, Interfaces, Details
