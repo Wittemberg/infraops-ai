@@ -129,7 +129,7 @@ Fase de validação em hardware/ambiente real (*Production Hardening*) para o dr
 ### Realizações Concluídas:
 - **29A — Telemetry Diagnostic Engine:** Endpoint autorizado `POST /api/v1/network-devices/:id/diagnostics/pfsense` e modal visual de diagnóstico sanitizado com mascaramento de segredos (cookies, CSRF, senhas).
 - **29B — FreeBSD Cumulative CPU Ticks Parser:** Algoritmo determinístico no `GetStatsPipeParser.ts` para calcular percentual exato de CPU a partir de ticks cumulativos do kernel FreeBSD (`(total_ticks - idle_ticks) / total_ticks * 100`).
-- **29C — Hybrid Telemetry Merge Engine:** Fusão automática de fontes de dados no `PfSenseTelemetryParser.ts` (combinando `/getstats.php` AJAX e `/index.php` Dashboard HTML) para extrair CPU, Memória RAM, SWAP e Disco (`/`) com 100% de precisão.
+- **29C — Hybrid Telemetry Merge Engine:** Fusão automática de fontes de dados no `PfSenseTelemetryParser.ts` (combinando `/getstats.php` AJAX e `/index.php` Dashboard HTML) para extrair CPU, Memória RAM, SWAP e Disco (`/`) validados nas versões e ambientes homologados.
 - **29D — Universal Semantic Parsers (PT-BR / EN):** Padrões de expressão regular tolerantes a entidades HTML (`Utilização`, `Utiliza&ccedil;&atilde;o`, `SWAP`, `Disks`, `9% of 30G (ufs)`).
 - **29E — Vault Self-Healing Auto-Migration:** Descriptografia resiliente com tentativa em chaves legadas e re-criptografia transparente na chave ativa. Persistência automática de chave em `data/vault-master.key` com proteção contra perda de ambiente Docker.
 - **29F — Responsive UI Hardening:** Ajustes de layout flex-wrap para botões de ação e 4 indicadores visuais de progresso (CPU, Memória RAM, SWAP e Disco) no card de Status do Equipamento.

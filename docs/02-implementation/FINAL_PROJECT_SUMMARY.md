@@ -80,6 +80,6 @@
 2. **Instalador 1-Clique Windows e Linux:** Scripts PowerShell e Bash com geração de token de uso único (TTL 15 min).
 3. **Canais de Alertas Multicanal:** WhatsApp, Telegram, E-mail e Webhooks com teste de disparo em tempo real.
 4. **Console de IA Multiprovedor com GroqCloud:** Inferência LPU ultra-rápida (Llama 3.1 8B Instant, Llama 3.3 70B, DeepSeek R1, Mixtral) com isolamento estrito de chaves e endpoint `/api/v1/ai/test`.
-5. **Telemetria de Alta Precisão pfSense (Stage 29):** Cálculo de CPU por FreeBSD Ticks, extração híbrida (CPU, RAM, SWAP e Disco `/`) e Diagnóstico Sanitizado sem vazamento de segredos.
+5. **Telemetria pfSense Validadas em Ambientes Homologados (Stage 29):** Cálculo de CPU por FreeBSD Ticks, extração híbrida (CPU, RAM, SWAP e Disco `/`) e Diagnóstico Sanitizado sem vazamento de segredos.
 6. **Volume Persistente no Docker Swarm:** Retenção garantida de configurações via `infraops-app-data:/app/data` e auto-migração de chaves do Vault (`data/vault-master.key`).
 7. **Materiais de Marketing e Vendas:** Documentação completa de vendas, matriz de diferenciação contra Zabbix/Grafana e propostas de valor comercial em `docs/08-marketing/`.
