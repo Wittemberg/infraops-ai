@@ -25,26 +25,57 @@ export function DevControlView({ currentUser }) {
 
   if (loading) {
     return (
-      <div className="p-8 text-center" style={{ color: "var(--text-secondary, #94a3b8)" }}>
-        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500 mb-4"></div>
-        <p className="text-sm font-medium">Carregando dados do Development Control Center...</p>
+      <div style={{ padding: "3rem", textAlign: "center", color: "var(--text-secondary)" }}>
+        <div
+          style={{
+            display: "inline-block",
+            width: "32px",
+            height: "32px",
+            border: "3px solid rgba(99, 102, 241, 0.2)",
+            borderTopColor: "var(--accent-indigo)",
+            borderRadius: "50%",
+            animation: "spin 1s linear infinite",
+            marginBottom: "1rem",
+          }}
+        ></div>
+        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+        <p style={{ fontSize: "0.9rem", fontWeight: 500 }}>Carregando dados do Development Control Center...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 max-w-4xl mx-auto my-8">
-        <div className="flex items-center gap-3 mb-2">
-          <span className="text-xl">⚠️</span>
-          <h3 className="font-bold text-lg">Acesso Restrito ou Erro de Servidor</h3>
+      <div
+        style={{
+          margin: "2rem auto",
+          maxWidth: "800px",
+          padding: "1.5rem",
+          borderRadius: "12px",
+          background: "rgba(239, 68, 68, 0.1)",
+          border: "1px solid rgba(239, 68, 68, 0.3)",
+          color: "var(--accent-rose)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
+          <span style={{ fontSize: "1.5rem" }}>⚠️</span>
+          <h3 style={{ fontSize: "1.1rem", fontWeight: 700 }}>Acesso Restrito ou Erro de Servidor</h3>
         </div>
-        <p className="text-sm mb-4">{error}</p>
+        <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginBottom: "1rem" }}>{error}</p>
         <button
           onClick={loadOverview}
-          className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-200 text-sm font-medium rounded-lg transition"
+          style={{
+            padding: "0.5rem 1rem",
+            background: "rgba(239, 68, 68, 0.2)",
+            border: "1px solid rgba(239, 68, 68, 0.4)",
+            color: "#fff",
+            borderRadius: "8px",
+            fontSize: "0.85rem",
+            fontWeight: 600,
+            cursor: "pointer",
+          }}
         >
-          Tentar Novamente
+          🔄 Tentar Novamente
         </button>
       </div>
     );
@@ -55,55 +86,137 @@ export function DevControlView({ currentUser }) {
   const { project, mvp, fullRoadmap, humanValidation, statusCounts, modules, pendingMvp, futureBacklog, frozenComponents, checkpoints, health, drift } = data;
 
   const getStatusBadge = (status) => {
-    const styles = {
-      FROZEN: "bg-cyan-500/20 border-cyan-500/40 text-cyan-300",
-      HOMOLOGATED: "bg-emerald-500/20 border-emerald-500/40 text-emerald-300",
-      VALIDATION: "bg-amber-500/20 border-amber-500/40 text-amber-300",
-      IMPLEMENTED: "bg-blue-500/20 border-blue-500/40 text-blue-300",
-      IN_PROGRESS: "bg-purple-500/20 border-purple-500/40 text-purple-300",
-      PLANNED: "bg-slate-500/20 border-slate-500/40 text-slate-400",
-      BLOCKED: "bg-red-500/20 border-red-500/40 text-red-300",
+    const colorMap = {
+      FROZEN: { bg: "rgba(6, 182, 212, 0.15)", border: "rgba(6, 182, 212, 0.4)", text: "#22d3ee" },
+      HOMOLOGATED: { bg: "rgba(16, 185, 129, 0.15)", border: "rgba(16, 185, 129, 0.4)", text: "#34d399" },
+      VALIDATION: { bg: "rgba(245, 158, 11, 0.15)", border: "rgba(245, 158, 11, 0.4)", text: "#fbbf24" },
+      IMPLEMENTED: { bg: "rgba(59, 130, 246, 0.15)", border: "rgba(59, 130, 246, 0.4)", text: "#60a5fa" },
+      IN_PROGRESS: { bg: "rgba(168, 85, 247, 0.15)", border: "rgba(168, 85, 247, 0.4)", text: "#c084fc" },
+      PLANNED: { bg: "rgba(107, 114, 128, 0.15)", border: "rgba(107, 114, 128, 0.3)", text: "#9ca3af" },
+      BLOCKED: { bg: "rgba(239, 68, 68, 0.15)", border: "rgba(239, 68, 68, 0.4)", text: "#f87171" },
     };
+    const style = colorMap[status] || colorMap.PLANNED;
     return (
-      <span className={`px-2.5 py-1 text-xs font-semibold rounded-full border ${styles[status] || styles.PLANNED}`}>
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "0.25rem",
+          padding: "0.2rem 0.6rem",
+          fontSize: "0.75rem",
+          fontWeight: 700,
+          borderRadius: "9999px",
+          background: style.bg,
+          border: `1px solid ${style.border}`,
+          color: style.text,
+        }}
+      >
         {status === "FROZEN" && "🔒 "}
         {status}
       </span>
     );
   };
 
-  const getHealthChip = (name, state) => {
-    const bg = state === "PASS" ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
-               state === "WARNING" ? "bg-amber-500/10 border-amber-500/30 text-amber-400" :
-               "bg-red-500/10 border-red-500/30 text-red-400";
+  const renderHealthChip = (name, state) => {
+    const bg =
+      state === "PASS"
+        ? "rgba(16, 185, 129, 0.12)"
+        : state === "WARNING"
+        ? "rgba(245, 158, 11, 0.12)"
+        : "rgba(239, 68, 68, 0.12)";
+    const border =
+      state === "PASS"
+        ? "rgba(16, 185, 129, 0.3)"
+        : state === "WARNING"
+        ? "rgba(245, 158, 11, 0.3)"
+        : "rgba(239, 68, 68, 0.3)";
+    const color =
+      state === "PASS" ? "#34d399" : state === "WARNING" ? "#fbbf24" : "#f87171";
+
     return (
-      <div key={name} className={`flex items-center justify-between px-3 py-2 rounded-lg border text-xs font-medium ${bg}`}>
+      <div
+        key={name}
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "0.6rem 0.85rem",
+          background: bg,
+          border: `1px solid ${border}`,
+          borderRadius: "8px",
+          fontSize: "0.8rem",
+          fontWeight: 500,
+          color: "var(--text-primary)",
+        }}
+      >
         <span>{name}</span>
-        <span className="font-bold">{state}</span>
+        <span style={{ fontWeight: 800, color }}>{state}</span>
       </div>
     );
   };
 
   return (
-    <div className="space-y-8 pb-12">
-      {/* Header */}
-      <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-xl backdrop-blur-md">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div style={{ padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      {/* Header Banner */}
+      <div
+        className="glass-panel"
+        style={{
+          padding: "1.5rem",
+          background: "linear-gradient(135deg, rgba(18, 24, 36, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%)",
+          border: "1px solid var(--border-subtle)",
+          borderRadius: "14px",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
           <div>
-            <div className="flex items-center gap-3 mb-1">
-              <span className="text-2xl">🛠️</span>
-              <h1 className="text-2xl font-extrabold text-white tracking-tight">{project.name} — Development Control Center</h1>
-              <span className="px-3 py-1 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-bold rounded-full">
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.35rem" }}>
+              <span style={{ fontSize: "1.6rem" }}>🛠️</span>
+              <h1
+                style={{
+                  fontSize: "1.5rem",
+                  fontWeight: 800,
+                  fontFamily: "var(--font-heading)",
+                  background: "linear-gradient(135deg, #a855f7 0%, #6366f1 50%, #3b82f6 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                {project.name} — Development Control Center
+              </h1>
+              <span
+                style={{
+                  padding: "0.2rem 0.6rem",
+                  background: "rgba(6, 182, 212, 0.15)",
+                  border: "1px solid rgba(6, 182, 212, 0.4)",
+                  color: "#22d3ee",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  borderRadius: "9999px",
+                }}
+              >
                 HOMOLOGAÇÃO v{project.developmentControlVersion}
               </span>
             </div>
-            <p className="text-sm text-slate-400">
+            <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
               Painel de Governança Técnica, Invariantes Matemáticas e Cobertura de Homologação Humana.
             </p>
           </div>
-          <div className="text-right">
-            <div className="text-xs text-slate-400 font-mono mb-1">Fase Atual</div>
-            <div className="text-sm font-bold text-cyan-400 bg-cyan-950/40 px-3 py-1.5 rounded-lg border border-cyan-800/40 inline-block">
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginBottom: "0.25rem" }}>
+              FASE ATUAL DO PRODUTO
+            </div>
+            <div
+              style={{
+                fontSize: "0.85rem",
+                fontWeight: 700,
+                color: "#22d3ee",
+                background: "rgba(6, 182, 212, 0.1)",
+                border: "1px solid rgba(6, 182, 212, 0.3)",
+                padding: "0.4rem 0.85rem",
+                borderRadius: "8px",
+                display: "inline-block",
+              }}
+            >
               {project.currentPhaseName}
             </div>
           </div>
@@ -112,9 +225,18 @@ export function DevControlView({ currentUser }) {
 
       {/* Drift Alert (if detected) */}
       {drift && drift.detected && (
-        <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-sm">
-          <div className="font-bold mb-1">⚠️ Drift Documental Detectado:</div>
-          <ul className="list-disc list-inside space-y-1">
+        <div
+          style={{
+            padding: "1rem",
+            background: "rgba(245, 158, 11, 0.12)",
+            border: "1px solid rgba(245, 158, 11, 0.3)",
+            borderRadius: "10px",
+            color: "#fbbf24",
+            fontSize: "0.85rem",
+          }}
+        >
+          <strong style={{ display: "block", marginBottom: "0.3rem" }}>⚠️ Drift Documental Detectado:</strong>
+          <ul style={{ paddingLeft: "1.25rem", margin: 0 }}>
             {drift.items.map((item, idx) => (
               <li key={idx}>{item}</li>
             ))}
@@ -122,158 +244,212 @@ export function DevControlView({ currentUser }) {
         </div>
       )}
 
-      {/* Executive Cards (4 cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      {/* Executive KPI Cards (4 Cards Grid) */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+          gap: "1.25rem",
+        }}
+      >
         {/* Card 1: Prontidão MVP */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-cyan-950/40 to-slate-900 border border-cyan-500/30 shadow-lg relative overflow-hidden">
-          <div className="text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-1">Prontidão MVP</div>
-          <div className="text-3xl font-black text-white mb-2">{mvp.readinessPercent}%</div>
-          <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden mb-2">
-            <div className="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full rounded-full transition-all duration-500" style={{ width: `${mvp.readinessPercent}%` }}></div>
+        <div
+          className="glass-panel"
+          style={{
+            padding: "1.25rem",
+            background: "linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(18, 24, 36, 0.9) 100%)",
+            border: "1px solid rgba(16, 185, 129, 0.3)",
+          }}
+        >
+          <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#34d399", textTransform: "uppercase", tracking: "0.05em", marginBottom: "0.35rem" }}>
+            🎯 Prontidão MVP
           </div>
-          <div className="text-xs text-slate-400 flex justify-between">
+          <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "0.5rem" }}>
+            {mvp.readinessPercent}%
+          </div>
+          <div style={{ width: "100%", height: "8px", background: "rgba(255, 255, 255, 0.08)", borderRadius: "4px", overflow: "hidden", marginBottom: "0.5rem" }}>
+            <div style={{ width: `${mvp.readinessPercent}%`, height: "100%", background: "linear-gradient(90deg, #10b981, #34d399)", borderRadius: "4px" }}></div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
             <span>Homologado: {mvp.homologatedWeight} / {mvp.totalWeight} pts</span>
             <span>Impl: {mvp.implementationPercent}%</span>
           </div>
         </div>
 
         {/* Card 2: Roadmap Implementado */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-blue-950/40 to-slate-900 border border-blue-500/30 shadow-lg relative overflow-hidden">
-          <div className="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-1">Roadmap Implementado</div>
-          <div className="text-3xl font-black text-white mb-2">{fullRoadmap.implementationPercent}%</div>
-          <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden mb-2">
-            <div className="bg-gradient-to-r from-blue-500 to-cyan-400 h-full rounded-full transition-all duration-500" style={{ width: `${fullRoadmap.implementationPercent}%` }}></div>
+        <div
+          className="glass-panel"
+          style={{
+            padding: "1.25rem",
+            background: "linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(18, 24, 36, 0.9) 100%)",
+            border: "1px solid rgba(59, 130, 246, 0.3)",
+          }}
+        >
+          <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#60a5fa", textTransform: "uppercase", tracking: "0.05em", marginBottom: "0.35rem" }}>
+            📈 Roadmap Implementado
           </div>
-          <div className="text-xs text-slate-400 flex justify-between">
+          <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "0.5rem" }}>
+            {fullRoadmap.implementationPercent}%
+          </div>
+          <div style={{ width: "100%", height: "8px", background: "rgba(255, 255, 255, 0.08)", borderRadius: "4px", overflow: "hidden", marginBottom: "0.5rem" }}>
+            <div style={{ width: `${fullRoadmap.implementationPercent}%`, height: "100%", background: "linear-gradient(90deg, #3b82f6, #60a5fa)", borderRadius: "4px" }}></div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
             <span>Peso: {fullRoadmap.implementedWeight} / {fullRoadmap.totalWeight} pts</span>
-            <span>Total Caps</span>
+            <span>Full Specs</span>
           </div>
         </div>
 
         {/* Card 3: Roadmap Homologado */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-emerald-950/40 to-slate-900 border border-emerald-500/30 shadow-lg relative overflow-hidden">
-          <div className="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-1">Roadmap Homologado</div>
-          <div className="text-3xl font-black text-white mb-2">{fullRoadmap.readinessPercent}%</div>
-          <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden mb-2">
-            <div className="bg-gradient-to-r from-emerald-500 to-teal-300 h-full rounded-full transition-all duration-500" style={{ width: `${fullRoadmap.readinessPercent}%` }}></div>
+        <div
+          className="glass-panel"
+          style={{
+            padding: "1.25rem",
+            background: "linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(18, 24, 36, 0.9) 100%)",
+            border: "1px solid rgba(168, 85, 247, 0.3)",
+          }}
+        >
+          <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#c084fc", textTransform: "uppercase", tracking: "0.05em", marginBottom: "0.35rem" }}>
+            🏆 Roadmap Homologado
           </div>
-          <div className="text-xs text-slate-400 flex justify-between">
+          <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "0.5rem" }}>
+            {fullRoadmap.readinessPercent}%
+          </div>
+          <div style={{ width: "100%", height: "8px", background: "rgba(255, 255, 255, 0.08)", borderRadius: "4px", overflow: "hidden", marginBottom: "0.5rem" }}>
+            <div style={{ width: `${fullRoadmap.readinessPercent}%`, height: "100%", background: "linear-gradient(90deg, #a855f7, #c084fc)", borderRadius: "4px" }}></div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
             <span>Validados: {fullRoadmap.homologatedWeight} / {fullRoadmap.totalWeight} pts</span>
             <span>Full Readiness</span>
           </div>
         </div>
 
         {/* Card 4: Cobertura de Validação Humana */}
-        <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-950/40 to-slate-900 border border-purple-500/30 shadow-lg relative overflow-hidden">
-          <div className="text-xs font-semibold text-purple-400 uppercase tracking-wider mb-1">Validação Humana</div>
-          <div className="text-3xl font-black text-white mb-2">{humanValidation.coveragePercent}%</div>
-          <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden mb-2">
-            <div className="bg-gradient-to-r from-purple-500 to-indigo-400 h-full rounded-full transition-all duration-500" style={{ width: `${humanValidation.coveragePercent}%` }}></div>
+        <div
+          className="glass-panel"
+          style={{
+            padding: "1.25rem",
+            background: "linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(18, 24, 36, 0.9) 100%)",
+            border: "1px solid rgba(245, 158, 11, 0.3)",
+          }}
+        >
+          <div style={{ fontSize: "0.75rem", fontWeight: 700, color: "#fbbf24", textTransform: "uppercase", tracking: "0.05em", marginBottom: "0.35rem" }}>
+            🧪 Validação Humana
           </div>
-          <div className="text-xs text-slate-400 flex justify-between">
+          <div style={{ fontSize: "2.2rem", fontWeight: 800, color: "var(--text-primary)", marginBottom: "0.5rem" }}>
+            {humanValidation.coveragePercent}%
+          </div>
+          <div style={{ width: "100%", height: "8px", background: "rgba(255, 255, 255, 0.08)", borderRadius: "4px", overflow: "hidden", marginBottom: "0.5rem" }}>
+            <div style={{ width: `${humanValidation.coveragePercent}%`, height: "100%", background: "linear-gradient(90deg, #f59e0b, #fbbf24)", borderRadius: "4px" }}></div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "var(--text-secondary)" }}>
             <span>Aprovados: {humanValidation.approvedWeight} pts</span>
             <span>Testados: {humanValidation.testedWeight} pts</span>
           </div>
         </div>
       </div>
 
-      {/* Status Grid & Health Indicators */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Status Distribution */}
-        <div className="lg:col-span-2 p-6 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-lg">
-          <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider mb-4 flex items-center gap-2">
+      {/* Status Distribution & Health */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.25rem" }}>
+        {/* Status Counts Panel */}
+        <div className="glass-panel" style={{ padding: "1.25rem" }}>
+          <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "1rem", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <span>📊</span> Distribuição de Status por Capability
-          </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-800/40 text-center">
-              <div className="text-xs text-cyan-400 font-semibold mb-1">🔒 Frozen</div>
-              <div className="text-xl font-bold text-cyan-200">{statusCounts.FROZEN || 0}</div>
+          </h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.75rem" }}>
+            <div style={{ background: "rgba(6, 182, 212, 0.08)", border: "1px solid rgba(6, 182, 212, 0.25)", borderRadius: "8px", padding: "0.6rem", textAlign: "center" }}>
+              <div style={{ fontSize: "0.7rem", color: "#22d3ee", fontWeight: 600 }}>🔒 Frozen</div>
+              <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#fff" }}>{statusCounts.FROZEN || 0}</div>
             </div>
-            <div className="p-3 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-center">
-              <div className="text-xs text-emerald-400 font-semibold mb-1">Homologated</div>
-              <div className="text-xl font-bold text-emerald-200">{statusCounts.HOMOLOGATED || 0}</div>
+            <div style={{ background: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.25)", borderRadius: "8px", padding: "0.6rem", textAlign: "center" }}>
+              <div style={{ fontSize: "0.7rem", color: "#34d399", fontWeight: 600 }}>Homologated</div>
+              <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#fff" }}>{statusCounts.HOMOLOGATED || 0}</div>
             </div>
-            <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-800/40 text-center">
-              <div className="text-xs text-amber-400 font-semibold mb-1">Validation</div>
-              <div className="text-xl font-bold text-amber-200">{statusCounts.VALIDATION || 0}</div>
+            <div style={{ background: "rgba(245, 158, 11, 0.08)", border: "1px solid rgba(245, 158, 11, 0.25)", borderRadius: "8px", padding: "0.6rem", textAlign: "center" }}>
+              <div style={{ fontSize: "0.7rem", color: "#fbbf24", fontWeight: 600 }}>Validation</div>
+              <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#fff" }}>{statusCounts.VALIDATION || 0}</div>
             </div>
-            <div className="p-3 rounded-xl bg-blue-950/30 border border-blue-800/40 text-center">
-              <div className="text-xs text-blue-400 font-semibold mb-1">Implemented</div>
-              <div className="text-xl font-bold text-blue-200">{statusCounts.IMPLEMENTED || 0}</div>
+            <div style={{ background: "rgba(59, 130, 246, 0.08)", border: "1px solid rgba(59, 130, 246, 0.25)", borderRadius: "8px", padding: "0.6rem", textAlign: "center" }}>
+              <div style={{ fontSize: "0.7rem", color: "#60a5fa", fontWeight: 600 }}>Implemented</div>
+              <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#fff" }}>{statusCounts.IMPLEMENTED || 0}</div>
             </div>
-            <div className="p-3 rounded-xl bg-purple-950/30 border border-purple-800/40 text-center">
-              <div className="text-xs text-purple-400 font-semibold mb-1">In Progress</div>
-              <div className="text-xl font-bold text-purple-200">{statusCounts.IN_PROGRESS || 0}</div>
+            <div style={{ background: "rgba(168, 85, 247, 0.08)", border: "1px solid rgba(168, 85, 247, 0.25)", borderRadius: "8px", padding: "0.6rem", textAlign: "center" }}>
+              <div style={{ fontSize: "0.7rem", color: "#c084fc", fontWeight: 600 }}>In Progress</div>
+              <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#fff" }}>{statusCounts.IN_PROGRESS || 0}</div>
             </div>
-            <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50 text-center">
-              <div className="text-xs text-slate-400 font-semibold mb-1">Planned</div>
-              <div className="text-xl font-bold text-slate-300">{statusCounts.PLANNED || 0}</div>
+            <div style={{ background: "rgba(107, 114, 128, 0.08)", border: "1px solid rgba(107, 114, 128, 0.25)", borderRadius: "8px", padding: "0.6rem", textAlign: "center" }}>
+              <div style={{ fontSize: "0.7rem", color: "#9ca3af", fontWeight: 600 }}>Planned</div>
+              <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#fff" }}>{statusCounts.PLANNED || 0}</div>
             </div>
-            <div className="p-3 rounded-xl bg-red-950/30 border border-red-800/40 text-center">
-              <div className="text-xs text-red-400 font-semibold mb-1">Blocked</div>
-              <div className="text-xl font-bold text-red-200">{statusCounts.BLOCKED || 0}</div>
+            <div style={{ background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.25)", borderRadius: "8px", padding: "0.6rem", textAlign: "center" }}>
+              <div style={{ fontSize: "0.7rem", color: "#f87171", fontWeight: 600 }}>Blocked</div>
+              <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "#fff" }}>{statusCounts.BLOCKED || 0}</div>
             </div>
-            <div className="p-3 rounded-xl bg-slate-800/20 border border-slate-700/30 text-center">
-              <div className="text-xs text-slate-500 font-semibold mb-1">Unmapped</div>
-              <div className="text-xl font-bold text-slate-400">{statusCounts.UNMAPPED || 0}</div>
+            <div style={{ background: "rgba(255, 255, 255, 0.03)", border: "1px solid var(--border-subtle)", borderRadius: "8px", padding: "0.6rem", textAlign: "center" }}>
+              <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", fontWeight: 600 }}>Unmapped</div>
+              <div style={{ fontSize: "1.3rem", fontWeight: 800, color: "var(--text-muted)" }}>{statusCounts.UNMAPPED || 0}</div>
             </div>
           </div>
         </div>
 
-        {/* Project Health */}
-        <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-lg">
-          <h2 className="text-sm font-bold text-slate-200 uppercase tracking-wider mb-4 flex items-center gap-2">
+        {/* Health Panel */}
+        <div className="glass-panel" style={{ padding: "1.25rem" }}>
+          <h3 style={{ fontSize: "0.95rem", fontWeight: 700, marginBottom: "1rem", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <span>🛡️</span> Saúde do Projeto
-          </h2>
-          <div className="space-y-2.5">
-            {getHealthChip("Código fonte", health.code)}
-            {getHealthChip("Testes de Invariantes", health.tests)}
-            {getHealthChip("Build de Produção", health.build)}
-            {getHealthChip("Deployment Portainer", health.deployment)}
-            {getHealthChip("Documentação & ADRs", health.documentation)}
-            {getHealthChip("Validação Humana", health.manualValidation)}
+          </h3>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.6rem" }}>
+            {renderHealthChip("Código fonte", health.code)}
+            {renderHealthChip("Testes Invariantes", health.tests)}
+            {renderHealthChip("Build Produção", health.build)}
+            {renderHealthChip("Deploy Portainer", health.deployment)}
+            {renderHealthChip("Documentação", health.documentation)}
+            {renderHealthChip("Validação Humana", health.manualValidation)}
           </div>
         </div>
       </div>
 
-      {/* Modules Progress Table */}
-      <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-lg">
-        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-          <span>📦</span> Progresso por Módulo
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm border-collapse">
+      {/* Modules Table */}
+      <div className="glass-panel" style={{ padding: "1.25rem" }}>
+        <h3 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "1rem", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <span>📦</span> Progresso por Módulo ({modules.length} Módulos)
+        </h3>
+        <div style={{ overflowX: "auto" }}>
+          <table className="custom-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
             <thead>
-              <tr className="border-b border-slate-800 text-xs uppercase text-slate-400 tracking-wider">
-                <th className="py-3 px-4">Módulo</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-center">Peso</th>
-                <th className="py-3 px-4">Implementação</th>
-                <th className="py-3 px-4">Homologação</th>
+              <tr style={{ borderBottom: "1px solid var(--border-subtle)", color: "var(--text-muted)", fontSize: "0.75rem", textTransform: "uppercase" }}>
+                <th style={{ padding: "0.75rem 1rem", textAlign: "left" }}>Módulo</th>
+                <th style={{ padding: "0.75rem 1rem", textAlign: "center" }}>Status</th>
+                <th style={{ padding: "0.75rem 1rem", textAlign: "center" }}>Peso</th>
+                <th style={{ padding: "0.75rem 1rem", textAlign: "left", minWidth: "150px" }}>Implementação</th>
+                <th style={{ padding: "0.75rem 1rem", textAlign: "left", minWidth: "150px" }}>Homologação</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody>
               {modules.map((mod) => (
-                <tr key={mod.id} className="hover:bg-slate-800/30 transition">
-                  <td className="py-3 px-4 font-semibold text-slate-200">{mod.name}</td>
-                  <td className="py-3 px-4">{getStatusBadge(mod.status)}</td>
-                  <td className="py-3 px-4 text-center font-mono text-xs text-slate-300">
+                <tr key={mod.id} style={{ borderBottom: "1px solid var(--border-subtle)" }}>
+                  <td style={{ padding: "0.75rem 1rem", fontWeight: 600, color: "var(--text-primary)" }}>{mod.name}</td>
+                  <td style={{ padding: "0.75rem 1rem", textAlign: "center" }}>{getStatusBadge(mod.status)}</td>
+                  <td style={{ padding: "0.75rem 1rem", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--text-secondary)" }}>
                     {mod.homologatedWeight} / {mod.totalWeight} pts
                   </td>
-                  <td className="py-3 px-4 min-w-[140px]">
-                    <div className="flex items-center gap-2">
-                      <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                        <div className="bg-blue-500 h-full rounded-full" style={{ width: `${mod.implementationPercent}%` }}></div>
+                  <td style={{ padding: "0.75rem 1rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <div style={{ flex: 1, height: "6px", background: "rgba(255,255,255,0.08)", borderRadius: "3px", overflow: "hidden" }}>
+                        <div style={{ width: `${mod.implementationPercent}%`, height: "100%", background: "var(--accent-blue)" }}></div>
                       </div>
-                      <span className="text-xs font-mono text-slate-400 w-9 text-right">{mod.implementationPercent}%</span>
+                      <span style={{ fontSize: "0.75rem", fontFamily: "var(--font-mono)", color: "var(--text-muted)", width: "35px", textAlign: "right" }}>
+                        {mod.implementationPercent}%
+                      </span>
                     </div>
                   </td>
-                  <td className="py-3 px-4 min-w-[140px]">
-                    <div className="flex items-center gap-2">
-                      <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                        <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${mod.readinessPercent}%` }}></div>
+                  <td style={{ padding: "0.75rem 1rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <div style={{ flex: 1, height: "6px", background: "rgba(255,255,255,0.08)", borderRadius: "3px", overflow: "hidden" }}>
+                        <div style={{ width: `${mod.readinessPercent}%`, height: "100%", background: "var(--accent-emerald)" }}></div>
                       </div>
-                      <span className="text-xs font-mono text-emerald-400 w-9 text-right">{mod.readinessPercent}%</span>
+                      <span style={{ fontSize: "0.75rem", fontFamily: "var(--font-mono)", color: "#34d399", width: "35px", textAlign: "right" }}>
+                        {mod.readinessPercent}%
+                      </span>
                     </div>
                   </td>
                 </tr>
@@ -283,30 +459,47 @@ export function DevControlView({ currentUser }) {
         </div>
       </div>
 
-      {/* Frozen Components Section */}
-      <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-lg">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <span>🔒</span> Componentes Congelados & Protegidos (Frozen Components)
-          </h2>
-          <span className="text-xs text-slate-400">Total: {frozenComponents.length} protegidos</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Frozen Components Grid */}
+      <div className="glass-panel" style={{ padding: "1.25rem" }}>
+        <h3 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "1rem", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <span>🔒</span> Componentes Congelados & Protegidos (Frozen Components)
+        </h3>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1rem" }}>
           {frozenComponents.map((fc) => (
-            <div key={fc.id} className="p-4 rounded-xl bg-cyan-950/20 border border-cyan-800/40 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-cyan-300 text-sm flex items-center gap-1.5">
+            <div
+              key={fc.id}
+              style={{
+                padding: "1rem",
+                background: "rgba(6, 182, 212, 0.05)",
+                border: "1px solid rgba(6, 182, 212, 0.25)",
+                borderRadius: "10px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.5rem",
+              }}
+            >
+              <div style={{ display: "flex", justify: "space-between", alignItems: "center" }}>
+                <strong style={{ color: "#22d3ee", fontSize: "0.9rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
                   <span>🔒</span> {fc.name}
-                </span>
-                <span className="text-xs text-slate-400 font-mono">{fc.frozenAt}</span>
+                </strong>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{fc.frozenAt}</span>
               </div>
-              <p className="text-xs text-slate-300">{fc.description}</p>
-              <div className="text-xs text-amber-300 bg-amber-950/30 p-2 rounded border border-amber-800/30 font-medium">
-                <span className="font-bold">Motivo da Proteção:</span> {fc.reason}
+              <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", margin: 0 }}>{fc.description}</p>
+              <div
+                style={{
+                  fontSize: "0.75rem",
+                  color: "#fbbf24",
+                  background: "rgba(245, 158, 11, 0.1)",
+                  padding: "0.4rem 0.6rem",
+                  borderRadius: "6px",
+                  border: "1px solid rgba(245, 158, 11, 0.2)",
+                }}
+              >
+                <strong>Motivo da Proteção:</strong> {fc.reason}
               </div>
-              {fc.protectedPaths && fc.protectedPaths.length > 0 && (
-                <div className="text-[11px] font-mono text-slate-400">
-                  <span className="text-slate-500 font-sans">Caminhos protegidos:</span> {fc.protectedPaths.join(", ")}
+              {fc.protectedPaths && (
+                <div style={{ fontSize: "0.7rem", fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+                  Paths: {fc.protectedPaths.join(", ")}
                 </div>
               )}
             </div>
@@ -314,29 +507,26 @@ export function DevControlView({ currentUser }) {
         </div>
       </div>
 
-      {/* Pending MVP & Backlog Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Pending MVP vs Backlog */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.25rem" }}>
         {/* Pending MVP */}
-        <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-lg">
-          <h2 className="text-sm font-bold text-amber-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <span>⏳</span> O que falta para o MVP ({pendingMvp.length} itens)
-          </h2>
+        <div className="glass-panel" style={{ padding: "1.25rem" }}>
+          <h3 style={{ fontSize: "0.9rem", fontWeight: 700, color: "#fbbf24", textTransform: "uppercase", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span>⏳</span> Pendências do MVP ({pendingMvp.length})
+          </h3>
           {pendingMvp.length === 0 ? (
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm text-center font-semibold">
-              🎉 Todas as capacidades do MVP foram 100% homologadas!
+            <div style={{ padding: "1rem", background: "rgba(16, 185, 129, 0.1)", border: "1px solid rgba(16, 185, 129, 0.3)", color: "#34d399", borderRadius: "8px", textAlign: "center", fontSize: "0.85rem", fontWeight: 600 }}>
+              🎉 Todas as capacidades do MVP estão 100% homologadas!
             </div>
           ) : (
-            <div className="space-y-3">
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {pendingMvp.map((cap) => (
-                <div key={cap.id} className="p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/50 flex items-center justify-between">
+                <div key={cap.id} style={{ padding: "0.75rem", background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-subtle)", borderRadius: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <div className="font-semibold text-slate-200 text-sm">{cap.name}</div>
-                    <div className="text-xs text-slate-400">{cap.description}</div>
+                    <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-primary)" }}>{cap.name}</div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{cap.description}</div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-slate-400">{cap.weight} pts</span>
-                    {getStatusBadge(cap.status)}
-                  </div>
+                  {getStatusBadge(cap.status)}
                 </div>
               ))}
             </div>
@@ -344,26 +534,23 @@ export function DevControlView({ currentUser }) {
         </div>
 
         {/* Future Backlog */}
-        <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-lg">
-          <h2 className="text-sm font-bold text-purple-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <span>🚀</span> Backlog Pós-MVP ({futureBacklog.length} itens)
-          </h2>
+        <div className="glass-panel" style={{ padding: "1.25rem" }}>
+          <h3 style={{ fontSize: "0.9rem", fontWeight: 700, color: "#c084fc", textTransform: "uppercase", marginBottom: "1rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span>🚀</span> Backlog Pós-MVP ({futureBacklog.length})
+          </h3>
           {futureBacklog.length === 0 ? (
-            <div className="p-4 rounded-xl bg-slate-800/30 border border-slate-700/40 text-slate-400 text-sm text-center">
+            <div style={{ padding: "1rem", background: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-subtle)", color: "var(--text-muted)", borderRadius: "8px", textAlign: "center", fontSize: "0.85rem" }}>
               Nenhum item pendente no backlog futuro.
             </div>
           ) : (
-            <div className="space-y-3">
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
               {futureBacklog.map((cap) => (
-                <div key={cap.id} className="p-3.5 rounded-xl bg-slate-800/40 border border-slate-700/50 flex items-center justify-between">
+                <div key={cap.id} style={{ padding: "0.75rem", background: "rgba(255,255,255,0.03)", border: "1px solid var(--border-subtle)", borderRadius: "8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <div className="font-semibold text-slate-200 text-sm">{cap.name}</div>
-                    <div className="text-xs text-slate-400">{cap.description}</div>
+                    <div style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--text-primary)" }}>{cap.name}</div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{cap.description}</div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-slate-400">{cap.weight} pts</span>
-                    {getStatusBadge(cap.status)}
-                  </div>
+                  {getStatusBadge(cap.status)}
                 </div>
               ))}
             </div>
@@ -372,25 +559,35 @@ export function DevControlView({ currentUser }) {
       </div>
 
       {/* Checkpoints Timeline */}
-      <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 shadow-lg">
-        <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-          <span>🚩</span> Linha do Tempo de Checkpoints & Releases
-        </h2>
-        <div className="space-y-4 relative before:absolute before:inset-0 before:left-3.5 before:w-0.5 before:bg-slate-800">
+      <div className="glass-panel" style={{ padding: "1.25rem" }}>
+        <h3 style={{ fontSize: "1rem", fontWeight: 700, marginBottom: "1rem", color: "var(--text-primary)", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <span>🚩</span> Linha do Tempo de Checkpoints & Releases ({checkpoints.length} Checkpoints)
+        </h3>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           {checkpoints.map((chk, idx) => (
-            <div key={idx} className="relative flex items-start gap-4 pl-8">
-              <div className="absolute left-2 top-1.5 w-3 h-3 rounded-full bg-cyan-500 border-2 border-slate-900"></div>
-              <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 w-full space-y-1">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <span className="font-bold text-white text-sm">{chk.title}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-cyan-400 bg-cyan-950/40 px-2 py-0.5 rounded border border-cyan-800/30">
-                      {chk.shortSha}
-                    </span>
-                    <span className="text-xs text-slate-400 font-mono">{chk.date}</span>
-                  </div>
-                </div>
-                {chk.description && <p className="text-xs text-slate-300">{chk.description}</p>}
+            <div
+              key={idx}
+              style={{
+                padding: "0.85rem 1rem",
+                background: "rgba(255, 255, 255, 0.02)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: "8px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "0.5rem",
+              }}
+            >
+              <div>
+                <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--text-primary)" }}>{chk.title}</div>
+                {chk.description && <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "0.15rem" }}>{chk.description}</div>}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <span style={{ fontSize: "0.75rem", fontFamily: "var(--font-mono)", color: "#22d3ee", background: "rgba(6, 182, 212, 0.1)", padding: "0.2rem 0.5rem", borderRadius: "4px", border: "1px solid rgba(6, 182, 212, 0.3)" }}>
+                  {chk.shortSha}
+                </span>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{chk.date}</span>
               </div>
             </div>
           ))}
