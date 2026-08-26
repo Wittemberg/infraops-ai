@@ -7,9 +7,10 @@ InfraOps AI é uma plataforma completa de Governança, Operações Autônomas e 
 ## 🟢 Produção Atual
 
 - **Ambiente Oficial:** `https://infraopsai.awecloudsolution.com`
-- **Status do Roadmap:** **29/29 Etapas Concluídas (100%) + Production Hardening & Telemetria pfSense Real Homologados**.
+- **Status do Roadmap:** **30/30 Etapas Concluídas (100%) + Development Control Center & Governança de Homologação Humana**.
 - **Segurança:** Todas as regras não-negociáveis do `AGENTS.md` e ADRs (incluindo ADR-016 a ADR-024) permanecem 100% ativas.
 - **Recursos em Produção:**
+  - 🛠️ **Development Control Center & Governança de Homologação Humana (Stage 30):** Painel interno de governança técnica do produto, motor de 16 invariantes matemáticas estritas, segregação em 3 dimensões (Implementação, Validação Humana e Prontidão), componentes congelados (🔒 Frozen), timeline auditável de checkpoints e cobertura de homologação por ID de teste.
   - 🔒 **Production Hardening & Telemetria pfSense Homologada (Stage 29):** Leitura de CPU calculada via FreeBSD Ticks (`(total - idle) / total * 100`), fusão híbrida de telemetria (CPU, RAM, SWAP e Disco `/`), Diagnóstico Sanitizado com mascaramento de segredos, auto-migração de chaves do Vault (`data/vault-master.key`) e 8 testes unitários automatizados.
   - 🏠 **Experiência Simples, Operações Guiadas & Refatoração Frontend (Stage 28):** Central de Operações Diárias (*"O que precisa de atenção hoje?"*), alternador dinâmico de apresentação (**Modo Simples vs. Modo Técnico** — ADR-023), Central de Relatórios Executivos/QBR, Checklist de Onboarding Guiado de 4 passos e navegação humanizada em Português-first.
   - 🏢 **Fonte da Verdade Nativa & Topologia Física (Stage 26):** Customer Infrastructure Book completo (Sites, Locais, Racks 42U com elevação visual, Ativos físicos, Switch Port Wizard, mapeamento de conexões porta-a-porta, VLANs, Subnets CIDR, IPAM e Discovery SNMP/LLDP com matching determinístico).
