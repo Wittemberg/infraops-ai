@@ -1,6 +1,6 @@
 # Roadmap — InfraOps AI
 
-> **Estado atual:** 🟢 **Todas as 29 Etapas Concluídas e Ativas em Produção (100%)** (+ Production Hardening & Telemetria pfSense Real Homologados).  
+> **Estado atual:** 🟢 **30/30 Etapas Concluídas (100%) + Development Control Center & Governança de Homologação Humana**.  
 > **Ambiente Oficial:** https://infraopsai.awecloudsolution.com
 
 ---
@@ -134,6 +134,22 @@ Fase de validação em hardware/ambiente real (*Production Hardening*) para o dr
 - **29E — Vault Self-Healing Auto-Migration:** Descriptografia resiliente com tentativa em chaves legadas e re-criptografia transparente na chave ativa. Persistência automática de chave em `data/vault-master.key` com proteção contra perda de ambiente Docker.
 - **29F — Responsive UI Hardening:** Ajustes de layout flex-wrap para botões de ação e 4 indicadores visuais de progresso (CPU, Memória RAM, SWAP e Disco) no card de Status do Equipamento.
 - **29G — Regression & Monorepo QA:** 8 testes unitários automatizados cobrindo todas as variantes de payload e build limpo do frontend em 1.16s.
+
+---
+
+## 9. Etapa 30 — Development Control Center & Human Validation Governance 🟢 (CONCLUÍDA)
+
+### Objetivo
+Implementar o módulo interno, sistêmico e reutilizável de Governança Técnica e Controle de Desenvolvimento (**Development Control Center — DCC**), fornecendo a fonte visual e auditável de verdade sobre o progresso de implementação, cobertura de validação humana e prorrogação/homologação de capabilities.
+
+### Realizações Concluídas:
+- **30A — Canonical Governance Data Structure:** Estrutura canônica de dados em `docs/00-project/development-control/` com `project.json`, `roadmap.json`, `checkpoints.json`, `homologation.json` e `README.md`.
+- **30B — Shared Contracts & Typings:** Tipagem TypeScript completa em `@infraops/contracts` (`DevelopmentCapability`, `DevelopmentModule`, `DevelopmentStatus`, `FrozenComponent`, `HumanValidationOverview`, `DevelopmentProgressBreakdown`, etc.).
+- **30C — Mathematical Engine & Invariants:** Serviço backend `DevelopmentControlService` executando 16 invariantes estritas (A a P), com cálculo dinâmico de progresso por pesos (`homologatedWeight <= implementedWeight <= totalWeight`).
+- **30D — Protected REST API:** Endpoints `/api/v1/development-control/*` protegidos por verificação de perfil `superadmin` e flag de ambiente `ENABLE_DEV_CONTROL_CENTER`.
+- **30E — React Governance Dashboard UI:** Componente reativo `DevControlView.jsx` integrado ao shell com 4 cards executivos, status grid, chips de saúde do projeto, progresso por módulos, tabela de componentes congelados (`🔒 Frozen`) e timeline de checkpoints.
+- **30F — Automated Unit QA:** Testes automatizados Jest do motor matemático e verificações de integridade.
+
 
 
 

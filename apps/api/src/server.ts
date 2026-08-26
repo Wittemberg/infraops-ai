@@ -21,6 +21,9 @@ import { NetworkDeviceProfile, WanLink, NetworkChangeSnapshot, NetworkActionRun,
 import { NetworkDeviceService } from "./network-devices/networkDeviceService.js";
 import { WanActionManager } from "./network-devices/actions/wanActions.js";
 import { WanSelfHealingEngine } from "./network-devices/automation/wanSelfHealing.js";
+import { DevelopmentControlService } from "./development/developmentControlService.js";
+
+const devControlService = new DevelopmentControlService();
 
 const port = Number(process.env.PORT) || 3000;
 
@@ -4581,6 +4584,45 @@ Responda EXCLUSIVAMENTE um objeto JSON válido no seguinte formato:
     saveStore(store);
     sendJson(res, 200, { success: true });
     return;
+  }
+
+  // --- DEVELOPMENT CONTROL CENTER ENDPOINTS (STAGE 30) ---
+  if (url.startsWith("/api/v1/development-control") && method === "GET") {
+    const isDevControlEnabled = process.env.ENABLE_DEV_CONTROL_CENTER !== "false";
+
+    if (!isDevControlEnabled) {
+      sendJson(res, 404, { error: "Módulo Development Control Center desabilitado." });
+      return;
+    }
+
+    try {
+      if (url === "/api/v1/development-control/overview") {
+        const overview = devControlService.getOverview();
+        sendJson(res, 200, overview);
+        return;
+      }
+
+      if (url === "/api/v1/development-control/roadmap") {
+        const roadmap = devControlService.getRoadmap();
+        sendJson(res, 200, roadmap);
+        return;
+      }
+
+      if (url === "/api/v1/development-control/checkpoints") {
+        const checkpoints = devControlService.getCheckpoints();
+        sendJson(res, 200, checkpoints);
+        return;
+      }
+
+      if (url === "/api/v1/development-control/homologation") {
+        const homologation = devControlService.getHomologation();
+        sendJson(res, 200, homologation);
+        return;
+      }
+    } catch (err: any) {
+      sendJson(res, 500, { error: `Erro no Development Control Center: ${err?.message || err}` });
+      return;
+    }
   }
 
   // Default Fallback

@@ -1,6 +1,7 @@
 export * from "./schema.js";
 export * from "./job_protocol.js";
 export * from "./hypervisor.js";
+export * from "./development.js";
 
 export const PACKAGE_NAME = "@infraops/contracts";
 

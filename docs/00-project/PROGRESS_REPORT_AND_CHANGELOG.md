@@ -1,14 +1,14 @@
 # Relatório de Progresso e Registro de Evolução (Changelog) — InfraOps AI
 
 > **Data de Atualização:** Agosto / 2026  
-> **Status de Produção:** 🟢 **28/28 Etapas Concluídas — Plataforma 100% Operacional, Autônoma & com Inteligência de Infraestrutura**  
+> **Status de Produção:** 🟢 **30/30 Etapas Concluídas — Plataforma 100% Operacional, Autônoma, com Inteligência de Infraestrutura & Development Control Center**  
 > **Ambiente Oficial:** https://infraopsai.awecloudsolution.com
 
 ---
 
 ## 1. Resumo Executivo
 
-O InfraOps AI concluiu integralmente todas as **28 etapas de engenharia, arquitetura e produto**, tornando-se uma plataforma completa e de ponta a ponta de Governança, Operações Autônomas e Inteligência de Infraestrutura (AIOps).
+O InfraOps AI concluiu integralmente todas as **30 etapas de engenharia, arquitetura e produto**, tornando-se uma plataforma completa e de ponta a ponta de Governança, Operações Autônomas, Inteligência de Infraestrutura (AIOps) e Controle Técnico de Desenvolvimento (DCC).
 
 ```text
 [Fundação e Plataforma: Etapas 01–20] ======================================== 100% CONCLUÍDO
@@ -17,6 +17,8 @@ O InfraOps AI concluiu integralmente todas as **28 etapas de engenharia, arquite
 [Infrastructure Source of Truth: Etapa 26] =================================== 100% CONCLUÍDO
 [Network Devices & WAN Actions: Etapa 27] ==================================== 100% CONCLUÍDO
 [Simple Experience & Frontend Refactor: Etapa 28] ============================= 100% CONCLUÍDO
+[Production Hardening & pfSense Telemetry: Etapa 29] ========================= 100% CONCLUÍDO
+[Development Control Center & Human Validation: Etapa 30] ===================== 100% CONCLUÍDO
 [Módulos Extras: Catálogo de Actions, Chatwoot & Quepasa APIs] ================ 100% CONCLUÍDO
 ```
 
@@ -210,6 +212,30 @@ A Etapa 28 implementa uma reestruturação profunda da experiência do usuário 
 
 ### 6.5. Guia de Configuração & Onboarding Passo a Passo (`apps/web/src/features/onboarding/GuidedOnboardingModal.jsx`)
 - Modal interativo de 4 passos orientando novos operadores e clientes na conexão de servidores, rotinas de backup, roteadores de borda e alertas via WhatsApp/Telegram.
+
+---
+
+## 7. Etapa 29 — Production Hardening & Real-World pfSense Telemetry 🟢 (CONCLUÍDA)
+
+Fase de homologação em ambiente e hardware real (*Production Hardening*) para a telemetria do firewall/roteador **pfSense**:
+- **7.1. Diagnostic Sanitized Modal:** Endpoint `POST /api/v1/network-devices/:id/diagnostics/pfsense` com mascaramento automático de segredos (cookies, CSRF, tokens).
+- **7.2. FreeBSD CPU Ticks Parser:** Cálculo exato de consumo de CPU baseado no acumulador do kernel FreeBSD (`(total - idle) / total * 100`).
+- **7.3. Hybrid Telemetry Merge:** Fusão de telemetria AJAX (`/getstats.php`) e Dashboard HTML (`/index.php`) para capturar CPU, RAM, SWAP e Disco `/`.
+- **7.4. Vault Key Auto-Migration:** Auto-recuperação de chaves criptográficas com persitência física em `data/vault-master.key`.
+- **7.5. Tests & QA:** 8 testes unitários automatizados cobrindo variações de idioma e versões FreeBSD.
+
+---
+
+## 8. Etapa 30 — Development Control Center & Human Validation Governance 🟢 (CONCLUÍDA)
+
+Implementação do painel sistêmico de governança técnica do produto (**Development Control Center — DCC**):
+- **8.1. Fontes Canônicas em JSON:** Arquivos estruturados em `docs/00-project/development-control/` (`project.json`, `roadmap.json`, `checkpoints.json`, `homologation.json` e `README.md`).
+- **8.2. Contratos Tipados em TypeScript:** Exportação estrita no pacote `@infraops/contracts`.
+- **8.3. Motor Matemático Backend & 16 Invariantes:** Classe `DevelopmentControlService` com validação de consistência estrita (A a P), cálculo conservador de pesos e segregação em 3 dimensões: *Implementation Progress*, *Human Validation Coverage* e *Homologation / Readiness Progress*.
+- **8.4. Endpoints Protegidos por Perfil:** Rotas `/api/v1/development-control/*` restritas a `superadmin` e sujeitas à flag de ambiente `ENABLE_DEV_CONTROL_CENTER`.
+- **8.5. Dashboard Reativo com 4 Cards Executivos:** Componente React `DevControlView.jsx` integrado ao shell com badges de saúde, progresso por módulos, tabela de componentes congelados (`🔒 Frozen`) e linha do tempo de checkpoints.
+- **8.6. Testes Automatizados:** Suíte de testes Jest no backend e verificação de confinamento.
+
 
 
 

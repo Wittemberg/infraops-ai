@@ -19,6 +19,7 @@ import { DailyOperationsCenter } from "./features/home/DailyOperationsCenter.jsx
 import { ReportsCenterView } from "./features/reports/ReportsCenterView.jsx";
 import { GuidedOnboardingModal } from "./features/onboarding/GuidedOnboardingModal.jsx";
 import { SimpleModeToggle } from "./components/common/SimpleModeToggle.jsx";
+import { DevControlView } from "./components/DevControlView.jsx";
 import { UI_LANGUAGE } from "./app/uiLanguage.js";
 
 const API_BASE = "https://infraopsai.awecloudsolution.com";
@@ -687,6 +688,13 @@ export function App() {
               {isSimple ? "⚙️ Configurações" : "⚙️ Configurações Gerais"}
             </li>
           )}
+
+          {/* 12. Development Control Center */}
+          {isSuperAdmin && (
+            <li className={`nav-item ${normalizedNav === "devcontrol" ? "active" : ""}`} onClick={() => setCurrentNav("devcontrol")}>
+              🛠️ Desenvolvimento
+            </li>
+          )}
         </ul>
 
         {/* User Card in Sidebar Bottom */}
@@ -744,6 +752,7 @@ export function App() {
             {normalizedNav === "intelligence" && (isSimple ? "Recomendações de Melhoria" : "Inteligência & Advisor Estrutural de Infraestrutura")}
             {normalizedNav === "integrations" && "Integrações Nativas (Proxmox VE & Virtualizor)"}
             {normalizedNav === "settings" && (isSimple ? "Configurações da Plataforma" : "Configurações Gerais dos Subsistemas")}
+            {normalizedNav === "devcontrol" && "Development Control Center & Governança de Homologação"}
           </h1>
 
           <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
@@ -898,6 +907,7 @@ export function App() {
         {normalizedNav === "automations" && isOperator && <AutomationsSchedulerView activeTenant={activeTenant} />}
         {normalizedNav === "intelligence" && isOperator && <InfrastructureIntelligenceView activeTenant={activeTenant} />}
         {normalizedNav === "settings" && isAdmin && <SystemSettingsView isSuperAdmin={isSuperAdmin} activeTenant={activeTenant} />}
+        {normalizedNav === "devcontrol" && isSuperAdmin && <DevControlView currentUser={currentUser} />}
 
         {/* Catch-all fallback to prevent blank screen under any unexpected route */}
         {![
@@ -915,6 +925,7 @@ export function App() {
           "automations",
           "intelligence",
           "settings",
+          "devcontrol",
         ].includes(normalizedNav) && (
           <DailyOperationsCenter
             activeTenant={activeTenant}
