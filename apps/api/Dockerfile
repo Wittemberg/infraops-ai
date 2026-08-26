@@ -4,6 +4,7 @@ COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages ./packages
 COPY apps/api ./apps/api
 COPY docs ./docs
+COPY docs/00-project/development-control /app/development-control
 RUN npm install -g pnpm@9 && pnpm install --no-frozen-lockfile
 
 FROM node:22-alpine AS runner

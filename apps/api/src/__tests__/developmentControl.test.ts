@@ -89,13 +89,8 @@ describe("DevelopmentControlService (Stage 30)", () => {
     expect(homologation.sessions).toBeDefined();
   });
 
-  test("should verify zero drift between disk canonical JSONs and embedded fallback", () => {
-    const serviceDisk = new DevelopmentControlService();
-    const serviceFallback = new DevelopmentControlService("/non-existent-dir-for-fallback-test");
-
-    expect(serviceFallback.getProject()).toEqual(serviceDisk.getProject());
-    expect(serviceFallback.getRoadmap()).toEqual(serviceDisk.getRoadmap());
-    expect(serviceFallback.getCheckpoints()).toEqual(serviceDisk.getCheckpoints());
-    expect(serviceFallback.getHomologation()).toEqual(serviceDisk.getHomologation());
+  test("should throw an error when canonical JSON directory is unavailable", () => {
+    const serviceMissing = new DevelopmentControlService("/non-existent-dir-for-test");
+    expect(() => serviceMissing.getOverview()).toThrow("Development Control data unavailable");
   });
 });

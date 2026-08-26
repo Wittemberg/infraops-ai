@@ -21,17 +21,18 @@ try {
   console.log("Checkpoints Count:", overview.checkpoints.length);
   console.log("Invariants Check: ALL 16 INVARIANTS PASSED! ✅");
 
-  console.log("=== Testing Anti-Drift (Disk vs Embedded Fallback) ===");
-  const fallbackService = new DevelopmentControlService("/non-existent-dir-for-drift-test");
-  const fallbackOverview = fallbackService.getOverview();
-
-  const diskJson = JSON.stringify(overview);
-  const fallbackJson = JSON.stringify(fallbackOverview);
-
-  if (diskJson !== fallbackJson) {
-    throw new Error("DRIFT DETECTED between disk JSON and embedded fallback!");
+  console.log("=== Testing Single Source of Truth Strict Enforcement ===");
+  try {
+    const missingService = new DevelopmentControlService("/non-existent-dir-for-test");
+    missingService.getOverview();
+    throw new Error("FAIL: Should have thrown error when canonical files are missing!");
+  } catch (err: any) {
+    if (err.message.includes("Development Control data unavailable")) {
+      console.log("Single Source of Truth Check: Correctly throws error when canonical JSON files are missing! ✅");
+    } else {
+      throw err;
+    }
   }
-  console.log("Anti-Drift Check: Disk dataset and Embedded Fallback are 100% IDENTICAL! ✅");
 } catch (err) {
   console.error("Invariant Verification Error:", err);
   process.exit(1);

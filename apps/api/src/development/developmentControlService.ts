@@ -27,12 +27,6 @@ const HOMOLOGATED_STATES: DevelopmentStatus[] = [
   "FROZEN",
 ];
 
-// Embedded fallback datasets imported directly from canonical JSON files in docs/00-project/development-control
-import EMBEDDED_PROJECT from "../../../../docs/00-project/development-control/project.json";
-import EMBEDDED_ROADMAP from "../../../../docs/00-project/development-control/roadmap.json";
-import EMBEDDED_CHECKPOINTS from "../../../../docs/00-project/development-control/checkpoints.json";
-import EMBEDDED_HOMOLOGATION from "../../../../docs/00-project/development-control/homologation.json";
-
 export class DevelopmentControlService {
   private baseDir: string | null = null;
 
@@ -41,14 +35,19 @@ export class DevelopmentControlService {
   }
 
   private resolveBaseDir(customBaseDir?: string): string | null {
+    if (customBaseDir) {
+      return existsSync(join(customBaseDir, "roadmap.json")) ? customBaseDir : null;
+    }
+
     const candidates = [
-      customBaseDir,
       process.env.DEV_CONTROL_DIR,
-      resolve(process.cwd(), "docs/00-project/development-control"),
-      resolve(process.cwd(), "../../docs/00-project/development-control"),
-      resolve(process.cwd(), "../docs/00-project/development-control"),
-      resolve(process.cwd(), "../../../docs/00-project/development-control"),
+      "/app/development-control",
       "/app/docs/00-project/development-control",
+      resolve(process.cwd(), "docs/00-project/development-control"),
+      resolve(process.cwd(), "development-control"),
+      resolve(process.cwd(), "../docs/00-project/development-control"),
+      resolve(process.cwd(), "../../docs/00-project/development-control"),
+      resolve(process.cwd(), "../../../docs/00-project/development-control"),
       "/docs/00-project/development-control",
     ].filter((p): p is string => Boolean(p));
 
@@ -61,25 +60,27 @@ export class DevelopmentControlService {
   }
 
   private loadJson<T>(filename: string): T {
-    if (this.baseDir) {
-      const filePath = join(this.baseDir, filename);
-      if (existsSync(filePath)) {
-        try {
-          const raw = readFileSync(filePath, "utf-8");
-          return JSON.parse(raw) as T;
-        } catch (err: any) {
-          console.warn(`[DevelopmentControlService] Error reading ${filename} from disk: ${err?.message || err}. Falling back to embedded dataset.`);
-        }
-      }
+    if (!this.baseDir) {
+      throw new Error(
+        `[DevelopmentControlService] Development Control data unavailable: canonical JSON files not found in resolved paths.`
+      );
     }
 
-    // Fallback to embedded datasets if disk files are not present or unreadable
-    if (filename === "project.json") return EMBEDDED_PROJECT as unknown as T;
-    if (filename === "roadmap.json") return EMBEDDED_ROADMAP as unknown as T;
-    if (filename === "checkpoints.json") return EMBEDDED_CHECKPOINTS as unknown as T;
-    if (filename === "homologation.json") return EMBEDDED_HOMOLOGATION as unknown as T;
+    const filePath = join(this.baseDir, filename);
+    if (!existsSync(filePath)) {
+      throw new Error(
+        `[DevelopmentControlService] Development Control data unavailable: canonical JSON file '${filename}' not found at '${filePath}'.`
+      );
+    }
 
-    throw new Error(`[DevelopmentControlService] Unknown dataset file: ${filename}`);
+    try {
+      const raw = readFileSync(filePath, "utf-8");
+      return JSON.parse(raw) as T;
+    } catch (err: any) {
+      throw new Error(
+        `[DevelopmentControlService] Error reading canonical JSON file '${filename}': ${err?.message || err}`
+      );
+    }
   }
 
   public validateInvariants(
