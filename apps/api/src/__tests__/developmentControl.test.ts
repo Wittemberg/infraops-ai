@@ -88,4 +88,14 @@ describe("DevelopmentControlService (Stage 30)", () => {
     const homologation = service.getHomologation();
     expect(homologation.sessions).toBeDefined();
   });
+
+  test("should verify zero drift between disk canonical JSONs and embedded fallback", () => {
+    const serviceDisk = new DevelopmentControlService();
+    const serviceFallback = new DevelopmentControlService("/non-existent-dir-for-fallback-test");
+
+    expect(serviceFallback.getProject()).toEqual(serviceDisk.getProject());
+    expect(serviceFallback.getRoadmap()).toEqual(serviceDisk.getRoadmap());
+    expect(serviceFallback.getCheckpoints()).toEqual(serviceDisk.getCheckpoints());
+    expect(serviceFallback.getHomologation()).toEqual(serviceDisk.getHomologation());
+  });
 });
