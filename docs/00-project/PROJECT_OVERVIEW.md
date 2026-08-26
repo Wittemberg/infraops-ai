@@ -27,8 +27,10 @@ Permitir que uma equipe de infraestrutura saiba rapidamente **o que precisa de a
 11. **Infrastructure Intelligence & Advisor (Etapa 25):** Mineração de causas-raiz de incidentes repetitivos, recomendações evidence-backed, previsão preditiva de capacidade (7 a 180 dias), detecção de SPOFs, Score de Dívida Técnica (0–100) e relatórios executivos de MSP.
 12. **Native Infrastructure Source of Truth & Physical Topology (Etapa 26):** Customer Infrastructure Book completo (Sites, Racks 42U com elevação visual, Ativos físicos, Switch Port Wizard, conexões porta-a-porta, VLANs, Subnets CIDR, IPAM operacional, Checklists de Visita Técnica com assinatura e Discovery SNMP/LLDP).
 13. **Network Device Monitoring & Governed WAN Actions (Etapa 27):** Drivers nativos para **MikroTik RouterOS** e **pfSense**, telemetria de hardware (CPU/RAM/Temp), monitoramento em tempo real de links WAN (latência, perda de pacotes, banda) e comutação governada de link primário com Precheck, Snapshot atômico, Postcheck, Rollback em 1 clique e motor anti-flapping.
-14. **Governança Estrita:** Policy Engine, RBAC multi-tenant estrito e Audit Hash Chain SHA-256 à prova de adulteração.
-15. **Portal do Cliente:** Visão isolada e segura por organização.
+14. **Simple Experience, Guided Operations & Frontend Refactor (Etapa 28):** Central de Operações Diárias (*"O que precisa de atenção hoje?"*), alternador dinâmico de apresentação (**Modo Simples vs. Modo Técnico** — ADR-023), Central de Relatórios Executivos/QBR, Checklist de Onboarding Guiado de 4 passos e usabilidade responsiva em Português-first.
+15. **Production Hardening & Real-World pfSense Telemetry (Etapa 29):** Leitura de CPU calculada via FreeBSD Ticks (`(total - idle) / total * 100`), fusão híbrida de telemetria (CPU, RAM, SWAP e Disco `/`), Diagnóstico Sanitizado com mascaramento de segredos, auto-migração de chaves do Vault (`data/vault-master.key`) e 8 testes unitários automatizados.
+16. **Governança Estrita:** Policy Engine, RBAC multi-tenant estrito e Audit Hash Chain SHA-256 à prova de adulteração.
+17. **Portal do Cliente:** Visão isolada e segura por organização.
 
 ## Princípio de Produto
 
